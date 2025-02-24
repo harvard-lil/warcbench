@@ -63,6 +63,8 @@ class ContentBlock(ByteRange):
 # Utils
 #
 
+CRLF = b"\r\n"
+
 class AttributeNotInitializedError(Exception):
     """Custom exception raised when trying to access an uninitialized attribute."""
     pass
@@ -105,16 +107,16 @@ def find_record_end(file_handle):
         if not line:
             return None  # End of file reached without a record delimiter
 
-        if line.endswith(b"\r\n"):
+        if line.endswith(CRLF):
 
             # We are only at a record end if this line is just a break.
-            if line == b"\r\n":
+            if line == CRLF:
 
                 if last_line_was_a_break:
                     # We've found the delimiter! We might be done.
                     # Make sure there aren't more instance of \r\n to consume,
                     # lest we signal we've found the end of the record prematurely.
-                    if not file_handle.peek(2).startswith(b"\r\n"):
+                    if not file_handle.peek(2).startswith(CRLF):
                         return file_handle.tell()  # End of record found
 
                 if last_line_had_a_break:
@@ -143,10 +145,10 @@ def find_record_end(file_handle):
 
 def split_record(record):
     header_start = record.start
-    header_end_index = record.bytes.find(b"\r\n\r\n")
+    header_end_index = record.bytes.find(CRLF*2)
     header_end = header_start + header_end_index
 
-    content_block_start_index = header_end_index + len(b"\r\n\r\n")
+    content_block_start_index = header_end_index + len(CRLF*2)
     content_block_start = record.start + content_block_start_index
     content_block_end = record.end
 
@@ -267,10 +269,10 @@ class WARCParser:
         stop = find_record_end(self.file_handle)
         if stop:
             # Don't include the delimiter in the record's data or offsets
-            end = stop - len(b"\r\n\r\n")
+            end = stop - len(CRLF*2)
             data = self.file_handle.read(end - start)
             # Advance the cursor past the delimiter
-            self.file_handle.read(len(b"\r\n\r\n"))
+            self.file_handle.read(len(CRLF*2))
         else:
             self.warnings.append('Last record may have been truncated.')
             data = self.file_handle.read()
@@ -298,6 +300,6 @@ with open("579F-LLZR.wacz", "rb") as wacz_file, \
     zipfile.Path(wacz_file, "archive/data.warc.gz").open("rb") as warc_gz_file, \
     gzip.open(warc_gz_file, "rb") as warc_file:
         parser = WARCParser(warc_file, check_content_lengths=True)
-        parser.parse()
-        breakpoint()
+        # parser.parse()
+        parser.records()
 

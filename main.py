@@ -208,7 +208,8 @@ class WARCParser:
     def records(self):
         if self._records is None:
             raise AttributeNotInitializedError(
-                "Call parser.parse() to load records into RAM and populate parser.records"
+                "Call parser.parse() to load records into RAM and populate parser.records,"
+                " or use parser.iterator() to iterate through records."
             )
         return self._records
 

@@ -11,6 +11,14 @@ logging.basicConfig(level=logging.DEBUG, format='%(asctime)s - %(levelname)s - %
 
 
 #
+# Constants
+#
+
+CRLF = b"\r\n"
+WARC_VERSION = b"WARC/1.1\r\n"
+WARC_FIELD_NAME_PREFIX = b"WARC-"
+
+#
 # Models
 #
 
@@ -62,8 +70,6 @@ class ContentBlock(ByteRange):
 #
 # Utils
 #
-
-CRLF = b"\r\n"
 
 class AttributeNotInitializedError(Exception):
     """Custom exception raised when trying to access an uninitialized attribute."""
@@ -125,7 +131,7 @@ def find_record_end(file_handle):
                     # the end of this record and the start of the next one.
                     # (Expect this after content blocks with binary payloads.)
                     # Otherwise, we're still in the middle of a record.
-                    if file_handle.peek(7).startswith(b"WARC/1.1\r\n"):
+                    if file_handle.peek(len(WARC_VERSION)).startswith(WARC_VERSION):
                         # TODO: in rare cases, I bet this catches false positives.
                         # For instance, what if the content block's payload is an
                         # HTML page with code blocks about WARC contents? :-)
@@ -201,9 +207,9 @@ class WARCParser:
         self._records = None
 
 
-    def parse(self):
+    def parse(self, filters=None):
         self._records = []
-        for record in self.iterator():
+        for record in self.iterator(filters=filters):
             self._records.append(record)
 
     @property
@@ -215,7 +221,7 @@ class WARCParser:
             )
         return self._records
 
-    def iterator(self):
+    def iterator(self, filters=None):
         self.file_handle.seek(0)
 
         while self.state != STATES['END']:
@@ -225,7 +231,8 @@ class WARCParser:
             self.state = transition_func()
 
             if self.current_record:
-                yield self.current_record
+                if filters:
+                    yield self.current_record
 
         self.current_record = None
 
@@ -235,7 +242,7 @@ class WARCParser:
         first_line = self.file_handle.readline()
         self.file_handle.seek(initial_position)
 
-        if first_line == b'WARC/1.1\r\n':
+        if first_line == WARC_VERSION:
             return STATES['EXTRACT_HEADER']
         else:
             self.error = 'No WARC header found.'
@@ -244,7 +251,7 @@ class WARCParser:
     def find_next_record(self):
         while True:
             initial_position = self.file_handle.tell()
-            if self.file_handle.peek(4).startswith(b"WARC"):
+            if self.file_handle.peek(len(WARC_FIELD_NAME_PREFIX)).startswith(WARC_FIELD_NAME_PREFIX):
                 return STATES['EXTRACT_NEXT_RECORD']
 
             next_line = self.file_handle.readline()
@@ -300,6 +307,6 @@ with open("579F-LLZR.wacz", "rb") as wacz_file, \
     zipfile.Path(wacz_file, "archive/data.warc.gz").open("rb") as warc_gz_file, \
     gzip.open(warc_gz_file, "rb") as warc_file:
         parser = WARCParser(warc_file, check_content_lengths=True)
-        # parser.parse()
-        parser.records()
+        parser.parse()
+        # parser.records()
 

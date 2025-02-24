@@ -60,6 +60,11 @@ class ContentBlock(ByteRange):
 # Utils
 #
 
+class AttributeNotInitializedError(Exception):
+    """Custom exception raised when trying to access an uninitialized attribute."""
+    pass
+
+
 def skip_leading_whitespace(file_handle):
     while True:
         byte = file_handle.read(1)
@@ -183,17 +188,40 @@ class WARCParser:
         }
         self.file_handle = file_handle
         self.check_content_lengths = check_content_lengths
-        self.records = []
         self.unparsable_lines = []
         self.warnings = []
         self.error = None
+        self.current_record = None
+
+        self._records = None
+
 
     def parse(self):
+        self._records = []
+        for record in self.iterator():
+            self._records.append(record)
+
+    @property
+    def records(self):
+        if self._records is None:
+            raise AttributeNotInitializedError(
+                "Call parser.parse() to load records into RAM and populate parser.records"
+            )
+        return self._records
+
+    def iterator(self):
         self.file_handle.seek(0)
 
         while self.state != STATES['END']:
+            self.current_record = None
+
             transition_func = self.transitions[self.state]
             self.state = transition_func()
+
+            if self.current_record:
+                yield self.current_record
+
+        self.current_record = None
 
     def find_warc_header(self):
         skip_leading_whitespace(self.file_handle)
@@ -247,7 +275,7 @@ class WARCParser:
         )
         if self.check_content_lengths:
             record.check_content_length()
-        self.records.append(record)
+        self.current_record = record
 
         if end:
             return STATES['FIND_NEXT_RECORD']

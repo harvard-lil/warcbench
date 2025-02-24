@@ -68,6 +68,8 @@ def skip_leading_whitespace(file_handle):
             # byte is isn't skipped
             file_handle.seek(-1, whence=os.SEEK_CUR)
             break
+        else:
+            print("Skipping whitespace!\n")
 
 
 def preserve_cursor_position(func):
@@ -100,8 +102,9 @@ def find_record_end(file_handle):
 
             if line == b"\r\n":
                 if last_line_was_a_break:
-                    end_position = file_handle.tell()
-                    break
+                    if not file_handle.peek(2).startswith(b"\r\n"):
+                        end_position = file_handle.tell()
+                        break
 
                 if last_line_had_a_break and file_handle.peek(4).startswith(b"WARC"):
                     end_position = file_handle.tell()
@@ -193,7 +196,6 @@ class WARCParser:
             return STATES['END']
 
     def find_next_record(self):
-        skip_leading_whitespace(self.file_handle)
         while True:
             initial_position = self.file_handle.tell()
             if self.file_handle.peek(4).startswith(b"WARC"):

@@ -16,7 +16,6 @@ logging.basicConfig(level=logging.DEBUG, format='%(asctime)s - %(levelname)s - %
 
 CRLF = b"\r\n"
 WARC_VERSION = b"WARC/1.1\r\n"
-WARC_FIELD_NAME_PREFIX = b"WARC-"
 
 #
 # Models
@@ -251,7 +250,7 @@ class WARCParser:
     def find_next_record(self):
         while True:
             initial_position = self.file_handle.tell()
-            if self.file_handle.peek(len(WARC_FIELD_NAME_PREFIX)).startswith(WARC_FIELD_NAME_PREFIX):
+            if self.file_handle.peek(len(WARC_VERSION)).startswith(WARC_VERSION):
                 return STATES['EXTRACT_NEXT_RECORD']
 
             next_line = self.file_handle.readline()

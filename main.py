@@ -86,6 +86,7 @@ def preserve_cursor_position(func):
 
 @preserve_cursor_position
 def find_record_end(file_handle):
+    last_line_had_a_break = False
     last_line_was_a_break = False
 
     while True:
@@ -95,14 +96,24 @@ def find_record_end(file_handle):
             end_position = None
             break
 
-        if line == b"\r\n":
-            if last_line_was_a_break:
-                end_position = file_handle.tell()
-                break
-            else:
+        if line.endswith(b"\r\n"):
+
+            if line == b"\r\n":
+                if last_line_was_a_break:
+                    end_position = file_handle.tell()
+                    break
+
+                if last_line_had_a_break and file_handle.peek(4).startswith(b"WARC"):
+                    end_position = file_handle.tell()
+                    break
+
                 last_line_was_a_break = True
+            else:
+                last_line_was_a_break = False
+                last_line_had_a_break = True
         else:
             last_line_was_a_break = False
+            last_line_had_a_break = False
 
     return end_position
 

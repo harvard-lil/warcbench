@@ -235,6 +235,15 @@ class WARCParser:
 
             if self.current_record:
                 if filters:
+                    retained = True
+                    for f in filters:
+                        if not f(self.current_record):
+                            retained = False
+                            break
+
+                    if retained:
+                        yield self.current_record
+                else:
                     yield self.current_record
 
         self.current_record = None
@@ -309,7 +318,14 @@ class WARCParser:
 with open("579F-LLZR.wacz", "rb") as wacz_file, \
     zipfile.Path(wacz_file, "archive/data.warc.gz").open("rb") as warc_gz_file, \
     gzip.open(warc_gz_file, "rb") as warc_file:
-        parser = WARCParser(warc_file, check_content_lengths=True)
-        parser.parse()
-        # parser.records()
+        parser = WARCParser(
+            warc_file,
+            check_content_lengths=True
+        )
+        parser.parse(
+            filters=[
+                # lambda record: False
+            ]
+        )
+        print(len(parser.records))
 

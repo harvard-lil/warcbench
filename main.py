@@ -1,10 +1,13 @@
 from dataclasses import dataclass
 import functools
 import gzip
+import logging
 import os
 import re
 from typing import Optional
 import zipfile
+
+logging.basicConfig(level=logging.DEBUG, format='%(asctime)s - %(levelname)s - %(message)s')
 
 
 #
@@ -41,7 +44,7 @@ class Record(ByteRange):
         if match:
             expected = int(match.group(1))
             self.content_length_check_result = self.content_block.length == expected
-            print(f"Found {self.content_block.length}, expected {expected}.")
+            logging.debug(f"Record content length check: found {self.content_block.length}, expected {expected}.")
         else:
             self.content_length_check_result = False
 
@@ -74,7 +77,7 @@ def skip_leading_whitespace(file_handle):
             file_handle.seek(-1, whence=os.SEEK_CUR)
             break
         else:
-            print("Skipping whitespace!\n")
+            logging.debug("Skipping whitespace!\n")
 
 
 def preserve_cursor_position(func):

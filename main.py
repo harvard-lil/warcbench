@@ -95,22 +95,34 @@ def find_record_end(file_handle):
         line = file_handle.readline()
 
         if not line:
-            end_position = None
-            break
+            return None  # End of file reached without a record delimiter
 
         if line.endswith(b"\r\n"):
 
+            # We are only at a record end if this line is just a break...
             if line == b"\r\n":
-                if last_line_was_a_break:
-                    if not file_handle.peek(2).startswith(b"\r\n"):
-                        end_position = file_handle.tell()
-                        break
 
-                if last_line_had_a_break and file_handle.peek(4).startswith(b"WARC"):
-                    end_position = file_handle.tell()
-                    break
+                if last_line_was_a_break:
+                    # We've found the delimiter! We might be done.
+                    # Make sure there aren't more instance of \r\n to consume,
+                    # lest we signal we've found the end of the record prematurely.
+                    if not file_handle.peek(2).startswith(b"\r\n"):
+                        return file_handle.tell()  # End of record found
+
+                if last_line_had_a_break:
+                    # We've found the delimiter! We might be done.
+                    # If the next line begins with "WARC", then we've found
+                    # the end of this record and the start of the next one.
+                    # (Expect this after content blocks with binary payloads.)
+                    # Otherwise, we're still in the middle of a record.
+                    if file_handle.peek(7).startswith(b"WARC/1.1\r\n"):
+                        # TODO: in rare cases, I bet this catches false positives.
+                        # For instance, what if the content block's payload is an
+                        # HTML page with code blocks about WARC contents? :-)
+                        return file_handle.tell()  # End of record found
 
                 last_line_was_a_break = True
+
             else:
                 last_line_was_a_break = False
                 last_line_had_a_break = True
@@ -218,8 +230,10 @@ class WARCParser:
         start = self.file_handle.tell()
         stop = find_record_end(self.file_handle)
         if stop:
+            # Don't include the delimiter in the record's data or offsets
             end = stop - len(b"\r\n\r\n")
             data = self.file_handle.read(end - start)
+            # Advance the cursor past the delimiter
             self.file_handle.read(len(b"\r\n\r\n"))
         else:
             self.warnings.append('Last record may have been truncated.')

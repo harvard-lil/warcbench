@@ -16,6 +16,10 @@ logging.basicConfig(level=logging.DEBUG, format='%(asctime)s - %(levelname)s - %
 
 CRLF = b"\r\n"
 WARC_VERSION = b"WARC/1.1\r\n"
+WARC_NAMED_FIELD_PATTERN = rb"WARC-(.+):\s*(.*)\r\n"
+CONTENT_LENGTH_PATTERN = rb"Content-Length:\s*(\d+)"
+CONTENT_TYPE_PATTERN = rb"Content-Type:\s*(.*)\r\n"
+
 
 #
 # Models
@@ -46,7 +50,7 @@ class Record(ByteRange):
         self.header, self.content_block = split_record(self)
 
     def check_content_length(self):
-        match = re.search(rb'Content-Length:\s*(\d+)', self.header.bytes, re.IGNORECASE)
+        match = re.search(CONTENT_LENGTH_PATTERN, self.header.bytes, re.IGNORECASE)
 
         if match:
             expected = int(match.group(1))

@@ -239,6 +239,7 @@ class WARCParser:
                     for f in filters:
                         if not f(self.current_record):
                             retained = False
+                            logging.debug(f"Skipping record at {self.current_record.start}-{self.current_record.end} due to filter.")
                             break
 
                     if retained:

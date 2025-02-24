@@ -107,7 +107,7 @@ def find_record_end(file_handle):
 
         if line.endswith(b"\r\n"):
 
-            # We are only at a record end if this line is just a break...
+            # We are only at a record end if this line is just a break.
             if line == b"\r\n":
 
                 if last_line_was_a_break:

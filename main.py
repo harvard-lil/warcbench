@@ -244,6 +244,10 @@ class WARCParser:
             next_line = self.file_handle.readline()
             current_position = self.file_handle.tell()
             if next_line:
+                # TODO: if there are a large number of unparseable lines,
+                # this could eat up RAM. Is there a better solution,
+                # especially in iterator mode? We could just log,
+                # or could make behavior configurable.
                 self.unparsable_lines.append(
                     UnparsableLine(
                         start=initial_position,

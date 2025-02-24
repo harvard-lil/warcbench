@@ -2,6 +2,7 @@ from dataclasses import dataclass
 import functools
 import gzip
 import logging
+import operator
 import os
 import re
 from typing import Optional
@@ -11,14 +12,16 @@ logging.basicConfig(level=logging.DEBUG, format='%(asctime)s - %(levelname)s - %
 
 
 #
-# Constants
+# Constants and patterns
 #
 
 CRLF = b"\r\n"
 WARC_VERSION = b"WARC/1.1\r\n"
-WARC_NAMED_FIELD_PATTERN = rb"WARC-(.+):\s*(.*)\r\n"
 CONTENT_LENGTH_PATTERN = rb"Content-Length:\s*(\d+)"
 CONTENT_TYPE_PATTERN = rb"Content-Type:\s*(.*)\r\n"
+
+def get_warc_named_field_pattern(field_name):
+    return b"WARC-" + bytes(field_name, "utf-8") + rb":\s*(.*)\r\n"
 
 
 #
@@ -50,7 +53,7 @@ class Record(ByteRange):
         self.header, self.content_block = split_record(self)
 
     def check_content_length(self):
-        match = re.search(CONTENT_LENGTH_PATTERN, self.header.bytes, re.IGNORECASE)
+        match = find_pattern_in_bytes(CONTENT_LENGTH_PATTERN, self.header.bytes)
 
         if match:
             expected = int(match.group(1))
@@ -68,6 +71,80 @@ class Header(ByteRange):
 @dataclass
 class ContentBlock(ByteRange):
     pass
+
+
+#
+# Record Filters
+#
+
+def warc_named_field_contains_filter(field_name, target, exact=False):
+    def f(record):
+        match = find_pattern_in_bytes(get_warc_named_field_pattern(field_name), record.header.bytes, case_insensitive=True)
+
+        if match:
+            extracted = match.group(1)
+            if exact:
+                return bytes(target, 'utf-8') == extracted
+            return bytes(target, 'utf-8') in extracted
+        else:
+            return False
+    return f
+
+
+def record_content_length_filter(target_length, operand="eq"):
+    allowed_operators = {
+        'lt': operator.lt,
+        'le': operator.le,
+        'eq': operator.eq,
+        'ne': operator.ne,
+        'gt': operator.gt,
+        'ge': operator.ge,
+    }
+    if operand not in allowed_operators:
+        raise ValueError(f"Supported operands: {', '.join(allowed_operators)}.")
+
+    def f(record):
+        match = find_pattern_in_bytes(CONTENT_LENGTH_PATTERN, record.header.bytes, case_insensitive=True)
+
+        if match:
+            extracted = int(match.group(1))
+            return allowed_operators[operand](extracted, target_length)
+        else:
+            return False
+    return f
+
+
+def record_content_type_filter(content_type, case_insensitive=True):
+    """
+    Filters on the Content-Type field of the WARC header.
+
+    Expected values:
+    - application/warc-fields
+    - application/http; msgtype=request
+    - application/http; msgtype=response
+    - image/jpeg or another mime type, for resource records
+
+    NB: This field does NOT refer to the content-type header of recorded HTTP responses.
+    See `response_content_type_filter`.
+    """
+    def f(record):
+        match = find_pattern_in_bytes(CONTENT_TYPE_PATTERN, record.header.bytes, case_insensitive=True)
+
+        if match:
+            extracted = match.group(1)
+
+            extracted_type = extracted.lower() if case_insensitive else extracted
+            target_type_string = content_type.lower() if case_insensitive else content_type
+            target_type = bytes(target_type_string, 'utf-8')
+
+            return target_type in extracted_type
+        else:
+            return False
+    return f
+
+
+def response_content_type_filer():
+    raise NotImplemented()
 
 
 #
@@ -175,6 +252,9 @@ def split_record(record):
 
     return (header, content_block)
 
+
+def find_pattern_in_bytes(pattern, data, case_insensitive=True):
+    return re.search(pattern, data, re.IGNORECASE if case_insensitive else 0)
 
 
 #
@@ -325,7 +405,18 @@ with open("579F-LLZR.wacz", "rb") as wacz_file, \
         )
         parser.parse(
             filters=[
-                # lambda record: False
+                # lambda record: False,
+                # record_content_length_filter(1007),
+                # record_content_length_filter(38978, 'gt'),
+                # record_content_type_filter('http'),
+                # warc_named_field_filter('type', 'warcinfo'),
+                # warc_named_field_contains_filter('type', 'request'),
+                # warc_named_field_contains_filter('target-uri', 'favicon'),
+                # warc_named_field_contains_filter(
+                #     'target-uri',
+                #     'http://example.com/',
+                #     exact=True
+                # )
             ]
         )
         print(len(parser.records))

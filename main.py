@@ -77,13 +77,13 @@ class ContentBlock(ByteRange):
 # Record Filters
 #
 
-def warc_named_field_contains_filter(field_name, target, exact_match=False):
+def warc_named_field_filter(field_name, target, exact_match=False):
     def f(record):
         match = find_pattern_in_bytes(get_warc_named_field_pattern(field_name), record.header.bytes, case_insensitive=True)
 
         if match:
             extracted = match.group(1)
-            if exact:
+            if exact_match:
                 return bytes(target, 'utf-8') == extracted
             return bytes(target, 'utf-8') in extracted
         else:
@@ -114,7 +114,7 @@ def record_content_length_filter(target_length, operand="eq"):
     return f
 
 
-def record_content_type_filter(content_type, case_insensitive=True):
+def record_content_type_filter(content_type, case_insensitive=True, exact_match=False):
     """
     Filters on the Content-Type field of the WARC header.
 
@@ -137,6 +137,8 @@ def record_content_type_filter(content_type, case_insensitive=True):
             target_type_string = content_type.lower() if case_insensitive else content_type
             target_type = bytes(target_type_string, 'utf-8')
 
+            if exact_match:
+                return target_type == extracted_type
             return target_type in extracted_type
         else:
             return False
@@ -410,9 +412,9 @@ with open("579F-LLZR.wacz", "rb") as wacz_file, \
                 # record_content_length_filter(38978, 'gt'),
                 # record_content_type_filter('http'),
                 # warc_named_field_filter('type', 'warcinfo'),
-                # warc_named_field_contains_filter('type', 'request'),
-                # warc_named_field_contains_filter('target-uri', 'favicon'),
-                # warc_named_field_contains_filter(
+                # warc_named_field_filter('type', 'request'),
+                # warc_named_field_filter('target-uri', 'favicon'),
+                # warc_named_field_filter(
                 #     'target-uri',
                 #     'http://example.com/',
                 #     exact_match=True

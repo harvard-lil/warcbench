@@ -25,6 +25,10 @@ def get_warc_named_field_pattern(field_name):
     return b"WARC-" + bytes(field_name, "utf-8") + rb":\s*(.*)((\r\n)|$)"
 
 
+def get_http_header_pattern(header_name):
+    return bytes(field_name, "utf-8") + rb":\s*(.+)((\r\n)|$)"
+
+
 #
 # Models
 #
@@ -83,6 +87,13 @@ class Record(ByteRange):
         else:
             self.content_length_check_result = False
 
+    def get_http_header_block(self):
+        if (
+            record_content_type_filter('http')(self) and
+            self.content_block.bytes.find(CRLF*2)
+        ):
+            return self.content_block.bytes.split(CRLF*2)[0]
+
 
 @dataclass
 class Header(ByteRange):
@@ -94,23 +105,22 @@ class ContentBlock(ByteRange):
     pass
 
 
-
-
 #
 # Record Filters
 #
 
-def warc_named_field_filter(field_name, target, exact_match=False):
+def warc_named_field_filter(field_name, target, case_insensitive=True, exact_match=False):
     def f(record):
         match = find_pattern_in_bytes(get_warc_named_field_pattern(field_name), record.header.bytes, case_insensitive=True)
-
         if match:
             extracted = match.group(1)
-            if exact_match:
-                return bytes(target, 'utf-8') == extracted
-            return bytes(target, 'utf-8') in extracted
-        else:
-            return False
+            return find_match_in_extracted_header(
+                extracted,
+                target,
+                case_insensitive=case_insensitive,
+                exact_match=exact_match
+            )
+        return False
     return f
 
 
@@ -148,28 +158,42 @@ def record_content_type_filter(content_type, case_insensitive=True, exact_match=
     - image/jpeg or another mime type, for resource records
 
     NB: This field does NOT refer to the content-type header of recorded HTTP responses.
-    See `response_content_type_filter`.
+    See `http_response_content_type_filter`.
     """
     def f(record):
         match = find_pattern_in_bytes(CONTENT_TYPE_PATTERN, record.header.bytes, case_insensitive=True)
 
         if match:
             extracted = match.group(1)
-
-            extracted_type = extracted.lower() if case_insensitive else extracted
-            target_type_string = content_type.lower() if case_insensitive else content_type
-            target_type = bytes(target_type_string, 'utf-8')
-
-            if exact_match:
-                return target_type == extracted_type
-            return target_type in extracted_type
-        else:
-            return False
+            return find_match_in_extracted_header(
+                extracted,
+                content_type,
+                case_insensitive=case_insensitive,
+                exact_match=exact_match
+            )
+        return False
     return f
 
 
-def response_content_type_filer():
-    raise NotImplemented()
+def http_response_content_type_filter(content_type, case_insensitive=True, exact_match=False):
+    """
+    Finds WARC records with a Content-Type of application/http; msgtype=response,
+    then filters on the HTTP header "Content-Type".
+    """
+    def f(record):
+        if record_content_type_filter('application/http; msgtype=response')(record):
+            http_headers = record.get_http_header_block()
+            match = find_pattern_in_bytes(CONTENT_TYPE_PATTERN, http_headers, case_insensitive=True)
+            if match:
+                extracted = match.group(1)
+                return find_match_in_extracted_header(
+                    extracted,
+                    content_type,
+                    case_insensitive=case_insensitive,
+                    exact_match=exact_match
+                )
+        return False
+    return f
 
 
 #
@@ -256,6 +280,21 @@ def find_record_end(file_handle):
 
 def find_pattern_in_bytes(pattern, data, case_insensitive=True):
     return re.search(pattern, data, re.IGNORECASE if case_insensitive else 0)
+
+
+def find_match_in_extracted_header(
+    extracted,
+    target,
+    case_insensitive=True,
+    exact_match=False
+):
+    extracted_bytes = extracted.lower() if case_insensitive else extracted
+    target_string = target.lower() if case_insensitive else target
+    target_bytes = bytes(target_string, 'utf-8')
+
+    if exact_match:
+        return target_bytes == extracted_bytes
+    return target_bytes in extracted_bytes
 
 
 #
@@ -418,6 +457,7 @@ with open("579F-LLZR.wacz", "rb") as wacz_file, \
                 #     'http://example.com/',
                 #     exact_match=True
                 # )
+                # http_response_content_type_filter('pdf')
             ]
         )
         print(len(parser.records))

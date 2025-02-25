@@ -26,7 +26,7 @@ def get_warc_named_field_pattern(field_name):
 
 
 def get_http_header_pattern(header_name):
-    return bytes(field_name, "utf-8") + rb":\s*(.+)((\r\n)|$)"
+    return bytes(header_name, "utf-8") + rb":\s*(.+)((\r\n)|$)"
 
 
 #
@@ -111,7 +111,11 @@ class ContentBlock(ByteRange):
 
 def warc_named_field_filter(field_name, target, case_insensitive=True, exact_match=False):
     def f(record):
-        match = find_pattern_in_bytes(get_warc_named_field_pattern(field_name), record.header.bytes, case_insensitive=True)
+        match = find_pattern_in_bytes(
+            get_warc_named_field_pattern(field_name),
+            record.header.bytes,
+            case_insensitive=case_insensitive
+        )
         if match:
             extracted = match.group(1)
             return find_match_in_extracted_header(
@@ -161,8 +165,11 @@ def record_content_type_filter(content_type, case_insensitive=True, exact_match=
     See `http_response_content_type_filter`.
     """
     def f(record):
-        match = find_pattern_in_bytes(CONTENT_TYPE_PATTERN, record.header.bytes, case_insensitive=True)
-
+        match = find_pattern_in_bytes(
+            CONTENT_TYPE_PATTERN,
+            record.header.bytes,
+            case_insensitive=case_insensitive
+        )
         if match:
             extracted = match.group(1)
             return find_match_in_extracted_header(
@@ -183,7 +190,11 @@ def http_response_content_type_filter(content_type, case_insensitive=True, exact
     def f(record):
         if record_content_type_filter('application/http; msgtype=response')(record):
             http_headers = record.get_http_header_block()
-            match = find_pattern_in_bytes(CONTENT_TYPE_PATTERN, http_headers, case_insensitive=True)
+            match = find_pattern_in_bytes(
+                CONTENT_TYPE_PATTERN,
+                http_headers,
+                case_insensitive=case_insensitive
+            )
             if match:
                 extracted = match.group(1)
                 return find_match_in_extracted_header(
@@ -195,6 +206,30 @@ def http_response_content_type_filter(content_type, case_insensitive=True, exact
         return False
     return f
 
+
+def http_header_filter(header_name, target, case_insensitive=True, exact_match=False):
+    """
+    Finds WARC records with a Content-Type that includes application/http,
+    then filters on any HTTP header.
+    """
+    def f(record):
+        if record_content_type_filter('application/http')(record):
+            http_headers = record.get_http_header_block()
+            match = find_pattern_in_bytes(
+                get_http_header_pattern(header_name),
+                http_headers,
+                case_insensitive=case_insensitive
+            )
+            if match:
+                extracted = match.group(1)
+                return find_match_in_extracted_header(
+                    extracted,
+                    target,
+                    case_insensitive=case_insensitive,
+                    exact_match=exact_match
+                )
+        return False
+    return f
 
 #
 # Utils
@@ -456,8 +491,9 @@ with open("579F-LLZR.wacz", "rb") as wacz_file, \
                 #     'target-uri',
                 #     'http://example.com/',
                 #     exact_match=True
-                # )
-                # http_response_content_type_filter('pdf')
+                # ),
+                # http_response_content_type_filter('pdf'),
+                # http_header_filter('content-encoding', 'gzip')
             ]
         )
         print(len(parser.records))

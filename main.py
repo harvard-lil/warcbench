@@ -102,6 +102,15 @@ class Record(ByteRange):
         ):
             return self.content_block.bytes.split(CRLF*2)[0]
 
+    def get_http_body_block(self):
+        if (
+            record_content_type_filter('http')(self) and
+            self.content_block.bytes.find(CRLF*2)
+        ):
+            parts = self.content_block.bytes.split(CRLF*2)
+            if len(parts) == 2:
+                return parts[1]
+
 
 @dataclass
 class Header(ByteRange):
@@ -567,4 +576,8 @@ with open("579F-LLZR.wacz", "rb") as wacz_file, \
             ]
         )
         print(len(parser.records))
+        # for record in parser.records:
+            # print(record.get_http_header_block())
+            # print(record.get_http_body_block())
+            # print("\n\n")
 

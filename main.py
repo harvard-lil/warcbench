@@ -136,6 +136,18 @@ def warc_named_field_filter(field_name, target, case_insensitive=True, exact_mat
     return f
 
 
+def warc_header_regex_filter(regex, case_insensitive=True):
+    def f(record):
+        return bool(
+            find_pattern_in_bytes(
+                bytes(regex, "utf-8"),
+                record.header.bytes,
+                case_insensitive=case_insensitive
+            )
+        )
+    return f
+
+
 def record_content_length_filter(target_length, operand="eq"):
     allowed_operators = {
         'lt': operator.lt,
@@ -551,6 +563,7 @@ with open("579F-LLZR.wacz", "rb") as wacz_file, \
                 # http_status_filter(200),
                 # http_header_filter('content-encoding', 'gzip'),
                 # http_response_content_type_filter('pdf'),
+                # warc_header_regex_filter('Scoop-Exchange-Description: Provenance Summary'),
             ]
         )
         print(len(parser.records))

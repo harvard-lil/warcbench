@@ -33,6 +33,10 @@ def get_http_status_pattern(status_code):
     return rb"HTTP/1.1\s*" + bytes(f"({status_code})", "utf-8")
 
 
+def get_http_verb_pattern(verb):
+    return bytes(f"({verb})", "utf-8") + rb"\s+.*HTTP/.*((\r\n)|$)"
+
+
 #
 # Models
 #
@@ -259,8 +263,27 @@ def http_status_filter(status_code):
     return f
 
 
-def http_verb_filter():
-    raise NotImplemented()
+def http_verb_filter(verb):
+    """
+    Finds WARC records with a Content-Type of application/http; msgtype=request,
+    then filters on HTTP verb.
+    """
+    def f(record):
+        if record_content_type_filter('application/http; msgtype=request')(record):
+            http_headers = record.get_http_header_block()
+            match = find_pattern_in_bytes(
+                get_http_verb_pattern(verb),
+                http_headers
+            )
+            if match:
+                extracted = match.group(1)
+                return find_match_in_extracted_header(
+                    extracted,
+                    verb,
+                    exact_match=True
+                )
+        return False
+    return f
 
 
 #
@@ -527,6 +550,7 @@ with open("579F-LLZR.wacz", "rb") as wacz_file, \
                 # http_response_content_type_filter('pdf'),
                 # http_header_filter('content-encoding', 'gzip'),
                 # http_status_filter(200),
+                # http_verb_filter('get')
             ]
         )
         print(len(parser.records))

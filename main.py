@@ -50,7 +50,27 @@ class Record(ByteRange):
 
     def __post_init__(self):
         super().__post_init__()
-        self.header, self.content_block = split_record(self)
+        self.split()
+
+    def split(self):
+        header_start = self.start
+        header_end_index = self.bytes.find(CRLF*2)
+        header_end = header_start + header_end_index
+
+        content_block_start_index = header_end_index + len(CRLF*2)
+        content_block_start = self.start + content_block_start_index
+        content_block_end = self.end
+
+        self.header = Header(
+            start=header_start,
+            end=header_end,
+            bytes=self.bytes[:header_end_index]
+        )
+        self.content_block = ContentBlock(
+            start=content_block_start,
+            end=content_block_end,
+            bytes=self.bytes[content_block_start_index:]
+        )
 
     def check_content_length(self):
         match = find_pattern_in_bytes(CONTENT_LENGTH_PATTERN, self.header.bytes)
@@ -71,6 +91,8 @@ class Header(ByteRange):
 @dataclass
 class ContentBlock(ByteRange):
     pass
+
+
 
 
 #
@@ -229,30 +251,6 @@ def find_record_end(file_handle):
             last_line_had_a_break = False
 
     return end_position
-
-
-def split_record(record):
-    header_start = record.start
-    header_end_index = record.bytes.find(CRLF*2)
-    header_end = header_start + header_end_index
-
-    content_block_start_index = header_end_index + len(CRLF*2)
-    content_block_start = record.start + content_block_start_index
-    content_block_end = record.end
-
-    header = Header(
-        start=header_start,
-        end=header_end,
-        bytes=record.bytes[:header_end_index]
-    )
-
-    content_block = ContentBlock(
-        start=content_block_start,
-        end=content_block_end,
-        bytes=record.bytes[content_block_start_index:]
-    )
-
-    return (header, content_block)
 
 
 def find_pattern_in_bytes(pattern, data, case_insensitive=True):

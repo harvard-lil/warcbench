@@ -77,7 +77,7 @@ class ContentBlock(ByteRange):
 # Record Filters
 #
 
-def warc_named_field_contains_filter(field_name, target, exact=False):
+def warc_named_field_contains_filter(field_name, target, exact_match=False):
     def f(record):
         match = find_pattern_in_bytes(get_warc_named_field_pattern(field_name), record.header.bytes, case_insensitive=True)
 
@@ -415,7 +415,7 @@ with open("579F-LLZR.wacz", "rb") as wacz_file, \
                 # warc_named_field_contains_filter(
                 #     'target-uri',
                 #     'http://example.com/',
-                #     exact=True
+                #     exact_match=True
                 # )
             ]
         )

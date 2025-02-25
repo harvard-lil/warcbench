@@ -29,6 +29,10 @@ def get_http_header_pattern(header_name):
     return bytes(header_name, "utf-8") + rb":\s*(.+)((\r\n)|$)"
 
 
+def get_http_status_pattern(status_code):
+    return rb"HTTP/1.1\s*" + bytes(f"({status_code})", "utf-8")
+
+
 #
 # Models
 #
@@ -230,6 +234,34 @@ def http_header_filter(header_name, target, case_insensitive=True, exact_match=F
                 )
         return False
     return f
+
+
+def http_status_filter(status_code):
+    """
+    Finds WARC records with a Content-Type of application/http; msgtype=response,
+    then filters on HTTP status code.
+    """
+    def f(record):
+        if record_content_type_filter('application/http; msgtype=response')(record):
+            http_headers = record.get_http_header_block()
+            match = find_pattern_in_bytes(
+                get_http_status_pattern(status_code),
+                http_headers
+            )
+            if match:
+                extracted = match.group(1)
+                return find_match_in_extracted_header(
+                    extracted,
+                    str(status_code),
+                    exact_match=True
+                )
+        return False
+    return f
+
+
+def http_verb_filter():
+    raise NotImplemented()
+
 
 #
 # Utils
@@ -493,7 +525,8 @@ with open("579F-LLZR.wacz", "rb") as wacz_file, \
                 #     exact_match=True
                 # ),
                 # http_response_content_type_filter('pdf'),
-                # http_header_filter('content-encoding', 'gzip')
+                # http_header_filter('content-encoding', 'gzip'),
+                # http_status_filter(200),
             ]
         )
         print(len(parser.records))

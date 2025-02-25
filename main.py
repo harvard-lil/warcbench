@@ -441,9 +441,9 @@ class WARCParser:
         self._records = None
 
 
-    def parse(self, filters=None):
+    def parse(self, filters=None, find_first_record_only=False):
         self._records = []
-        for record in self.iterator(filters=filters):
+        for record in self.iterator(filters=filters, find_first_record_only=find_first_record_only):
             self._records.append(record)
 
     @property
@@ -455,7 +455,7 @@ class WARCParser:
             )
         return self._records
 
-    def iterator(self, filters=None):
+    def iterator(self, filters=None, find_first_record_only=False):
         self.file_handle.seek(0)
 
         while self.state != STATES['END']:
@@ -477,6 +477,9 @@ class WARCParser:
                         yield self.current_record
                 else:
                     yield self.current_record
+
+                if find_first_record_only:
+                    self.state = STATES['END']
 
         self.current_record = None
 
@@ -573,7 +576,8 @@ with open("579F-LLZR.wacz", "rb") as wacz_file, \
                 # http_header_filter('content-encoding', 'gzip'),
                 # http_response_content_type_filter('pdf'),
                 # warc_header_regex_filter('Scoop-Exchange-Description: Provenance Summary'),
-            ]
+            ],
+            # find_first_record_only=True
         )
         print(len(parser.records))
         # for record in parser.records:

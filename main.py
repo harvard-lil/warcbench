@@ -18,10 +18,11 @@ logging.basicConfig(level=logging.DEBUG, format='%(asctime)s - %(levelname)s - %
 CRLF = b"\r\n"
 WARC_VERSION = b"WARC/1.1\r\n"
 CONTENT_LENGTH_PATTERN = rb"Content-Length:\s*(\d+)"
-CONTENT_TYPE_PATTERN = rb"Content-Type:\s*(.*)\r\n"
+CONTENT_TYPE_PATTERN = rb"Content-Type:\s*(.*)((\r\n)|$)"
+
 
 def get_warc_named_field_pattern(field_name):
-    return b"WARC-" + bytes(field_name, "utf-8") + rb":\s*(.*)\r\n"
+    return b"WARC-" + bytes(field_name, "utf-8") + rb":\s*(.*)((\r\n)|$)"
 
 
 #

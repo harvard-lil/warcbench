@@ -172,7 +172,7 @@ def warc_header_regex_filter(regex, case_insensitive=True):
     return f
 
 
-def record_content_length_filter(target_length, operand="eq"):
+def record_content_length_filter(target_length, use_operator="eq"):
     allowed_operators = {
         'lt': operator.lt,
         'le': operator.le,
@@ -181,15 +181,15 @@ def record_content_length_filter(target_length, operand="eq"):
         'gt': operator.gt,
         'ge': operator.ge,
     }
-    if operand not in allowed_operators:
-        raise ValueError(f"Supported operands: {', '.join(allowed_operators)}.")
+    if use_operator not in allowed_operators:
+        raise ValueError(f"Supported operators: {', '.join(allowed_operators)}.")
 
     def f(record):
         match = find_pattern_in_bytes(CONTENT_LENGTH_PATTERN, record.header.bytes, case_insensitive=True)
 
         if match:
             extracted = int(match.group(1))
-            return allowed_operators[operand](extracted, target_length)
+            return allowed_operators[use_operator](extracted, target_length)
         else:
             return False
     return f
@@ -729,7 +729,7 @@ with open("579F-LLZR.wacz", "rb") as wacz_file, \
             filters=[
                 # lambda record: False,
                 # record_content_length_filter(1007),
-                # record_content_length_filter(38978, 'gt'),
+                record_content_length_filter(38978, 'gt'),
                 # record_content_type_filter('http'),
                 # warc_named_field_filter('type', 'warcinfo'),
                 # warc_named_field_filter('type', 'request'),

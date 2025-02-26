@@ -578,8 +578,9 @@ class WARCParser:
         self.unparsable_lines = []
         self.warnings = []
         self.error = None
-        self._records = None
         self.current_record = None
+
+        self._records = None
 
     @property
     def records(self):

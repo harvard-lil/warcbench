@@ -61,7 +61,7 @@ class ByteRange():
             return bytes(data)
         return self._bytes
 
-    def iterator(self, chunk_size=4):
+    def iterator(self, chunk_size=1024):
         if self._bytes:
             for i in range(0, len(self._bytes), chunk_size):
                 yield data[i:i + chunk_size]

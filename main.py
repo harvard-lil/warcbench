@@ -55,18 +55,39 @@ class ByteRange():
     @property
     def bytes(self):
         if self._bytes is None:
+            data = bytearray()
+            for chunk in self.iterator():
+                data.extend(chunk)
+            return bytes(data)
+        return self._bytes
+
+    def iterator(self, chunk_size=4):
+        if self._bytes:
+            for i in range(0, len(self._bytes), chunk_size):
+                yield data[i:i + chunk_size]
+
+        else:
             if not self._file_handle:
                 raise ValueError(
                     "To access record bytes, you must either enable_lazy_loading_of_bytes or "
                     "cache_record_bytes/cache_header_bytes/cache_content_block_bytes."
                 )
+
             logging.debug(f"Reading from {self.start} to {self.end}.")
+
             original_postion = self._file_handle.tell()
+
             self._file_handle.seek(self.start)
-            data = self._file_handle.read(self.length)
+            while self._file_handle.tell() < self.end:
+                # Calculate the remaining bytes to read
+                remaining_bytes = self.end - self._file_handle.tell()
+
+                # Determine the actual chunk size to read
+                actual_chunk_size = min(chunk_size, remaining_bytes)
+
+                yield self._file_handle.read(actual_chunk_size)
+
             self._file_handle.seek(original_postion)
-            return data
-        return self._bytes
 
 
 @dataclass
@@ -673,4 +694,4 @@ with open("579F-LLZR.wacz", "rb") as wacz_file, \
             # print(record.get_http_header_block())
             # print(record.get_http_body_block())
             # print("\n\n")
-        # breakpoint()
+        breakpoint()

@@ -357,21 +357,77 @@ def preserve_cursor_position(func):
     return wrapper
 
 
+def advance_to_next_line(file_handle, chunk_size=1024):
+    """
+    Advance the cursor just past the next newline character.
+    Reports if the processed line met either of two special conditions:
+    - Did it end in \r\n?
+    - Was that \r\n the entire contents of the line?
+    Returns:
+    - a tuple: (ended_with_crlf, was_crlf_only)
+    - or, None, if no explicit line-ending was found
+    """
+    if chunk_size < 2:
+        raise ValueError("Please specify a larger chunk size.")
+
+    last_twoish_bytes_read = bytearray()
+    while True:
+        chunk = file_handle.read(chunk_size)
+
+        if not chunk:
+            return None # End of file, no explicit line-ending found
+
+        # Special handling, if \r and \n happened to be split between chunks
+        if chunk.startswith(b'\n'):
+
+            if last_twoish_bytes_read.endswith(b'\r'):
+                # We found a CRLF!
+                ended_with_crlf = True
+                # Check to see if it was on its own line.
+                was_crlf_only = last_twoish_bytes_read.endswith(b'\n\r')
+            else:
+                ended_with_crlf = False
+                was_crlf_only = False
+
+            # Set the cursor to the position after the newline
+            file_handle.seek(file_handle.tell() - len(chunk) + 1)
+            return ended_with_crlf, was_crlf_only
+
+        # Look for a newline in the current chunk
+        newline_index = chunk.find(b'\n')
+        if newline_index != -1:
+
+            # Check if the line ends with '\r\n'
+            ended_with_crlf = (newline_index > 0 and chunk[newline_index - 1] == ord(b'\r'))
+
+            # Check if the line is just '\r\n'
+            was_crlf_only = (newline_index == 1 and chunk[0] == ord(b'\r'))
+
+            # Set the cursor to the position after the newline
+            file_handle.seek(file_handle.tell() - len(chunk) + newline_index + 1)
+            return ended_with_crlf, was_crlf_only
+
+        # Update the last two bytes
+        last_twoish_bytes_read.clear()
+        last_twoish_bytes_read.extend(chunk[-2:])
+
+
 @preserve_cursor_position
 def find_record_end(file_handle):
     last_line_had_a_break = False
     last_line_was_a_break = False
 
     while True:
-        line = file_handle.readline()
+        line = advance_to_next_line(file_handle)
 
         if not line:
             return None  # End of file reached without a record delimiter
 
-        if line.endswith(CRLF):
+        line_ended_with_crlf, line_was_crlf_only = line
+        if line_ended_with_crlf:
 
-            # We are only at a record end if this line is just a break.
-            if line == CRLF:
+            # We are only at a record end if this line was just a break.
+            if line_was_crlf_only:
 
                 if last_line_was_a_break:
                     # We've found the delimiter! We might be done.

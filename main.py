@@ -1,6 +1,7 @@
-from dataclasses import dataclass
+from dataclasses import dataclass, field
 import functools
 import gzip
+import io
 import logging
 import operator
 import os
@@ -45,10 +46,27 @@ def get_http_header_pattern(header_name):
 class ByteRange():
     start: int
     end: int
-    bytes: bytes
+    _bytes: Optional[bytes] = field(repr=False, default=None)
+    _file_handle: Optional[io.BufferedReader] = field(repr=False, default=None)
 
     def __post_init__(self):
         self.length = self.end - self.start
+
+    @property
+    def bytes(self):
+        if self._bytes is None:
+            if not self._file_handle:
+                raise ValueError(
+                    "To access record bytes, you must either enable_lazy_loading_of_bytes or "
+                    "cache_record_bytes/cache_header_bytes/cache_content_block_bytes."
+                )
+            logging.debug(f"Reading from {self.start} to {self.end}.")
+            original_postion = self._file_handle.tell()
+            self._file_handle.seek(self.start)
+            data = self._file_handle.read(self.length)
+            self._file_handle.seek(original_postion)
+            return data
+        return self._bytes
 
 
 @dataclass
@@ -60,30 +78,6 @@ class UnparsableLine(ByteRange):
 class Record(ByteRange):
 
     content_length_check_result: Optional[int] = None
-
-    def __post_init__(self):
-        super().__post_init__()
-        self.split()
-
-    def split(self):
-        header_start = self.start
-        header_end_index = self.bytes.find(CRLF*2)
-        header_end = header_start + header_end_index
-
-        content_block_start_index = header_end_index + len(CRLF*2)
-        content_block_start = self.start + content_block_start_index
-        content_block_end = self.end
-
-        self.header = Header(
-            start=header_start,
-            end=header_end,
-            bytes=self.bytes[:header_end_index]
-        )
-        self.content_block = ContentBlock(
-            start=content_block_start,
-            end=content_block_end,
-            bytes=self.bytes[content_block_start_index:]
-        )
 
     def check_content_length(self):
         match = find_pattern_in_bytes(CONTENT_LENGTH_PATTERN, self.header.bytes)
@@ -389,6 +383,40 @@ def find_record_end(file_handle):
     return end_position
 
 
+def split_record(
+    record,
+    record_bytes,
+    cache_header_bytes,
+    cache_content_block_bytes,
+    enable_lazy_loading_of_bytes
+):
+    header_start = record.start
+    header_end_index = record_bytes.find(CRLF*2)
+    header_end = header_start + header_end_index
+
+    content_block_start_index = header_end_index + len(CRLF*2)
+    content_block_start = record.start + content_block_start_index
+    content_block_end = record.end
+
+    record.header = Header(
+        start=header_start,
+        end=header_end
+    )
+    if cache_header_bytes:
+        record.header._bytes = record_bytes[:header_end_index]
+    if enable_lazy_loading_of_bytes:
+        record.header._file_handle = record._file_handle
+
+    record.content_block = ContentBlock(
+        start=content_block_start,
+        end=content_block_end,
+    )
+    if cache_content_block_bytes:
+        record.content_block._bytes = record_bytes[content_block_start_index:]
+    if enable_lazy_loading_of_bytes:
+        record.content_block._file_handle = record._file_handle
+
+
 def find_pattern_in_bytes(pattern, data, case_insensitive=True):
     return re.search(pattern, data, re.IGNORECASE if case_insensitive else 0)
 
@@ -422,7 +450,30 @@ STATES = {
 }
 
 class WARCParser:
-    def __init__(self, file_handle, check_content_lengths=False):
+    def __init__(
+        self,
+        file_handle,
+        check_content_lengths=False,
+        cache_record_bytes=False,
+        cache_header_bytes=False,
+        cache_content_block_bytes=False,
+        enable_lazy_loading_of_bytes=True
+    ):
+        # Validate Options
+        if check_content_lengths:
+            if not enable_lazy_loading_of_bytes and not all([
+                cache_header_bytes,
+                cache_content_block_bytes
+            ]):
+                raise ValueError(
+                    "To check_content_lengths, you must either enable_lazy_loading_of_bytes or "
+                    "both cache_header_bytes and cache_content_block_bytes."
+                )
+
+        #
+        # Set Up
+        #
+
         self.state = STATES['FIND_HEADER']
         self.transitions = {
             STATES['FIND_HEADER']: self.find_warc_header,
@@ -431,31 +482,46 @@ class WARCParser:
             STATES['EXTRACT_NEXT_RECORD']: self.extract_next_record,
             STATES['END']: None
         }
+
         self.file_handle = file_handle
         self.check_content_lengths = check_content_lengths
+        self.cache_record_bytes=cache_record_bytes
+        self.cache_header_bytes=cache_header_bytes
+        self.cache_content_block_bytes=cache_content_block_bytes,
+        self.enable_lazy_loading_of_bytes=enable_lazy_loading_of_bytes
+
         self.unparsable_lines = []
         self.warnings = []
         self.error = None
+        self._records = None
         self.current_record = None
 
-        self._records = None
 
-
-    def parse(self, filters=None, find_first_record_only=False):
+    def parse(self,
+        filters=None,
+        find_first_record_only=False
+    ):
         self._records = []
-        for record in self.iterator(filters=filters, find_first_record_only=find_first_record_only):
+        iterator = self.iterator(
+            filters=filters,
+            find_first_record_only=find_first_record_only
+        )
+        for record in iterator:
             self._records.append(record)
 
     @property
     def records(self):
         if self._records is None:
             raise AttributeNotInitializedError(
-                "Call parser.parse() to load records into RAM and populate parser.records,"
-                " or use parser.iterator() to iterate through records without preloading."
+                "Call parser.parse() to load records into RAM and populate parser.records, "
+                "or use parser.iterator() to iterate through records without preloading."
             )
         return self._records
 
-    def iterator(self, filters=None, find_first_record_only=False):
+    def iterator(self,
+        filters=None,
+        find_first_record_only=False
+    ):
         self.file_handle.seek(0)
 
         while self.state != STATES['END']:
@@ -512,7 +578,7 @@ class WARCParser:
                     UnparsableLine(
                         start=initial_position,
                         end=current_position,
-                        bytes=next_line
+                        _bytes=next_line
                     )
                 )
             else:
@@ -534,9 +600,20 @@ class WARCParser:
 
         record = Record(
             start=start,
-            end=end,
-            bytes=data
+            end=end
         )
+        if self.cache_record_bytes:
+            record._bytes = data
+        if self.enable_lazy_loading_of_bytes:
+            record._file_handle = self.file_handle
+        split_record(
+            record,
+            data,
+            cache_header_bytes=self.cache_header_bytes,
+            cache_content_block_bytes=self.cache_content_block_bytes,
+            enable_lazy_loading_of_bytes=self.enable_lazy_loading_of_bytes
+        )
+
         if self.check_content_lengths:
             record.check_content_length()
         self.current_record = record
@@ -555,7 +632,11 @@ with open("579F-LLZR.wacz", "rb") as wacz_file, \
     gzip.open(warc_gz_file, "rb") as warc_file:
         parser = WARCParser(
             warc_file,
-            check_content_lengths=True
+            check_content_lengths=True,
+            # cache_record_bytes=True,
+            # cache_header_bytes=True,
+            # cache_content_block_bytes=True,
+            enable_lazy_loading_of_bytes=True
         )
         parser.parse(
             filters=[
@@ -577,11 +658,10 @@ with open("579F-LLZR.wacz", "rb") as wacz_file, \
                 # http_response_content_type_filter('pdf'),
                 # warc_header_regex_filter('Scoop-Exchange-Description: Provenance Summary'),
             ],
-            # find_first_record_only=True
+            # find_first_record_only=True,
         )
         print(len(parser.records))
         # for record in parser.records:
             # print(record.get_http_header_block())
             # print(record.get_http_body_block())
             # print("\n\n")
-

@@ -450,6 +450,7 @@ STATES = {
 }
 
 class WARCParser:
+
     def __init__(
         self,
         file_handle,
@@ -497,7 +498,6 @@ class WARCParser:
         self.error = None
         self._records = None
         self.current_record = None
-
 
     def parse(self,
         filters=None,
@@ -671,3 +671,4 @@ with open("579F-LLZR.wacz", "rb") as wacz_file, \
             # print(record.get_http_header_block())
             # print(record.get_http_body_block())
             # print("\n\n")
+        # breakpoint()

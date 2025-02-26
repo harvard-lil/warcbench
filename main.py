@@ -711,6 +711,9 @@ class WARCParser:
         return STATES['FIND_NEXT_RECORD']
 
 
+
+# Example Usage
+
 with open("579F-LLZR.wacz", "rb") as wacz_file, \
     zipfile.Path(wacz_file, "archive/data.warc.gz").open("rb") as warc_gz_file, \
     gzip.open(warc_gz_file, "rb") as warc_file:

@@ -504,6 +504,15 @@ class WARCParser:
         self._records = None
         self.current_record = None
 
+    @property
+    def records(self):
+        if self._records is None:
+            raise AttributeNotInitializedError(
+                "Call parser.parse() to load records into RAM and populate parser.records, "
+                "or use parser.iterator() to iterate through records without preloading."
+            )
+        return self._records
+
     def parse(self,
         find_first_record_only=False
     ):
@@ -513,15 +522,6 @@ class WARCParser:
         )
         for record in iterator:
             self._records.append(record)
-
-    @property
-    def records(self):
-        if self._records is None:
-            raise AttributeNotInitializedError(
-                "Call parser.parse() to load records into RAM and populate parser.records, "
-                "or use parser.iterator() to iterate through records without preloading."
-            )
-        return self._records
 
     def iterator(self,
         find_first_record_only=False
@@ -553,6 +553,10 @@ class WARCParser:
         else:
             self.error = 'No WARC header found.'
             return STATES['END']
+
+    def extract_warc_header(self):
+        self.extract_next_record()
+        return STATES['CHECK_RECORD_AGAINST_FILTERS']
 
     def find_next_record(self):
         while True:
@@ -615,10 +619,6 @@ class WARCParser:
         self.current_record = record
         return STATES['CHECK_RECORD_AGAINST_FILTERS']
 
-
-    def extract_warc_header(self):
-        self.extract_next_record()
-        return STATES['CHECK_RECORD_AGAINST_FILTERS']
 
     def check_record_against_filters(self):
         retained = True

@@ -457,6 +457,7 @@ class WARCParser:
         cache_record_bytes=False,
         cache_header_bytes=False,
         cache_content_block_bytes=False,
+        cache_unparsable_lines=False,
         enable_lazy_loading_of_bytes=True
     ):
         # Validate Options
@@ -487,7 +488,8 @@ class WARCParser:
         self.check_content_lengths = check_content_lengths
         self.cache_record_bytes=cache_record_bytes
         self.cache_header_bytes=cache_header_bytes
-        self.cache_content_block_bytes=cache_content_block_bytes,
+        self.cache_content_block_bytes=cache_content_block_bytes
+        self.cache_unparsable_lines=cache_unparsable_lines
         self.enable_lazy_loading_of_bytes=enable_lazy_loading_of_bytes
 
         self.unparsable_lines = []
@@ -570,17 +572,20 @@ class WARCParser:
             next_line = self.file_handle.readline()
             current_position = self.file_handle.tell()
             if next_line:
-                # TODO: if there are a large number of unparseable lines,
+                unparsable_line = UnparsableLine(
+                    start=initial_position,
+                    end=current_position,
+                )
+                if self.cache_unparsable_lines:
+                    unparsable_line._bytes=next_line
+                if self.enable_lazy_loading_of_bytes:
+                    unparsable_line._file_handle=self.file_handle
+                # TODO: if there are a large number of unparsable lines,
                 # this could eat up RAM. Is there a better solution,
                 # especially in iterator mode? We could just log,
-                # or could make behavior configurable.
-                self.unparsable_lines.append(
-                    UnparsableLine(
-                        start=initial_position,
-                        end=current_position,
-                        _bytes=next_line
-                    )
-                )
+                # or could make behavior configurable. Maybe, log in
+                # iterator mode, store if in parser mode?
+                self.unparsable_lines.append(unparsable_line)
             else:
                 return STATES['END']
 
@@ -636,6 +641,7 @@ with open("579F-LLZR.wacz", "rb") as wacz_file, \
             # cache_record_bytes=True,
             # cache_header_bytes=True,
             # cache_content_block_bytes=True,
+            # cache_unparsable_lines=True,
             enable_lazy_loading_of_bytes=True
         )
         parser.parse(

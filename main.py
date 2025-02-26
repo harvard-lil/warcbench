@@ -532,12 +532,15 @@ class WARCParser:
             if self.state == STATES['YIELD_CURRENT_RECORD']:
                 yield self.current_record
                 self.current_record = None
+
+                if find_first_record_only:
+                    self.state = STATES['END']
+                    continue
+
                 self.state = STATES['FIND_NEXT_RECORD']
             else:
                 transition_func = self.transitions[self.state]
                 self.state = transition_func()
-
-        self.current_record = None
 
     def find_warc_header(self):
         skip_leading_whitespace(self.file_handle)
@@ -659,7 +662,7 @@ with open("579F-LLZR.wacz", "rb") as wacz_file, \
                 # http_status_filter(200),
                 # http_header_filter('content-encoding', 'gzip'),
                 # http_response_content_type_filter('pdf'),
-                warc_header_regex_filter('Scoop-Exchange-Description: Provenance Summary'),
+                # warc_header_regex_filter('Scoop-Exchange-Description: Provenance Summary'),
             ],
         )
         parser.parse(

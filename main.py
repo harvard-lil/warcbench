@@ -534,12 +534,14 @@ class WARCParser:
         self,
         file_handle,
         check_content_lengths=False,
+        cache_unparsable_lines=False,
         cache_record_bytes=False,
         cache_header_bytes=False,
         cache_content_block_bytes=False,
         cache_unparsable_line_bytes=False,
         enable_lazy_loading_of_bytes=True,
-        filters=None
+        filters=None,
+        unparsable_line_handlers=None
     ):
         # Validate Options
         if check_content_lengths:
@@ -568,19 +570,25 @@ class WARCParser:
 
         self.file_handle = file_handle
         self.check_content_lengths = check_content_lengths
+        self.cache_unparsable_lines = cache_unparsable_lines
         self.cache_record_bytes=cache_record_bytes
         self.cache_header_bytes=cache_header_bytes
         self.cache_content_block_bytes=cache_content_block_bytes
         self.cache_unparsable_line_bytes=cache_unparsable_line_bytes
         self.enable_lazy_loading_of_bytes=enable_lazy_loading_of_bytes
         self.filters=filters
+        self.unparsable_line_handlers=unparsable_line_handlers
 
-        self.unparsable_lines = []
         self.warnings = []
         self.error = None
         self.current_record = None
 
         self._records = None
+        if cache_unparsable_lines:
+            self._unparsable_lines = []
+        else:
+            self._unparsable_lines = None
+
 
     @property
     def records(self):
@@ -590,6 +598,15 @@ class WARCParser:
                 "or use parser.iterator() to iterate through records without preloading."
             )
         return self._records
+
+    @property
+    def unparsable_lines(self):
+        if self._unparsable_lines is None:
+            raise AttributeNotInitializedError(
+                "Pass cache_unparsable_lines=True to WARCParser() to store UnparsableLines "
+                "in parser.unparsable_lines."
+            )
+        return self._unparsable_lines
 
     def parse(self,
         find_first_record_only=False
@@ -653,12 +670,11 @@ class WARCParser:
                     unparsable_line._bytes=next_line
                 if self.enable_lazy_loading_of_bytes:
                     unparsable_line._file_handle=self.file_handle
-                # TODO: if there are a large number of unparsable lines,
-                # this could eat up RAM. Is there a better solution,
-                # especially in iterator mode? We could just log,
-                # or could make behavior configurable. Maybe, log in
-                # iterator mode, store if in parser mode?
-                self.unparsable_lines.append(unparsable_line)
+                if self.unparsable_line_handlers:
+                    for handler in self.unparsable_line_handlers:
+                        handler(unparsable_line)
+                if self.cache_unparsable_lines:
+                    self.unparsable_lines.append(unparsable_line)
             else:
                 return STATES['END']
 
@@ -720,7 +736,8 @@ with open("579F-LLZR.wacz", "rb") as wacz_file, \
     gzip.open(warc_gz_file, "rb") as warc_file:
         parser = WARCParser(
             warc_file,
-            # check_content_lengths=True,
+            check_content_lengths=True,
+            cache_unparsable_lines=True,
             # cache_record_bytes=True,
             # cache_header_bytes=True,
             # cache_content_block_bytes=True,
@@ -729,7 +746,7 @@ with open("579F-LLZR.wacz", "rb") as wacz_file, \
             filters=[
                 # lambda record: False,
                 # record_content_length_filter(1007),
-                record_content_length_filter(38978, 'gt'),
+                # record_content_length_filter(38978, 'gt'),
                 # record_content_type_filter('http'),
                 # warc_named_field_filter('type', 'warcinfo'),
                 # warc_named_field_filter('type', 'request'),
@@ -745,6 +762,9 @@ with open("579F-LLZR.wacz", "rb") as wacz_file, \
                 # http_response_content_type_filter('pdf'),
                 # warc_header_regex_filter('Scoop-Exchange-Description: Provenance Summary'),
             ],
+            # unparsable_line_handlers=[
+            #     lambda line: print(len(line.bytes))
+            # ]
         )
         parser.parse(
             # find_first_record_only=True,

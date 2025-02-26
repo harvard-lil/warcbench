@@ -457,7 +457,7 @@ class WARCParser:
         cache_record_bytes=False,
         cache_header_bytes=False,
         cache_content_block_bytes=False,
-        cache_unparsable_lines=False,
+        cache_unparsable_line_bytes=False,
         enable_lazy_loading_of_bytes=True
     ):
         # Validate Options
@@ -489,7 +489,7 @@ class WARCParser:
         self.cache_record_bytes=cache_record_bytes
         self.cache_header_bytes=cache_header_bytes
         self.cache_content_block_bytes=cache_content_block_bytes
-        self.cache_unparsable_lines=cache_unparsable_lines
+        self.cache_unparsable_line_bytes=cache_unparsable_line_bytes
         self.enable_lazy_loading_of_bytes=enable_lazy_loading_of_bytes
 
         self.unparsable_lines = []
@@ -576,7 +576,7 @@ class WARCParser:
                     start=initial_position,
                     end=current_position,
                 )
-                if self.cache_unparsable_lines:
+                if self.cache_unparsable_line_bytes:
                     unparsable_line._bytes=next_line
                 if self.enable_lazy_loading_of_bytes:
                     unparsable_line._file_handle=self.file_handle
@@ -641,7 +641,7 @@ with open("579F-LLZR.wacz", "rb") as wacz_file, \
             # cache_record_bytes=True,
             # cache_header_bytes=True,
             # cache_content_block_bytes=True,
-            # cache_unparsable_lines=True,
+            # cache_unparsable_line_bytes=True,
             enable_lazy_loading_of_bytes=True
         )
         parser.parse(

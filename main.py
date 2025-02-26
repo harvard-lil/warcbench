@@ -446,6 +446,8 @@ STATES = {
     'EXTRACT_HEADER': 'extract_header',
     'FIND_NEXT_RECORD': 'find_next_record',
     'EXTRACT_NEXT_RECORD': 'extract_next_record',
+    'CHECK_RECORD_AGAINST_FILTERS': 'check_record_against_filters',
+    'YIELD_CURRENT_RECORD': 'yield_record',
     'END': 'end'
 }
 
@@ -459,7 +461,8 @@ class WARCParser:
         cache_header_bytes=False,
         cache_content_block_bytes=False,
         cache_unparsable_line_bytes=False,
-        enable_lazy_loading_of_bytes=True
+        enable_lazy_loading_of_bytes=True,
+        filters=None
     ):
         # Validate Options
         if check_content_lengths:
@@ -482,6 +485,7 @@ class WARCParser:
             STATES['EXTRACT_HEADER']: self.extract_warc_header,
             STATES['FIND_NEXT_RECORD']: self.find_next_record,
             STATES['EXTRACT_NEXT_RECORD']: self.extract_next_record,
+            STATES['CHECK_RECORD_AGAINST_FILTERS']: self.check_record_against_filters,
             STATES['END']: None
         }
 
@@ -492,6 +496,7 @@ class WARCParser:
         self.cache_content_block_bytes=cache_content_block_bytes
         self.cache_unparsable_line_bytes=cache_unparsable_line_bytes
         self.enable_lazy_loading_of_bytes=enable_lazy_loading_of_bytes
+        self.filters=filters
 
         self.unparsable_lines = []
         self.warnings = []
@@ -500,12 +505,10 @@ class WARCParser:
         self.current_record = None
 
     def parse(self,
-        filters=None,
         find_first_record_only=False
     ):
         self._records = []
         iterator = self.iterator(
-            filters=filters,
             find_first_record_only=find_first_record_only
         )
         for record in iterator:
@@ -521,33 +524,18 @@ class WARCParser:
         return self._records
 
     def iterator(self,
-        filters=None,
         find_first_record_only=False
     ):
         self.file_handle.seek(0)
 
         while self.state != STATES['END']:
-            self.current_record = None
-
-            transition_func = self.transitions[self.state]
-            self.state = transition_func()
-
-            if self.current_record:
-                if filters:
-                    retained = True
-                    for f in filters:
-                        if not f(self.current_record):
-                            retained = False
-                            logging.debug(f"Skipping record at {self.current_record.start}-{self.current_record.end} due to filter.")
-                            break
-
-                    if retained:
-                        yield self.current_record
-                else:
-                    yield self.current_record
-
-                if find_first_record_only:
-                    self.state = STATES['END']
+            if self.state == STATES['YIELD_CURRENT_RECORD']:
+                yield self.current_record
+                self.current_record = None
+                self.state = STATES['FIND_NEXT_RECORD']
+            else:
+                transition_func = self.transitions[self.state]
+                self.state = transition_func()
 
         self.current_record = None
 
@@ -622,13 +610,24 @@ class WARCParser:
         if self.check_content_lengths:
             record.check_content_length()
         self.current_record = record
+        return STATES['CHECK_RECORD_AGAINST_FILTERS']
 
-        if end:
-            return STATES['FIND_NEXT_RECORD']
-        return STATES['END']
 
     def extract_warc_header(self):
         self.extract_next_record()
+        return STATES['CHECK_RECORD_AGAINST_FILTERS']
+
+    def check_record_against_filters(self):
+        retained = True
+        if self.filters:
+            for f in self.filters:
+                if not f(self.current_record):
+                    retained = False
+                    logging.debug(f"Skipping record at {self.current_record.start}-{self.current_record.end} due to filter.")
+                    break
+
+        if retained:
+            return STATES['YIELD_CURRENT_RECORD']
         return STATES['FIND_NEXT_RECORD']
 
 
@@ -637,14 +636,12 @@ with open("579F-LLZR.wacz", "rb") as wacz_file, \
     gzip.open(warc_gz_file, "rb") as warc_file:
         parser = WARCParser(
             warc_file,
-            check_content_lengths=True,
+            # check_content_lengths=True,
             # cache_record_bytes=True,
             # cache_header_bytes=True,
             # cache_content_block_bytes=True,
             # cache_unparsable_line_bytes=True,
-            enable_lazy_loading_of_bytes=True
-        )
-        parser.parse(
+            # enable_lazy_loading_of_bytes=False,
             filters=[
                 # lambda record: False,
                 # record_content_length_filter(1007),
@@ -662,8 +659,10 @@ with open("579F-LLZR.wacz", "rb") as wacz_file, \
                 # http_status_filter(200),
                 # http_header_filter('content-encoding', 'gzip'),
                 # http_response_content_type_filter('pdf'),
-                # warc_header_regex_filter('Scoop-Exchange-Description: Provenance Summary'),
+                warc_header_regex_filter('Scoop-Exchange-Description: Provenance Summary'),
             ],
+        )
+        parser.parse(
             # find_first_record_only=True,
         )
         print(len(parser.records))

@@ -12,6 +12,11 @@ dependencies = []
 [project.scripts]
 warcbench = "warcbench:main"
 
+[project.optional-dependencies]
+lint = [
+    "ruff>=0.9.8",
+]
+
 [build-system]
 requires = ["hatchling"]
 build-backend = "hatchling.build"

@@ -12,13 +12,15 @@ from warcbench.utils import find_pattern_in_bytes
 
 logger = logging.getLogger(__name__)
 
+
 @dataclass
-class ByteRange():
+class ByteRange:
     """
     The base class from which all others inherit.
     Records the starting and ending offsets of a range of bytes in a file,
     and provides utilities for interacting with those bytes.
     """
+
     start: int
     end: int
     _bytes: Optional[bytes] = field(repr=False, default=None)
@@ -45,7 +47,7 @@ class ByteRange():
         """
         if self._bytes:
             for i in range(0, len(self._bytes), chunk_size):
-                yield data[i:i + chunk_size]
+                yield data[i : i + chunk_size]
 
         else:
             if not self._file_handle:
@@ -87,20 +89,17 @@ class Record(ByteRange):
         record_bytes,
         cache_header_bytes,
         cache_content_block_bytes,
-        enable_lazy_loading_of_bytes
+        enable_lazy_loading_of_bytes,
     ):
         header_start = self.start
-        header_end_index = record_bytes.find(CRLF*2)
+        header_end_index = record_bytes.find(CRLF * 2)
         header_end = header_start + header_end_index
 
-        content_block_start_index = header_end_index + len(CRLF*2)
+        content_block_start_index = header_end_index + len(CRLF * 2)
         content_block_start = self.start + content_block_start_index
         content_block_end = self.end
 
-        self.header = Header(
-            start=header_start,
-            end=header_end
-        )
+        self.header = Header(start=header_start, end=header_end)
         if cache_header_bytes:
             self.header._bytes = record_bytes[:header_end_index]
         if enable_lazy_loading_of_bytes:
@@ -129,7 +128,9 @@ class Record(ByteRange):
         if match:
             expected = int(match.group(1))
             self.content_length_check_result = self.content_block.length == expected
-            logger.debug(f"Record content length check: found {self.content_block.length}, expected {expected}.")
+            logger.debug(
+                f"Record content length check: found {self.content_block.length}, expected {expected}."
+            )
         else:
             self.content_length_check_result = False
 
@@ -139,11 +140,10 @@ class Record(ByteRange):
         """
         # We expect WARC records that describe HTTP exchanges to have a Content-Type that contains "application/http".
         # http://iipc.github.io/warc-specifications/specifications/warc-format/warc-1.1/#content-type
-        if (
-            record_content_type_filter('http')(self) and
-            self.content_block.bytes.find(CRLF*2)
+        if record_content_type_filter("http")(self) and self.content_block.bytes.find(
+            CRLF * 2
         ):
-            return self.content_block.bytes.split(CRLF*2)[0]
+            return self.content_block.bytes.split(CRLF * 2)[0]
 
     def get_http_body_block(self):
         """
@@ -151,11 +151,10 @@ class Record(ByteRange):
         """
         # We expect WARC records that describe HTTP exchanges to have a Content-Type that contains "application/http".
         # http://iipc.github.io/warc-specifications/specifications/warc-format/warc-1.1/#content-type
-        if (
-            record_content_type_filter('http')(self) and
-            self.content_block.bytes.find(CRLF*2)
+        if record_content_type_filter("http")(self) and self.content_block.bytes.find(
+            CRLF * 2
         ):
-            parts = self.content_block.bytes.split(CRLF*2)
+            parts = self.content_block.bytes.split(CRLF * 2)
             if len(parts) == 2:
                 return parts[1]
 
@@ -166,6 +165,7 @@ class Header(ByteRange):
     A WARC record header
     http://iipc.github.io/warc-specifications/specifications/warc-format/warc-1.1/#warc-record-header
     """
+
     pass
 
 
@@ -175,6 +175,7 @@ class ContentBlock(ByteRange):
     A WARC record content block
     http://iipc.github.io/warc-specifications/specifications/warc-format/warc-1.1/#warc-record-content-block
     """
+
     pass
 
 
@@ -184,4 +185,5 @@ class UnparsableLine(ByteRange):
     Any line that was unexpected, during parsing.
     Unparsable lines are not included in any WARC records detected while parsing.
     """
+
     pass

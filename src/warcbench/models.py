@@ -6,9 +6,9 @@ from dataclasses import dataclass, field
 import io
 from typing import Optional
 
-from .logging import logging
-from .patterns import CRLF, CONTENT_LENGTH_PATTERN
-from .utils import find_pattern_in_bytes
+from warcbench.logging import logging
+from warcbench.patterns import CRLF, CONTENT_LENGTH_PATTERN
+from warcbench.utils import find_pattern_in_bytes
 
 
 @dataclass

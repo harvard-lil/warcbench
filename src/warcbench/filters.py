@@ -1,8 +1,8 @@
 """
 """
 
-from .patterns import get_warc_named_field_pattern
-from .utils import find_pattern_in_bytes, find_match_in_extracted_header
+from warcbench.patterns import get_warc_named_field_pattern
+from warcbench.utils import find_pattern_in_bytes, find_match_in_extracted_header
 
 def warc_named_field_filter(field_name, target, case_insensitive=True, exact_match=False):
     def f(record):

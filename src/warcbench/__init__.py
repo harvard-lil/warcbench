@@ -2,11 +2,11 @@ import gzip
 import operator
 import zipfile
 
-from .exceptions import AttributeNotInitializedError
-from .models import Record, Header, ContentBlock, UnparsableLine
-from .logging import logging
-from .patterns import CRLF, WARC_VERSION
-from .utils import skip_leading_whitespace, preserve_cursor_position, advance_to_next_line
+from warcbench.exceptions import AttributeNotInitializedError
+from warcbench.models import Record, Header, ContentBlock, UnparsableLine
+from warcbench.logging import logging
+from warcbench.patterns import CRLF, WARC_VERSION
+from warcbench.utils import skip_leading_whitespace, preserve_cursor_position, advance_to_next_line
 
 
 STATES = {

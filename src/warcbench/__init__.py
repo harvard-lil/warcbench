@@ -6,20 +6,25 @@ from warcbench.exceptions import AttributeNotInitializedError
 from warcbench.models import Record, Header, ContentBlock, UnparsableLine
 from warcbench.logging import logging
 from warcbench.patterns import CRLF, WARC_VERSION
-from warcbench.utils import skip_leading_whitespace, preserve_cursor_position, advance_to_next_line
+from warcbench.utils import (
+    skip_leading_whitespace,
+    preserve_cursor_position,
+    advance_to_next_line,
+)
 
 logger = logging.getLogger(__name__)
 
 
 STATES = {
-    'FIND_HEADER': 'find_header',
-    'EXTRACT_HEADER': 'extract_header',
-    'FIND_NEXT_RECORD': 'find_next_record',
-    'EXTRACT_NEXT_RECORD': 'extract_next_record',
-    'CHECK_RECORD_AGAINST_FILTERS': 'check_record_against_filters',
-    'YIELD_CURRENT_RECORD': 'yield_record',
-    'END': 'end'
+    "FIND_HEADER": "find_header",
+    "EXTRACT_HEADER": "extract_header",
+    "FIND_NEXT_RECORD": "find_next_record",
+    "EXTRACT_NEXT_RECORD": "extract_next_record",
+    "CHECK_RECORD_AGAINST_FILTERS": "check_record_against_filters",
+    "YIELD_CURRENT_RECORD": "yield_record",
+    "END": "end",
 }
+
 
 class WARCParser:
 
@@ -34,14 +39,13 @@ class WARCParser:
         cache_unparsable_line_bytes=False,
         enable_lazy_loading_of_bytes=True,
         filters=None,
-        unparsable_line_handlers=None
+        unparsable_line_handlers=None,
     ):
         # Validate Options
         if check_content_lengths:
-            if not enable_lazy_loading_of_bytes and not all([
-                cache_header_bytes,
-                cache_content_block_bytes
-            ]):
+            if not enable_lazy_loading_of_bytes and not all(
+                [cache_header_bytes, cache_content_block_bytes]
+            ):
                 raise ValueError(
                     "To check_content_lengths, you must either enable_lazy_loading_of_bytes or "
                     "both cache_header_bytes and cache_content_block_bytes."
@@ -51,26 +55,26 @@ class WARCParser:
         # Set Up
         #
 
-        self.state = STATES['FIND_HEADER']
+        self.state = STATES["FIND_HEADER"]
         self.transitions = {
-            STATES['FIND_HEADER']: self.find_warc_header,
-            STATES['EXTRACT_HEADER']: self.extract_warc_header,
-            STATES['FIND_NEXT_RECORD']: self.find_next_record,
-            STATES['EXTRACT_NEXT_RECORD']: self.extract_next_record,
-            STATES['CHECK_RECORD_AGAINST_FILTERS']: self.check_record_against_filters,
-            STATES['END']: None
+            STATES["FIND_HEADER"]: self.find_warc_header,
+            STATES["EXTRACT_HEADER"]: self.extract_warc_header,
+            STATES["FIND_NEXT_RECORD"]: self.find_next_record,
+            STATES["EXTRACT_NEXT_RECORD"]: self.extract_next_record,
+            STATES["CHECK_RECORD_AGAINST_FILTERS"]: self.check_record_against_filters,
+            STATES["END"]: None,
         }
 
         self.file_handle = file_handle
         self.check_content_lengths = check_content_lengths
         self.cache_unparsable_lines = cache_unparsable_lines
-        self.cache_record_bytes=cache_record_bytes
-        self.cache_header_bytes=cache_header_bytes
-        self.cache_content_block_bytes=cache_content_block_bytes
-        self.cache_unparsable_line_bytes=cache_unparsable_line_bytes
-        self.enable_lazy_loading_of_bytes=enable_lazy_loading_of_bytes
-        self.filters=filters
-        self.unparsable_line_handlers=unparsable_line_handlers
+        self.cache_record_bytes = cache_record_bytes
+        self.cache_header_bytes = cache_header_bytes
+        self.cache_content_block_bytes = cache_content_block_bytes
+        self.cache_unparsable_line_bytes = cache_unparsable_line_bytes
+        self.enable_lazy_loading_of_bytes = enable_lazy_loading_of_bytes
+        self.filters = filters
+        self.unparsable_line_handlers = unparsable_line_handlers
 
         self.warnings = []
         self.error = None
@@ -81,7 +85,6 @@ class WARCParser:
             self._unparsable_lines = []
         else:
             self._unparsable_lines = None
-
 
     @property
     def records(self):
@@ -101,31 +104,25 @@ class WARCParser:
             )
         return self._unparsable_lines
 
-    def parse(self,
-        find_first_record_only=False
-    ):
+    def parse(self, find_first_record_only=False):
         self._records = []
-        iterator = self.iterator(
-            find_first_record_only=find_first_record_only
-        )
+        iterator = self.iterator(find_first_record_only=find_first_record_only)
         for record in iterator:
             self._records.append(record)
 
-    def iterator(self,
-        find_first_record_only=False
-    ):
+    def iterator(self, find_first_record_only=False):
         self.file_handle.seek(0)
 
-        while self.state != STATES['END']:
-            if self.state == STATES['YIELD_CURRENT_RECORD']:
+        while self.state != STATES["END"]:
+            if self.state == STATES["YIELD_CURRENT_RECORD"]:
                 yield self.current_record
                 self.current_record = None
 
                 if find_first_record_only:
-                    self.state = STATES['END']
+                    self.state = STATES["END"]
                     continue
 
-                self.state = STATES['FIND_NEXT_RECORD']
+                self.state = STATES["FIND_NEXT_RECORD"]
             else:
                 transition_func = self.transitions[self.state]
                 self.state = transition_func()
@@ -137,20 +134,20 @@ class WARCParser:
         self.file_handle.seek(initial_position)
 
         if first_line == WARC_VERSION:
-            return STATES['EXTRACT_HEADER']
+            return STATES["EXTRACT_HEADER"]
         else:
-            self.error = 'No WARC header found.'
-            return STATES['END']
+            self.error = "No WARC header found."
+            return STATES["END"]
 
     def extract_warc_header(self):
         self.extract_next_record()
-        return STATES['CHECK_RECORD_AGAINST_FILTERS']
+        return STATES["CHECK_RECORD_AGAINST_FILTERS"]
 
     def find_next_record(self):
         while True:
             initial_position = self.file_handle.tell()
             if self.file_handle.peek(len(WARC_VERSION)).startswith(WARC_VERSION):
-                return STATES['EXTRACT_NEXT_RECORD']
+                return STATES["EXTRACT_NEXT_RECORD"]
 
             next_line = self.file_handle.readline()
             current_position = self.file_handle.tell()
@@ -160,35 +157,32 @@ class WARCParser:
                     end=current_position,
                 )
                 if self.cache_unparsable_line_bytes:
-                    unparsable_line._bytes=next_line
+                    unparsable_line._bytes = next_line
                 if self.enable_lazy_loading_of_bytes:
-                    unparsable_line._file_handle=self.file_handle
+                    unparsable_line._file_handle = self.file_handle
                 if self.unparsable_line_handlers:
                     for handler in self.unparsable_line_handlers:
                         handler(unparsable_line)
                 if self.cache_unparsable_lines:
                     self.unparsable_lines.append(unparsable_line)
             else:
-                return STATES['END']
+                return STATES["END"]
 
     def extract_next_record(self):
         start = self.file_handle.tell()
         stop = self.find_record_end()
         if stop:
             # Don't include the delimiter in the record's data or offsets
-            end = stop - len(CRLF*2)
+            end = stop - len(CRLF * 2)
             data = self.file_handle.read(end - start)
             # Advance the cursor past the delimiter
-            self.file_handle.read(len(CRLF*2))
+            self.file_handle.read(len(CRLF * 2))
         else:
-            self.warnings.append('Last record may have been truncated.')
+            self.warnings.append("Last record may have been truncated.")
             data = self.file_handle.read()
             end = self.file_handle.tell()
 
-        record = Record(
-            start=start,
-            end=end
-        )
+        record = Record(start=start, end=end)
         if self.cache_record_bytes:
             record._bytes = data
         if self.enable_lazy_loading_of_bytes:
@@ -197,14 +191,13 @@ class WARCParser:
             data,
             cache_header_bytes=self.cache_header_bytes,
             cache_content_block_bytes=self.cache_content_block_bytes,
-            enable_lazy_loading_of_bytes=self.enable_lazy_loading_of_bytes
+            enable_lazy_loading_of_bytes=self.enable_lazy_loading_of_bytes,
         )
 
         if self.check_content_lengths:
             record.check_content_length()
         self.current_record = record
-        return STATES['CHECK_RECORD_AGAINST_FILTERS']
-
+        return STATES["CHECK_RECORD_AGAINST_FILTERS"]
 
     def check_record_against_filters(self):
         retained = True
@@ -212,13 +205,14 @@ class WARCParser:
             for f in self.filters:
                 if not f(self.current_record):
                     retained = False
-                    logger.debug(f"Skipping record at {self.current_record.start}-{self.current_record.end} due to filter.")
+                    logger.debug(
+                        f"Skipping record at {self.current_record.start}-{self.current_record.end} due to filter."
+                    )
                     break
 
         if retained:
-            return STATES['YIELD_CURRENT_RECORD']
-        return STATES['FIND_NEXT_RECORD']
-
+            return STATES["YIELD_CURRENT_RECORD"]
+        return STATES["FIND_NEXT_RECORD"]
 
     def find_record_end(self):
 
@@ -252,7 +246,9 @@ class WARCParser:
                             # the end of this record and the start of the next one.
                             # (Expect this after content blocks with binary payloads.)
                             # Otherwise, we're still in the middle of a record.
-                            if self.file_handle.peek(len(WARC_VERSION)).startswith(WARC_VERSION):
+                            if self.file_handle.peek(len(WARC_VERSION)).startswith(
+                                WARC_VERSION
+                            ):
                                 # TODO: in rare cases, I bet this catches false positives.
                                 # For instance, what if the content block's payload is an
                                 # HTML page with code blocks about WARC contents? :-)
@@ -276,47 +272,49 @@ def main() -> None:
     # Example Usage
     #
 
-    with open("assets/example.com.wacz", "rb") as wacz_file, \
-        zipfile.Path(wacz_file, "archive/data.warc.gz").open("rb") as warc_gz_file, \
-        gzip.open(warc_gz_file, "rb") as warc_file:
-            parser = WARCParser(
-                warc_file,
-                check_content_lengths=True,
-                cache_unparsable_lines=True,
-                # cache_record_bytes=True,
-                # cache_header_bytes=True,
-                # cache_content_block_bytes=True,
-                # cache_unparsable_line_bytes=True,
-                # enable_lazy_loading_of_bytes=False,
-                filters=[
-                    # lambda record: False,
-                    # record_content_length_filter(1007),
-                    # record_content_length_filter(38978, 'gt'),
-                    # record_content_type_filter('http'),
-                    # warc_named_field_filter('type', 'warcinfo'),
-                    # warc_named_field_filter('type', 'request'),
-                    # warc_named_field_filter('target-uri', 'favicon'),
-                    # warc_named_field_filter(
-                    #     'target-uri',
-                    #     'http://example.com/',
-                    #     exact_match=True
-                    # ),
-                    # http_verb_filter('get'),
-                    # http_status_filter(200),
-                    # http_header_filter('content-encoding', 'gzip'),
-                    # http_response_content_type_filter('pdf'),
-                    # warc_header_regex_filter('Scoop-Exchange-Description: Provenance Summary'),
-                ],
-                # unparsable_line_handlers=[
-                #     lambda line: print(len(line.bytes))
-                # ]
-            )
-            parser.parse(
-                # find_first_record_only=True,
-            )
-            print(len(parser.records))
-            # for record in parser.records:
-                # print(record.get_http_header_block())
-                # print(record.get_http_body_block())
-                # print("\n\n")
-            breakpoint()
+    with (
+        open("assets/example.com.wacz", "rb") as wacz_file,
+        zipfile.Path(wacz_file, "archive/data.warc.gz").open("rb") as warc_gz_file,
+        gzip.open(warc_gz_file, "rb") as warc_file,
+    ):
+        parser = WARCParser(
+            warc_file,
+            check_content_lengths=True,
+            cache_unparsable_lines=True,
+            # cache_record_bytes=True,
+            # cache_header_bytes=True,
+            # cache_content_block_bytes=True,
+            # cache_unparsable_line_bytes=True,
+            # enable_lazy_loading_of_bytes=False,
+            filters=[
+                # lambda record: False,
+                # record_content_length_filter(1007),
+                # record_content_length_filter(38978, 'gt'),
+                # record_content_type_filter('http'),
+                # warc_named_field_filter('type', 'warcinfo'),
+                # warc_named_field_filter('type', 'request'),
+                # warc_named_field_filter('target-uri', 'favicon'),
+                # warc_named_field_filter(
+                #     'target-uri',
+                #     'http://example.com/',
+                #     exact_match=True
+                # ),
+                # http_verb_filter('get'),
+                # http_status_filter(200),
+                # http_header_filter('content-encoding', 'gzip'),
+                # http_response_content_type_filter('pdf'),
+                # warc_header_regex_filter('Scoop-Exchange-Description: Provenance Summary'),
+            ],
+            # unparsable_line_handlers=[
+            #     lambda line: print(len(line.bytes))
+            # ]
+        )
+        parser.parse(
+            # find_first_record_only=True,
+        )
+        print(len(parser.records))
+        # for record in parser.records:
+        # print(record.get_http_header_block())
+        # print(record.get_http_body_block())
+        # print("\n\n")
+        breakpoint()

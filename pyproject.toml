@@ -1,0 +1,17 @@
+[project]
+name = "warcbench"
+version = "0.1.0"
+description = "Add your description here"
+readme = "README.md"
+authors = [
+    { name = "Rebecca Cremona", email = "rcremona@law.harvard.edu" }
+]
+requires-python = ">=3.10"
+dependencies = []
+
+[project.scripts]
+warcbench = "warcbench:main"
+
+[build-system]
+requires = ["hatchling"]
+build-backend = "hatchling.build"

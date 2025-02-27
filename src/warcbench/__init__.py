@@ -8,6 +8,8 @@ from warcbench.logging import logging
 from warcbench.patterns import CRLF, WARC_VERSION
 from warcbench.utils import skip_leading_whitespace, preserve_cursor_position, advance_to_next_line
 
+logger = logging.getLogger(__name__)
+
 
 STATES = {
     'FIND_HEADER': 'find_header',
@@ -210,7 +212,7 @@ class WARCParser:
             for f in self.filters:
                 if not f(self.current_record):
                     retained = False
-                    logging.debug(f"Skipping record at {self.current_record.start}-{self.current_record.end} due to filter.")
+                    logger.debug(f"Skipping record at {self.current_record.start}-{self.current_record.end} due to filter.")
                     break
 
         if retained:

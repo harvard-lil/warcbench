@@ -10,6 +10,7 @@ from warcbench.logging import logging
 from warcbench.patterns import CRLF, CONTENT_LENGTH_PATTERN
 from warcbench.utils import find_pattern_in_bytes
 
+logger = logging.getLogger(__name__)
 
 @dataclass
 class ByteRange():
@@ -53,7 +54,7 @@ class ByteRange():
                     "cache_record_bytes/cache_header_bytes/cache_content_block_bytes."
                 )
 
-            logging.debug(f"Reading from {self.start} to {self.end}.")
+            logger.debug(f"Reading from {self.start} to {self.end}.")
 
             original_postion = self._file_handle.tell()
 
@@ -128,7 +129,7 @@ class Record(ByteRange):
         if match:
             expected = int(match.group(1))
             self.content_length_check_result = self.content_block.length == expected
-            logging.debug(f"Record content length check: found {self.content_block.length}, expected {expected}.")
+            logger.debug(f"Record content length check: found {self.content_block.length}, expected {expected}.")
         else:
             self.content_length_check_result = False
 

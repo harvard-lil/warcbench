@@ -5,6 +5,9 @@ from contextlib import contextmanager
 import os
 import re
 
+from warcbench.logging import logging
+
+logger = logging.getLogger(__name__)
 
 def skip_leading_whitespace(file_handle):
     while True:
@@ -15,7 +18,7 @@ def skip_leading_whitespace(file_handle):
             file_handle.seek(-1, whence=os.SEEK_CUR)
             break
         else:
-            logging.debug("Skipping whitespace!\n")
+            logger.debug("Skipping whitespace!\n")
 
 
 @contextmanager

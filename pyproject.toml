@@ -15,3 +15,8 @@ warcbench = "warcbench:main"
 [build-system]
 requires = ["hatchling"]
 build-backend = "hatchling.build"
+
+[tool.uv]
+dev-dependencies = [
+    "black>=25.1.0",
+]

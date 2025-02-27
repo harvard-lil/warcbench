@@ -88,7 +88,7 @@ def find_pattern_in_bytes(pattern, data, case_insensitive=True):
     return re.search(pattern, data, re.IGNORECASE if case_insensitive else 0)
 
 
-def find_match_in_extracted_header(
+def is_target_in_bytes(
     extracted,
     target,
     case_insensitive=True,

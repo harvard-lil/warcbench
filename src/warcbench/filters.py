@@ -13,7 +13,7 @@ def warc_named_field_filter(field_name, target, case_insensitive=True, exact_mat
         )
         if match:
             extracted = match.group(1)
-            return find_match_in_extracted_header(
+            return is_target_in_bytes(
                 extracted,
                 target,
                 case_insensitive=case_insensitive,
@@ -79,7 +79,7 @@ def record_content_type_filter(content_type, case_insensitive=True, exact_match=
         )
         if match:
             extracted = match.group(1)
-            return find_match_in_extracted_header(
+            return is_target_in_bytes(
                 extracted,
                 content_type,
                 case_insensitive=case_insensitive,
@@ -103,7 +103,7 @@ def http_verb_filter(verb):
             )
             if match:
                 extracted = match.group(1)
-                return find_match_in_extracted_header(
+                return is_target_in_bytes(
                     extracted,
                     verb,
                     exact_match=True
@@ -126,7 +126,7 @@ def http_status_filter(status_code):
             )
             if match:
                 extracted = match.group(1)
-                return find_match_in_extracted_header(
+                return is_target_in_bytes(
                     extracted,
                     str(status_code),
                     exact_match=True
@@ -150,7 +150,7 @@ def http_header_filter(header_name, target, case_insensitive=True, exact_match=F
             )
             if match:
                 extracted = match.group(1)
-                return find_match_in_extracted_header(
+                return is_target_in_bytes(
                     extracted,
                     target,
                     case_insensitive=case_insensitive,
@@ -175,7 +175,7 @@ def http_response_content_type_filter(content_type, case_insensitive=True, exact
             )
             if match:
                 extracted = match.group(1)
-                return find_match_in_extracted_header(
+                return is_target_in_bytes(
                     extracted,
                     content_type,
                     case_insensitive=case_insensitive,

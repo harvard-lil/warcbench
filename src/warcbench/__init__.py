@@ -1,9 +1,8 @@
 import gzip
-import operator
 import zipfile
 
 from warcbench.exceptions import AttributeNotInitializedError
-from warcbench.models import Record, Header, ContentBlock, UnparsableLine
+from warcbench.models import Record, UnparsableLine
 from warcbench.logging import logging
 from warcbench.patterns import CRLF, WARC_VERSION
 from warcbench.utils import (
@@ -258,7 +257,7 @@ class WARCParser:
                     last_line_was_a_break = False
                     last_line_had_a_break = False
 
-            return end_position
+            return None
 
 
 def main() -> None:

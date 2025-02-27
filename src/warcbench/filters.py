@@ -1,7 +1,13 @@
-""" """
-
-from warcbench.patterns import get_warc_named_field_pattern
-from warcbench.utils import find_pattern_in_bytes, find_match_in_extracted_header
+import operator
+from warcbench.patterns import (
+    get_warc_named_field_pattern,
+    get_http_verb_pattern,
+    get_http_status_pattern,
+    get_http_header_pattern,
+    CONTENT_LENGTH_PATTERN,
+    CONTENT_TYPE_PATTERN,
+)
+from warcbench.utils import find_pattern_in_bytes, is_target_in_bytes
 
 
 def warc_named_field_filter(

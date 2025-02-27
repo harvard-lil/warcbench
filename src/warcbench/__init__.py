@@ -1,521 +1,12 @@
-from dataclasses import dataclass, field
-import functools
 import gzip
-import io
-import logging
 import operator
-import os
-import re
-from typing import Optional
 import zipfile
 
-logging.basicConfig(level=logging.DEBUG, format='%(asctime)s - %(levelname)s - %(message)s')
-
-
-#
-# Constants and patterns
-#
-
-CRLF = b"\r\n"
-WARC_VERSION = b"WARC/1.1\r\n"
-CONTENT_LENGTH_PATTERN = rb"Content-Length:\s*(\d+)"
-CONTENT_TYPE_PATTERN = rb"Content-Type:\s*(.*)((\r\n)|$)"
-
-
-def get_warc_named_field_pattern(field_name):
-    return b"WARC-" + bytes(field_name, "utf-8") + rb":\s*(.*)((\r\n)|$)"
-
-
-def get_http_verb_pattern(verb):
-    return bytes(f"({verb})", "utf-8") + rb"\s+.*HTTP/.*((\r\n)|$)"
-
-
-def get_http_status_pattern(status_code):
-    return rb"HTTP/1.1\s*" + bytes(f"({status_code})", "utf-8")
-
-
-def get_http_header_pattern(header_name):
-    return bytes(header_name, "utf-8") + rb":\s*(.+)((\r\n)|$)"
-
-
-#
-# Models
-#
-
-@dataclass
-class ByteRange():
-    start: int
-    end: int
-    _bytes: Optional[bytes] = field(repr=False, default=None)
-    _file_handle: Optional[io.BufferedReader] = field(repr=False, default=None)
-
-    def __post_init__(self):
-        self.length = self.end - self.start
-
-    @property
-    def bytes(self):
-        if self._bytes is None:
-            data = bytearray()
-            for chunk in self.iterator():
-                data.extend(chunk)
-            return bytes(data)
-        return self._bytes
-
-    def iterator(self, chunk_size=1024):
-        if self._bytes:
-            for i in range(0, len(self._bytes), chunk_size):
-                yield data[i:i + chunk_size]
-
-        else:
-            if not self._file_handle:
-                raise ValueError(
-                    "To access record bytes, you must either enable_lazy_loading_of_bytes or "
-                    "cache_record_bytes/cache_header_bytes/cache_content_block_bytes."
-                )
-
-            logging.debug(f"Reading from {self.start} to {self.end}.")
-
-            original_postion = self._file_handle.tell()
-
-            self._file_handle.seek(self.start)
-            while self._file_handle.tell() < self.end:
-                # Calculate the remaining bytes to read
-                remaining_bytes = self.end - self._file_handle.tell()
-
-                # Determine the actual chunk size to read
-                actual_chunk_size = min(chunk_size, remaining_bytes)
-
-                yield self._file_handle.read(actual_chunk_size)
-
-            self._file_handle.seek(original_postion)
-
-
-@dataclass
-class UnparsableLine(ByteRange):
-    pass
-
-
-@dataclass
-class Record(ByteRange):
-
-    content_length_check_result: Optional[int] = None
-
-    def check_content_length(self):
-        match = find_pattern_in_bytes(CONTENT_LENGTH_PATTERN, self.header.bytes)
-
-        if match:
-            expected = int(match.group(1))
-            self.content_length_check_result = self.content_block.length == expected
-            logging.debug(f"Record content length check: found {self.content_block.length}, expected {expected}.")
-        else:
-            self.content_length_check_result = False
-
-    def get_http_header_block(self):
-        if (
-            record_content_type_filter('http')(self) and
-            self.content_block.bytes.find(CRLF*2)
-        ):
-            return self.content_block.bytes.split(CRLF*2)[0]
-
-    def get_http_body_block(self):
-        if (
-            record_content_type_filter('http')(self) and
-            self.content_block.bytes.find(CRLF*2)
-        ):
-            parts = self.content_block.bytes.split(CRLF*2)
-            if len(parts) == 2:
-                return parts[1]
-
-
-@dataclass
-class Header(ByteRange):
-    pass
-
-
-@dataclass
-class ContentBlock(ByteRange):
-    pass
-
-
-#
-# Record Filters
-#
-
-def warc_named_field_filter(field_name, target, case_insensitive=True, exact_match=False):
-    def f(record):
-        match = find_pattern_in_bytes(
-            get_warc_named_field_pattern(field_name),
-            record.header.bytes,
-            case_insensitive=case_insensitive
-        )
-        if match:
-            extracted = match.group(1)
-            return find_match_in_extracted_header(
-                extracted,
-                target,
-                case_insensitive=case_insensitive,
-                exact_match=exact_match
-            )
-        return False
-    return f
-
-
-def warc_header_regex_filter(regex, case_insensitive=True):
-    def f(record):
-        return bool(
-            find_pattern_in_bytes(
-                bytes(regex, "utf-8"),
-                record.header.bytes,
-                case_insensitive=case_insensitive
-            )
-        )
-    return f
-
-
-def record_content_length_filter(target_length, use_operator="eq"):
-    allowed_operators = {
-        'lt': operator.lt,
-        'le': operator.le,
-        'eq': operator.eq,
-        'ne': operator.ne,
-        'gt': operator.gt,
-        'ge': operator.ge,
-    }
-    if use_operator not in allowed_operators:
-        raise ValueError(f"Supported operators: {', '.join(allowed_operators)}.")
-
-    def f(record):
-        match = find_pattern_in_bytes(CONTENT_LENGTH_PATTERN, record.header.bytes, case_insensitive=True)
-
-        if match:
-            extracted = int(match.group(1))
-            return allowed_operators[use_operator](extracted, target_length)
-        else:
-            return False
-    return f
-
-
-def record_content_type_filter(content_type, case_insensitive=True, exact_match=False):
-    """
-    Filters on the Content-Type field of the WARC header.
-
-    Expected values:
-    - application/warc-fields
-    - application/http; msgtype=request
-    - application/http; msgtype=response
-    - image/jpeg or another mime type, for resource records
-
-    NB: This field does NOT refer to the content-type header of recorded HTTP responses.
-    See `http_response_content_type_filter`.
-    """
-    def f(record):
-        match = find_pattern_in_bytes(
-            CONTENT_TYPE_PATTERN,
-            record.header.bytes,
-            case_insensitive=case_insensitive
-        )
-        if match:
-            extracted = match.group(1)
-            return find_match_in_extracted_header(
-                extracted,
-                content_type,
-                case_insensitive=case_insensitive,
-                exact_match=exact_match
-            )
-        return False
-    return f
-
-
-def http_verb_filter(verb):
-    """
-    Finds WARC records with a Content-Type of application/http; msgtype=request,
-    then filters on HTTP verb.
-    """
-    def f(record):
-        if record_content_type_filter('application/http; msgtype=request')(record):
-            http_headers = record.get_http_header_block()
-            match = find_pattern_in_bytes(
-                get_http_verb_pattern(verb),
-                http_headers
-            )
-            if match:
-                extracted = match.group(1)
-                return find_match_in_extracted_header(
-                    extracted,
-                    verb,
-                    exact_match=True
-                )
-        return False
-    return f
-
-
-def http_status_filter(status_code):
-    """
-    Finds WARC records with a Content-Type of application/http; msgtype=response,
-    then filters on HTTP status code.
-    """
-    def f(record):
-        if record_content_type_filter('application/http; msgtype=response')(record):
-            http_headers = record.get_http_header_block()
-            match = find_pattern_in_bytes(
-                get_http_status_pattern(status_code),
-                http_headers
-            )
-            if match:
-                extracted = match.group(1)
-                return find_match_in_extracted_header(
-                    extracted,
-                    str(status_code),
-                    exact_match=True
-                )
-        return False
-    return f
-
-
-def http_header_filter(header_name, target, case_insensitive=True, exact_match=False):
-    """
-    Finds WARC records with a Content-Type that includes application/http,
-    then filters on any HTTP header.
-    """
-    def f(record):
-        if record_content_type_filter('application/http')(record):
-            http_headers = record.get_http_header_block()
-            match = find_pattern_in_bytes(
-                get_http_header_pattern(header_name),
-                http_headers,
-                case_insensitive=case_insensitive
-            )
-            if match:
-                extracted = match.group(1)
-                return find_match_in_extracted_header(
-                    extracted,
-                    target,
-                    case_insensitive=case_insensitive,
-                    exact_match=exact_match
-                )
-        return False
-    return f
-
-
-def http_response_content_type_filter(content_type, case_insensitive=True, exact_match=False):
-    """
-    Finds WARC records with a Content-Type of application/http; msgtype=response,
-    then filters on the HTTP header "Content-Type".
-    """
-    def f(record):
-        if record_content_type_filter('application/http; msgtype=response')(record):
-            http_headers = record.get_http_header_block()
-            match = find_pattern_in_bytes(
-                CONTENT_TYPE_PATTERN,
-                http_headers,
-                case_insensitive=case_insensitive
-            )
-            if match:
-                extracted = match.group(1)
-                return find_match_in_extracted_header(
-                    extracted,
-                    content_type,
-                    case_insensitive=case_insensitive,
-                    exact_match=exact_match
-                )
-        return False
-    return f
-
-
-#
-# Utils
-#
-
-class AttributeNotInitializedError(Exception):
-    """Custom exception raised when trying to access an uninitialized attribute."""
-    pass
-
-
-def skip_leading_whitespace(file_handle):
-    while True:
-        byte = file_handle.read(1)
-        if not byte.isspace():
-            # Skip the cursor back one byte, so this non-whitespace
-            # byte is isn't skipped
-            file_handle.seek(-1, whence=os.SEEK_CUR)
-            break
-        else:
-            logging.debug("Skipping whitespace!\n")
-
-
-def preserve_cursor_position(func):
-    @functools.wraps(func)
-    def wrapper(file_handle, *args, **kwargs):
-        # Save the original position of the file handle
-        original_position = file_handle.tell()
-        try:
-            # Call the decorated function
-            return func(file_handle, *args, **kwargs)
-        finally:
-            # Reset the file handle to the original position
-            file_handle.seek(original_position)
-    return wrapper
-
-
-def advance_to_next_line(file_handle, chunk_size=1024):
-    """
-    Advance the cursor just past the next newline character.
-    Reports if the processed line met either of two special conditions:
-    - Did it end in \r\n?
-    - Was that \r\n the entire contents of the line?
-    Returns:
-    - a tuple: (ended_with_crlf, was_crlf_only)
-    - or, None, if no explicit line-ending was found
-    """
-    if chunk_size < 2:
-        raise ValueError("Please specify a larger chunk size.")
-
-    last_twoish_bytes_read = bytearray()
-    while True:
-        chunk = file_handle.read(chunk_size)
-
-        if not chunk:
-            return None # End of file, no explicit line-ending found
-
-        # Special handling, if \r and \n happened to be split between chunks
-        if chunk.startswith(b'\n'):
-
-            if last_twoish_bytes_read.endswith(b'\r'):
-                # We found a CRLF!
-                ended_with_crlf = True
-                # Check to see if it was on its own line.
-                was_crlf_only = last_twoish_bytes_read.endswith(b'\n\r')
-            else:
-                ended_with_crlf = False
-                was_crlf_only = False
-
-            # Set the cursor to the position after the newline
-            file_handle.seek(file_handle.tell() - len(chunk) + 1)
-            return ended_with_crlf, was_crlf_only
-
-        # Look for a newline in the current chunk
-        newline_index = chunk.find(b'\n')
-        if newline_index != -1:
-
-            # Check if the line ends with '\r\n'
-            ended_with_crlf = (newline_index > 0 and chunk[newline_index - 1] == ord(b'\r'))
-
-            # Check if the line is just '\r\n'
-            was_crlf_only = (newline_index == 1 and chunk[0] == ord(b'\r'))
-
-            # Set the cursor to the position after the newline
-            file_handle.seek(file_handle.tell() - len(chunk) + newline_index + 1)
-            return ended_with_crlf, was_crlf_only
-
-        # Update the last two bytes
-        last_twoish_bytes_read.clear()
-        last_twoish_bytes_read.extend(chunk[-2:])
-
-
-@preserve_cursor_position
-def find_record_end(file_handle):
-    last_line_had_a_break = False
-    last_line_was_a_break = False
-
-    while True:
-        line = advance_to_next_line(file_handle)
-
-        if not line:
-            return None  # End of file reached without a record delimiter
-
-        line_ended_with_crlf, line_was_crlf_only = line
-        if line_ended_with_crlf:
-
-            # We are only at a record end if this line was just a break.
-            if line_was_crlf_only:
-
-                if last_line_was_a_break:
-                    # We've found the delimiter! We might be done.
-                    # Make sure there aren't more instance of \r\n to consume,
-                    # lest we signal we've found the end of the record prematurely.
-                    if not file_handle.peek(2).startswith(CRLF):
-                        return file_handle.tell()  # End of record found
-
-                if last_line_had_a_break:
-                    # We've found the delimiter! We might be done.
-                    # If the next line begins with "WARC", then we've found
-                    # the end of this record and the start of the next one.
-                    # (Expect this after content blocks with binary payloads.)
-                    # Otherwise, we're still in the middle of a record.
-                    if file_handle.peek(len(WARC_VERSION)).startswith(WARC_VERSION):
-                        # TODO: in rare cases, I bet this catches false positives.
-                        # For instance, what if the content block's payload is an
-                        # HTML page with code blocks about WARC contents? :-)
-                        return file_handle.tell()  # End of record found
-
-                last_line_was_a_break = True
-
-            else:
-                last_line_was_a_break = False
-                last_line_had_a_break = True
-        else:
-            last_line_was_a_break = False
-            last_line_had_a_break = False
-
-    return end_position
-
-
-def split_record(
-    record,
-    record_bytes,
-    cache_header_bytes,
-    cache_content_block_bytes,
-    enable_lazy_loading_of_bytes
-):
-    header_start = record.start
-    header_end_index = record_bytes.find(CRLF*2)
-    header_end = header_start + header_end_index
-
-    content_block_start_index = header_end_index + len(CRLF*2)
-    content_block_start = record.start + content_block_start_index
-    content_block_end = record.end
-
-    record.header = Header(
-        start=header_start,
-        end=header_end
-    )
-    if cache_header_bytes:
-        record.header._bytes = record_bytes[:header_end_index]
-    if enable_lazy_loading_of_bytes:
-        record.header._file_handle = record._file_handle
-
-    record.content_block = ContentBlock(
-        start=content_block_start,
-        end=content_block_end,
-    )
-    if cache_content_block_bytes:
-        record.content_block._bytes = record_bytes[content_block_start_index:]
-    if enable_lazy_loading_of_bytes:
-        record.content_block._file_handle = record._file_handle
-
-
-def find_pattern_in_bytes(pattern, data, case_insensitive=True):
-    return re.search(pattern, data, re.IGNORECASE if case_insensitive else 0)
-
-
-def find_match_in_extracted_header(
-    extracted,
-    target,
-    case_insensitive=True,
-    exact_match=False
-):
-    extracted_bytes = extracted.lower() if case_insensitive else extracted
-    target_string = target.lower() if case_insensitive else target
-    target_bytes = bytes(target_string, 'utf-8')
-
-    if exact_match:
-        return target_bytes == extracted_bytes
-    return target_bytes in extracted_bytes
-
-
-#
-# Parser
-#
+from .exceptions import AttributeNotInitializedError
+from .models import Record, Header, ContentBlock, UnparsableLine
+from .logging import logging
+from .patterns import CRLF, WARC_VERSION
+from .utils import skip_leading_whitespace, preserve_cursor_position, advance_to_next_line
 
 
 STATES = {
@@ -680,7 +171,7 @@ class WARCParser:
 
     def extract_next_record(self):
         start = self.file_handle.tell()
-        stop = find_record_end(self.file_handle)
+        stop = self.find_record_end()
         if stop:
             # Don't include the delimiter in the record's data or offsets
             end = stop - len(CRLF*2)
@@ -700,8 +191,7 @@ class WARCParser:
             record._bytes = data
         if self.enable_lazy_loading_of_bytes:
             record._file_handle = self.file_handle
-        split_record(
-            record,
+        record.split(
             data,
             cache_header_bytes=self.cache_header_bytes,
             cache_content_block_bytes=self.cache_content_block_bytes,
@@ -726,6 +216,56 @@ class WARCParser:
         if retained:
             return STATES['YIELD_CURRENT_RECORD']
         return STATES['FIND_NEXT_RECORD']
+
+
+    def find_record_end(self):
+
+        with preserve_cursor_position(self.file_handle):
+
+            last_line_had_a_break = False
+            last_line_was_a_break = False
+
+            while True:
+                line = advance_to_next_line(self.file_handle)
+
+                if not line:
+                    return None  # End of file reached without a record delimiter
+
+                line_ended_with_crlf, line_was_crlf_only = line
+                if line_ended_with_crlf:
+
+                    # We are only at a record end if this line was just a break.
+                    if line_was_crlf_only:
+
+                        if last_line_was_a_break:
+                            # We've found the delimiter! We might be done.
+                            # Make sure there aren't more instance of \r\n to consume,
+                            # lest we signal we've found the end of the record prematurely.
+                            if not self.file_handle.peek(2).startswith(CRLF):
+                                return self.file_handle.tell()  # End of record found
+
+                        if last_line_had_a_break:
+                            # We've found the delimiter! We might be done.
+                            # If the next line begins with "WARC", then we've found
+                            # the end of this record and the start of the next one.
+                            # (Expect this after content blocks with binary payloads.)
+                            # Otherwise, we're still in the middle of a record.
+                            if self.file_handle.peek(len(WARC_VERSION)).startswith(WARC_VERSION):
+                                # TODO: in rare cases, I bet this catches false positives.
+                                # For instance, what if the content block's payload is an
+                                # HTML page with code blocks about WARC contents? :-)
+                                return self.file_handle.tell()  # End of record found
+
+                        last_line_was_a_break = True
+
+                    else:
+                        last_line_was_a_break = False
+                        last_line_had_a_break = True
+                else:
+                    last_line_was_a_break = False
+                    last_line_had_a_break = False
+
+            return end_position
 
 
 def main() -> None:

@@ -1,6 +1,7 @@
 """
 `utils` module: Every project has one.
 """
+
 from contextlib import contextmanager
 import os
 import re
@@ -8,6 +9,7 @@ import re
 from warcbench.logging import logging
 
 logger = logging.getLogger(__name__)
+
 
 def skip_leading_whitespace(file_handle):
     while True:
@@ -50,16 +52,15 @@ def advance_to_next_line(file_handle, chunk_size=1024):
         chunk = file_handle.read(chunk_size)
 
         if not chunk:
-            return None # End of file, no explicit line-ending found
+            return None  # End of file, no explicit line-ending found
 
         # Special handling, if \r and \n happened to be split between chunks
-        if chunk.startswith(b'\n'):
-
-            if last_twoish_bytes_read.endswith(b'\r'):
+        if chunk.startswith(b"\n"):
+            if last_twoish_bytes_read.endswith(b"\r"):
                 # We found a CRLF!
                 ended_with_crlf = True
                 # Check to see if it was on its own line.
-                was_crlf_only = last_twoish_bytes_read.endswith(b'\n\r')
+                was_crlf_only = last_twoish_bytes_read.endswith(b"\n\r")
             else:
                 ended_with_crlf = False
                 was_crlf_only = False
@@ -69,14 +70,15 @@ def advance_to_next_line(file_handle, chunk_size=1024):
             return ended_with_crlf, was_crlf_only
 
         # Look for a newline in the current chunk
-        newline_index = chunk.find(b'\n')
+        newline_index = chunk.find(b"\n")
         if newline_index != -1:
-
             # Check if the line ends with '\r\n'
-            ended_with_crlf = (newline_index > 0 and chunk[newline_index - 1] == ord(b'\r'))
+            ended_with_crlf = newline_index > 0 and chunk[newline_index - 1] == ord(
+                b"\r"
+            )
 
             # Check if the line is just '\r\n'
-            was_crlf_only = (newline_index == 1 and chunk[0] == ord(b'\r'))
+            was_crlf_only = newline_index == 1 and chunk[0] == ord(b"\r")
 
             # Set the cursor to the position after the newline
             file_handle.seek(file_handle.tell() - len(chunk) + newline_index + 1)
@@ -91,15 +93,10 @@ def find_pattern_in_bytes(pattern, data, case_insensitive=True):
     return re.search(pattern, data, re.IGNORECASE if case_insensitive else 0)
 
 
-def is_target_in_bytes(
-    extracted,
-    target,
-    case_insensitive=True,
-    exact_match=False
-):
+def is_target_in_bytes(extracted, target, case_insensitive=True, exact_match=False):
     extracted_bytes = extracted.lower() if case_insensitive else extracted
     target_string = target.lower() if case_insensitive else target
-    target_bytes = bytes(target_string, 'utf-8')
+    target_bytes = bytes(target_string, "utf-8")
 
     if exact_match:
         return target_bytes == extracted_bytes

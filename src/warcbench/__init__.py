@@ -257,8 +257,6 @@ class WARCParser:
                     last_line_was_a_break = False
                     last_line_had_a_break = False
 
-            return None
-
 
 def main() -> None:
     #

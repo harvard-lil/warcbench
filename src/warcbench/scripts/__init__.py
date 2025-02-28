@@ -1,5 +1,6 @@
 import click
 from warcbench.scripts.extra import goodbye
+from warcbench.scripts.example import parse_example
 
 
 @click.group()
@@ -12,6 +13,7 @@ def cli(ctx, verbose):
 
 
 cli.add_command(goodbye)
+cli.add_command(parse_example)
 
 
 @cli.command()

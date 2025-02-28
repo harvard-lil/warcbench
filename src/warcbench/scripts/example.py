@@ -7,7 +7,7 @@ from warcbench import WARCParser
 
 @click.command()
 def parse_example() -> None:
-    """Parses the WARC embedded in the WACZ in the assets folder"""
+    """Parses the WARC in the sample WACZ"""
     with (
         open("assets/example.com.wacz", "rb") as wacz_file,
         zipfile.Path(wacz_file, "archive/data.warc.gz").open("rb") as warc_gz_file,

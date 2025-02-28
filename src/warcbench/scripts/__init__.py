@@ -1,15 +1,25 @@
 import click
+from warcbench.scripts.extra import goodbye
 
 
 @click.group()
-def cli():
+@click.option("-v", "--verbose", count=True, help="Verbosity; repeatable")
+@click.pass_context
+def cli(ctx, verbose):
     """warcbench command framework, work in progress"""
-    pass
+    ctx.ensure_object(dict)
+    ctx.obj["VERBOSE"] = verbose
+
+
+cli.add_command(goodbye)
 
 
 @cli.command()
-def hello():
+@click.pass_context
+def hello(ctx):
     """Hello!"""
+    if ctx.obj["VERBOSE"] > 2:
+        click.echo("There's a lot to say.")
     click.echo("Hello World!")
 
 

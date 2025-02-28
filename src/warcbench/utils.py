@@ -140,31 +140,20 @@ def find_next_header_end(file_handle, chunk_size=1024):
             line = advance_to_next_line(file_handle, chunk_size)
 
             if not line:
-                return None  # End of file reached without a record delimiter
+                return None  # End of file reached without finding an end
 
             _, line_was_crlf_only = line
-
             if line_was_crlf_only:
-                # We've found the line break between the record's header and its content block!
+                # We've found the line break that's supposed to split
+                # a record's head from its content block!
                 return file_handle.tell()
 
 
-def find_content_length_end(file_handle, chunk_size=1024):
-    with preserve_cursor_position(file_handle):
-        start = file_handle.tell()
-        header_end = find_next_header_end(file_handle, chunk_size)
-
-        if header_end:
-            header_bytes = file_handle.read(header_end - start)
-        else:
-            header_bytes = file_handle.read()
-
-        match = find_pattern_in_bytes(CONTENT_LENGTH_PATTERN, header_bytes)
-        if match:
-            extracted_content_length = int(match.group(1))
-            # Include the delimiter we expect to follow the record
-            return header_end + extracted_content_length + len(CRLF * 2)
-        return
+def find_content_length_in_bytes(bytes):
+    match = find_pattern_in_bytes(CONTENT_LENGTH_PATTERN, bytes)
+    if match:
+        return int(match.group(1))
+    return None
 
 
 def find_pattern_in_bytes(pattern, data, case_insensitive=True):

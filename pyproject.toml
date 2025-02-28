@@ -7,10 +7,13 @@ authors = [
     { name = "Rebecca Cremona", email = "rcremona@law.harvard.edu" }
 ]
 requires-python = ">=3.10"
-dependencies = []
+dependencies = [
+    "click>=8.1.8",
+]
 
 [project.scripts]
 warcbench = "warcbench:main"
+wb = "warcbench.scripts:cli"
 
 [build-system]
 requires = ["hatchling"]

@@ -15,12 +15,13 @@ cli.add_command(goodbye)
 
 
 @cli.command()
+@click.option("--world", default="World")
 @click.pass_context
-def hello(ctx):
+def hello(ctx, world):
     """Hello!"""
     if ctx.obj["VERBOSE"] > 2:
         click.echo("There's a lot to say.")
-    click.echo("Hello World!")
+    click.echo(f"Hello {world}!")
 
 
 @cli.command()

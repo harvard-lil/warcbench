@@ -2,6 +2,7 @@
 `models` module: Dataclasses for storing parsed WARC pieces.
 """
 
+from abc import ABC
 from dataclasses import dataclass, field
 import io
 from typing import Optional
@@ -15,7 +16,7 @@ logger = logging.getLogger(__name__)
 
 
 @dataclass
-class ByteRange:
+class ByteRange(ABC):
     """
     The base class from which all others inherit.
     Records the starting and ending offsets of a range of bytes in a file,

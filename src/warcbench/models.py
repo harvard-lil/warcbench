@@ -5,9 +5,9 @@
 from abc import ABC
 from dataclasses import dataclass, field
 import io
+import logging
 from typing import Optional
 
-from warcbench.logging import logging
 from warcbench.patterns import CRLF, CONTENT_LENGTH_PATTERN
 from warcbench.utils import find_pattern_in_bytes
 from warcbench.filters import record_content_type_filter

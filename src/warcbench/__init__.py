@@ -1,10 +1,7 @@
 import gzip
 import zipfile
 
-from warcbench.logging import logging
 from warcbench.parsers import DelimiterWARCParser, ContentLengthWARCParser
-
-logger = logging.getLogger(__name__)
 
 
 class WARCParser:

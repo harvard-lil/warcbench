@@ -3,6 +3,7 @@
 """
 
 from abc import ABC, abstractmethod
+import logging
 import os
 
 from warcbench.exceptions import AttributeNotInitializedError
@@ -14,6 +15,8 @@ from warcbench.utils import (
     find_next_header_end,
     find_content_length_in_bytes,
 )
+
+logger = logging.getLogger(__name__)
 
 
 STATES = {

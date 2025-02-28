@@ -3,10 +3,10 @@
 """
 
 from contextlib import contextmanager
+import logging
 import os
 import re
 
-from warcbench.logging import logging
 from warcbench.patterns import CRLF, CONTENT_LENGTH_PATTERN, WARC_VERSION
 
 logger = logging.getLogger(__name__)

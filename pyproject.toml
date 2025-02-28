@@ -19,6 +19,9 @@ requires = ["hatchling"]
 build-backend = "hatchling.build"
 
 [dependency-groups]
+dev = [
+    "pytest>=8.3.4",
+]
 lint = [
     "ruff>=0.9.8",
 ]

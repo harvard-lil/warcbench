@@ -161,7 +161,9 @@ class WARCParser:
             if self.file_handle.peek(len(CRLF * 2)).startswith(CRLF * 2):
                 self.file_handle.read(len(CRLF * 2))
             else:
-                self.warnings.append(f"The record between {start}-{end} was improperly terminated.")
+                self.warnings.append(
+                    f"The record between {start}-{end} was improperly terminated."
+                )
         else:
             self.warnings.append("Last record may have been truncated.")
             data = self.file_handle.read()

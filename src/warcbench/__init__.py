@@ -7,8 +7,8 @@ from warcbench.logging import logging
 from warcbench.patterns import CRLF, WARC_VERSION
 from warcbench.utils import (
     skip_leading_whitespace,
-    preserve_cursor_position,
-    advance_to_next_line,
+    find_next_delimiter,
+    find_content_length_end,
 )
 
 logger = logging.getLogger(__name__)
@@ -29,6 +29,8 @@ class WARCParser:
     def __init__(
         self,
         file_handle,
+        parsing_style="delimiter",
+        parsing_chunk_size=1024,
         check_content_lengths=False,
         cache_unparsable_lines=False,
         cache_record_bytes=False,
@@ -40,7 +42,18 @@ class WARCParser:
         unparsable_line_handlers=None,
     ):
         # Validate Options
+        supported_parsing_styles = ["delimiter", "content_length"]
+        if parsing_style not in supported_parsing_styles:
+            raise ValueError(
+                f"Supported parsing styles: {', '.join(supported_parsing_styles)}"
+            )
+
         if check_content_lengths:
+            if parsing_style == "content_length":
+                raise ValueError(
+                    "Checking content lengths is only meaningful when parsing in delimter mode."
+                )
+
             if not enable_lazy_loading_of_bytes and not all(
                 [cache_header_bytes, cache_content_block_bytes]
             ):
@@ -73,6 +86,8 @@ class WARCParser:
         self.enable_lazy_loading_of_bytes = enable_lazy_loading_of_bytes
         self.filters = filters
         self.unparsable_line_handlers = unparsable_line_handlers
+        self.parsing_style = parsing_style
+        self.parsing_chunk_size = parsing_chunk_size
 
         self.warnings = []
         self.error = None
@@ -213,49 +228,15 @@ class WARCParser:
         return STATES["FIND_NEXT_RECORD"]
 
     def find_record_end(self):
-        with preserve_cursor_position(self.file_handle):
-            last_line_had_a_break = False
-            last_line_was_a_break = False
-
-            while True:
-                line = advance_to_next_line(self.file_handle)
-
-                if not line:
-                    return None  # End of file reached without a record delimiter
-
-                line_ended_with_crlf, line_was_crlf_only = line
-                if line_ended_with_crlf:
-                    # We are only at a record end if this line was just a break.
-                    if line_was_crlf_only:
-                        if last_line_was_a_break:
-                            # We've found the delimiter! We might be done.
-                            # Make sure there aren't more instance of \r\n to consume,
-                            # lest we signal we've found the end of the record prematurely.
-                            if not self.file_handle.peek(2).startswith(CRLF):
-                                return self.file_handle.tell()  # End of record found
-
-                        if last_line_had_a_break:
-                            # We've found the delimiter! We might be done.
-                            # If the next line begins with "WARC", then we've found
-                            # the end of this record and the start of the next one.
-                            # (Expect this after content blocks with binary payloads.)
-                            # Otherwise, we're still in the middle of a record.
-                            if self.file_handle.peek(len(WARC_VERSION)).startswith(
-                                WARC_VERSION
-                            ):
-                                # TODO: in rare cases, I bet this catches false positives.
-                                # For instance, what if the content block's payload is an
-                                # HTML page with code blocks about WARC contents? :-)
-                                return self.file_handle.tell()  # End of record found
-
-                        last_line_was_a_break = True
-
-                    else:
-                        last_line_was_a_break = False
-                        last_line_had_a_break = True
-                else:
-                    last_line_was_a_break = False
-                    last_line_had_a_break = False
+        match self.parsing_style:
+            case "delimiter":
+                return find_next_delimiter(self.file_handle, self.parsing_chunk_size)
+            case "content_length":
+                return find_content_length_end(
+                    self.file_handle, self.parsing_chunk_size
+                )
+            case _:
+                raise NotImplemented()
 
 
 def main() -> None:
@@ -270,6 +251,7 @@ def main() -> None:
     ):
         parser = WARCParser(
             warc_file,
+            # parsing_style="content_length",
             check_content_lengths=True,
             cache_unparsable_lines=True,
             # cache_record_bytes=True,

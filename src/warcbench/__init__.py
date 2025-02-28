@@ -239,7 +239,7 @@ class WARCParser:
                     self.file_handle, self.parsing_chunk_size
                 )
             case _:
-                raise NotImplemented()
+                raise NotImplementedError()
 
 
 def main() -> None:

@@ -1,3 +1,7 @@
+"""
+`filters` module: Functions that return helper functions that take a Record and return True/False
+"""
+
 import operator
 from warcbench.patterns import (
     get_warc_named_field_pattern,

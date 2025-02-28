@@ -1,4 +1,6 @@
-""" """
+"""
+`exceptions` module: Custom exceptions
+"""
 
 
 class AttributeNotInitializedError(Exception):

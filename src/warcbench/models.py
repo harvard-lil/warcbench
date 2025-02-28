@@ -1,5 +1,5 @@
 """
-`models` module: Dataclasses for storing parsed WARC pieces.
+`models` module: Dataclasses for storing parsed WARC pieces
 """
 
 from abc import ABC

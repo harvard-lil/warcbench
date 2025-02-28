@@ -15,12 +15,11 @@ logger = logging.getLogger(__name__)
 
 
 STATES = {
-    "FIND_HEADER": "find_header",
-    "EXTRACT_HEADER": "extract_header",
-    "FIND_NEXT_RECORD": "find_next_record",
+    "FIND_WARC_HEADER": "find_warc_header",
     "EXTRACT_NEXT_RECORD": "extract_next_record",
     "CHECK_RECORD_AGAINST_FILTERS": "check_record_against_filters",
     "YIELD_CURRENT_RECORD": "yield_record",
+    "FIND_NEXT_RECORD": "find_next_record",
     "END": "end",
 }
 
@@ -66,10 +65,9 @@ class WARCParser:
         # Set Up
         #
 
-        self.state = STATES["FIND_HEADER"]
+        self.state = STATES["FIND_WARC_HEADER"]
         self.transitions = {
-            STATES["FIND_HEADER"]: self.find_warc_header,
-            STATES["EXTRACT_HEADER"]: self.extract_warc_header,
+            STATES["FIND_WARC_HEADER"]: self.find_warc_header,
             STATES["FIND_NEXT_RECORD"]: self.find_next_record,
             STATES["EXTRACT_NEXT_RECORD"]: self.extract_next_record,
             STATES["CHECK_RECORD_AGAINST_FILTERS"]: self.check_record_against_filters,
@@ -147,39 +145,10 @@ class WARCParser:
         self.file_handle.seek(initial_position)
 
         if first_line == WARC_VERSION:
-            return STATES["EXTRACT_HEADER"]
+            return STATES["EXTRACT_NEXT_RECORD"]
         else:
             self.error = "No WARC header found."
             return STATES["END"]
-
-    def extract_warc_header(self):
-        self.extract_next_record()
-        return STATES["CHECK_RECORD_AGAINST_FILTERS"]
-
-    def find_next_record(self):
-        while True:
-            initial_position = self.file_handle.tell()
-            if self.file_handle.peek(len(WARC_VERSION)).startswith(WARC_VERSION):
-                return STATES["EXTRACT_NEXT_RECORD"]
-
-            next_line = self.file_handle.readline()
-            current_position = self.file_handle.tell()
-            if next_line:
-                unparsable_line = UnparsableLine(
-                    start=initial_position,
-                    end=current_position,
-                )
-                if self.cache_unparsable_line_bytes:
-                    unparsable_line._bytes = next_line
-                if self.enable_lazy_loading_of_bytes:
-                    unparsable_line._file_handle = self.file_handle
-                if self.unparsable_line_handlers:
-                    for handler in self.unparsable_line_handlers:
-                        handler(unparsable_line)
-                if self.cache_unparsable_lines:
-                    self.unparsable_lines.append(unparsable_line)
-            else:
-                return STATES["END"]
 
     def extract_next_record(self):
         start = self.file_handle.tell()
@@ -229,6 +198,31 @@ class WARCParser:
         if retained:
             return STATES["YIELD_CURRENT_RECORD"]
         return STATES["FIND_NEXT_RECORD"]
+
+    def find_next_record(self):
+        while True:
+            initial_position = self.file_handle.tell()
+            if self.file_handle.peek(len(WARC_VERSION)).startswith(WARC_VERSION):
+                return STATES["EXTRACT_NEXT_RECORD"]
+
+            next_line = self.file_handle.readline()
+            current_position = self.file_handle.tell()
+            if next_line:
+                unparsable_line = UnparsableLine(
+                    start=initial_position,
+                    end=current_position,
+                )
+                if self.cache_unparsable_line_bytes:
+                    unparsable_line._bytes = next_line
+                if self.enable_lazy_loading_of_bytes:
+                    unparsable_line._file_handle = self.file_handle
+                if self.unparsable_line_handlers:
+                    for handler in self.unparsable_line_handlers:
+                        handler(unparsable_line)
+                if self.cache_unparsable_lines:
+                    self.unparsable_lines.append(unparsable_line)
+            else:
+                return STATES["END"]
 
     def find_record_end(self):
         match self.parsing_style:

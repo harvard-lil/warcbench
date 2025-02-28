@@ -25,6 +25,11 @@ STATES = {
 
 
 class WARCParser:
+    warnings = []
+    error = None
+    current_record = None
+    _records = None
+
     def __init__(
         self,
         file_handle,
@@ -87,11 +92,6 @@ class WARCParser:
         self.parsing_style = parsing_style
         self.parsing_chunk_size = parsing_chunk_size
 
-        self.warnings = []
-        self.error = None
-        self.current_record = None
-
-        self._records = None
         if cache_unparsable_lines:
             self._unparsable_lines = []
         else:

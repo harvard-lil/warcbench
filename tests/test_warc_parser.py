@@ -3,7 +3,7 @@ import pytest
 from warcbench import WARCParser
 
 
-@pytest.mark.parametrize('parsing_style', ['delimiter', 'content_length'])
+@pytest.mark.parametrize("parsing_style", ["delimiter", "content_length"])
 def test_warc_parser_parse(warc_file, parsing_style):
     parser = WARCParser(warc_file, parsing_style=parsing_style)
     parser.parse()
@@ -13,7 +13,7 @@ def test_warc_parser_parse(warc_file, parsing_style):
     assert parser.records[-1].end == 82943
 
 
-@pytest.mark.parametrize('parsing_style', ['delimiter', 'content_length'])
+@pytest.mark.parametrize("parsing_style", ["delimiter", "content_length"])
 def test_warc_parser_iterator(warc_file, parsing_style):
     parser = WARCParser(warc_file, parsing_style=parsing_style)
     record_count = 0

@@ -18,7 +18,7 @@ def skip_leading_whitespace(file_handle):
         if not byte.isspace():
             # Skip the cursor back one byte, so this non-whitespace
             # byte is isn't skipped
-            file_handle.seek(-1, whence=os.SEEK_CUR)
+            file_handle.seek(-1, os.SEEK_CUR)
             break
         else:
             logger.debug("Skipping whitespace!\n")

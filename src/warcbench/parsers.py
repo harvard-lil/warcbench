@@ -298,7 +298,7 @@ class ContentLengthWARCParser(BaseParser):
         if self.cache_content_block_bytes or self.cache_record_bytes:
             content_bytes = self.file_handle.read(content_length)
         else:
-            self.file_handle.seek(content_length, whence=os.SEEK_CUR)
+            self.file_handle.seek(content_length, os.SEEK_CUR)
             content_bytes = None
         content_end = self.file_handle.tell()
 

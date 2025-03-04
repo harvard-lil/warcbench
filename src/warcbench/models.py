@@ -60,7 +60,7 @@ class ByteRange(ABC):
 
             logger.debug(f"Reading from {self.start} to {self.end}.")
 
-            original_postion = self._file_handle.tell()
+            original_position = self._file_handle.tell()
 
             self._file_handle.seek(self.start)
             while self._file_handle.tell() < self.end:
@@ -72,7 +72,7 @@ class ByteRange(ABC):
 
                 yield self._file_handle.read(actual_chunk_size)
 
-            self._file_handle.seek(original_postion)
+            self._file_handle.seek(original_position)
 
 
 @dataclass

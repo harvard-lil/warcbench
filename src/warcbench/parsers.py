@@ -251,7 +251,6 @@ class DelimiterWARCParser(BaseParser):
             record._file_handle = self.file_handle
 
         if self.split_records:
-
             header_start = record.start
             self.file_handle.seek(header_start)
             header_with_linebreak_end = find_next_header_end(
@@ -277,7 +276,9 @@ class DelimiterWARCParser(BaseParser):
                 )
                 if self.cache_content_block_bytes:
                     self.file_handle.seek(content_block_start)
-                    record.content_block._bytes = self.file_handle.read(record.content_block.length)
+                    record.content_block._bytes = self.file_handle.read(
+                        record.content_block.length
+                    )
                 if self.enable_lazy_loading_of_bytes:
                     record.content_block._file_handle = self.file_handle
 

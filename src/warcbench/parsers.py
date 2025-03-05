@@ -24,6 +24,7 @@ STATES = {
     "FIND_WARC_HEADER": "find_warc_header",
     "EXTRACT_NEXT_RECORD": "extract_next_record",
     "CHECK_RECORD_AGAINST_FILTERS": "check_record_against_filters",
+    "RUN_RECORD_HANDLERS": "run_record_handlers",
     "YIELD_CURRENT_RECORD": "yield_record",
     "FIND_NEXT_RECORD": "find_next_record",
     "END": "end",
@@ -48,6 +49,7 @@ class BaseParser(ABC):
         cache_unparsable_line_bytes,
         enable_lazy_loading_of_bytes,
         filters,
+        record_handlers,
         unparsable_line_handlers,
     ):
         self.state = STATES["FIND_WARC_HEADER"]
@@ -56,6 +58,7 @@ class BaseParser(ABC):
             STATES["FIND_NEXT_RECORD"]: self.find_next_record,
             STATES["EXTRACT_NEXT_RECORD"]: self.extract_next_record,
             STATES["CHECK_RECORD_AGAINST_FILTERS"]: self.check_record_against_filters,
+            STATES["RUN_RECORD_HANDLERS"]: self.run_record_handlers,
             STATES["END"]: None,
         }
 
@@ -68,6 +71,7 @@ class BaseParser(ABC):
         self.cache_unparsable_line_bytes = cache_unparsable_line_bytes
         self.enable_lazy_loading_of_bytes = enable_lazy_loading_of_bytes
         self.filters = filters
+        self.record_handlers = record_handlers
         self.unparsable_line_handlers = unparsable_line_handlers
         self.parsing_chunk_size = parsing_chunk_size
 
@@ -166,8 +170,15 @@ class BaseParser(ABC):
                     break
 
         if retained:
-            return STATES["YIELD_CURRENT_RECORD"]
+            return STATES["RUN_RECORD_HANDLERS"]
         return STATES["FIND_NEXT_RECORD"]
+
+    def run_record_handlers(self):
+        if self.record_handlers:
+            for f in self.record_handlers:
+                f(self.current_record)
+
+        return STATES["YIELD_CURRENT_RECORD"]
 
     @abstractmethod
     def extract_next_record(self):
@@ -188,6 +199,7 @@ class DelimiterWARCParser(BaseParser):
         cache_unparsable_line_bytes,
         enable_lazy_loading_of_bytes,
         filters,
+        record_handlers,
         unparsable_line_handlers,
     ):
         #
@@ -229,6 +241,7 @@ class DelimiterWARCParser(BaseParser):
             cache_unparsable_line_bytes,
             enable_lazy_loading_of_bytes,
             filters,
+            record_handlers,
             unparsable_line_handlers,
         )
 

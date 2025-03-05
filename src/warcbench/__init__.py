@@ -16,6 +16,7 @@ class WARCParser:
         cache_unparsable_line_bytes=False,
         enable_lazy_loading_of_bytes=True,
         filters=None,
+        record_handlers=None,
         unparsable_line_handlers=None,
     ):
         #
@@ -45,6 +46,7 @@ class WARCParser:
                     cache_unparsable_line_bytes=cache_unparsable_line_bytes,
                     enable_lazy_loading_of_bytes=enable_lazy_loading_of_bytes,
                     filters=filters,
+                    record_handlers=record_handlers,
                     unparsable_line_handlers=unparsable_line_handlers,
                 )
             case "content_length":
@@ -59,6 +61,7 @@ class WARCParser:
                     cache_unparsable_line_bytes=cache_unparsable_line_bytes,
                     enable_lazy_loading_of_bytes=enable_lazy_loading_of_bytes,
                     filters=filters,
+                    record_handlers=record_handlers,
                     unparsable_line_handlers=unparsable_line_handlers,
                 )
             case _:

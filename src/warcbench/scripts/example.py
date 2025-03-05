@@ -43,6 +43,9 @@ def parse_example() -> None:
                 # http_response_content_type_filter('pdf'),
                 # warc_header_regex_filter('Scoop-Exchange-Description: Provenance Summary'),
             ],
+            record_handlers=[
+                # print_record_attribute('length')
+            ],
             # unparsable_line_handlers=[
             #     lambda line: print(len(line.bytes))
             # ]

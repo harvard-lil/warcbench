@@ -26,7 +26,7 @@ class WARCParser:
 
         if check_content_lengths and parsing_style == "content_length":
             raise ValueError(
-                "Checking content lengths is only meaningful when parsing in delimter mode."
+                "Checking content lengths is only meaningful when parsing in delimiter mode."
             )
 
         #

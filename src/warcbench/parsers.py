@@ -11,6 +11,7 @@ from warcbench.models import Record, Header, ContentBlock, UnparsableLine
 from warcbench.patterns import CRLF, WARC_VERSION
 from warcbench.utils import (
     skip_leading_whitespace,
+    advance_to_next_line,
     find_next_delimiter,
     find_next_header_end,
     find_content_length_in_bytes,
@@ -39,6 +40,7 @@ class BaseParser(ABC):
         self,
         file_handle,
         parsing_chunk_size,
+        split_records,
         cache_unparsable_lines,
         cache_record_bytes,
         cache_header_bytes,
@@ -58,6 +60,7 @@ class BaseParser(ABC):
         }
 
         self.file_handle = file_handle
+        self.split_records = split_records
         self.cache_unparsable_lines = cache_unparsable_lines
         self.cache_record_bytes = cache_record_bytes
         self.cache_header_bytes = cache_header_bytes
@@ -129,7 +132,7 @@ class BaseParser(ABC):
             if self.file_handle.peek(len(WARC_VERSION)).startswith(WARC_VERSION):
                 return STATES["EXTRACT_NEXT_RECORD"]
 
-            next_line = self.file_handle.readline()
+            next_line = advance_to_next_line(self.file_handle)
             current_position = self.file_handle.tell()
             if next_line:
                 unparsable_line = UnparsableLine(
@@ -137,7 +140,10 @@ class BaseParser(ABC):
                     end=current_position,
                 )
                 if self.cache_unparsable_line_bytes:
-                    unparsable_line._bytes = next_line
+                    self.file_handle.seek(initial_position)
+                    unparsable_line._bytes = self.file_handle.read(
+                        current_position - initial_position
+                    )
                 if self.enable_lazy_loading_of_bytes:
                     unparsable_line._file_handle = self.file_handle
                 if self.unparsable_line_handlers:
@@ -173,6 +179,7 @@ class DelimiterWARCParser(BaseParser):
         self,
         file_handle,
         parsing_chunk_size,
+        split_records,
         check_content_lengths,
         cache_unparsable_lines,
         cache_record_bytes,
@@ -188,12 +195,21 @@ class DelimiterWARCParser(BaseParser):
         #
 
         if check_content_lengths:
+            if not split_records:
+                raise ValueError("To check_content_lengths, you must split records.")
+
             if not enable_lazy_loading_of_bytes and not all(
                 [cache_header_bytes, cache_content_block_bytes]
             ):
                 raise ValueError(
                     "To check_content_lengths, you must either enable_lazy_loading_of_bytes or "
                     "both cache_header_bytes and cache_content_block_bytes."
+                )
+
+        if cache_header_bytes or cache_content_block_bytes:
+            if not split_records:
+                raise ValueError(
+                    "To cache header or content block bytes, you must split records."
                 )
 
         #
@@ -205,6 +221,7 @@ class DelimiterWARCParser(BaseParser):
         super().__init__(
             file_handle,
             parsing_chunk_size,
+            split_records,
             cache_unparsable_lines,
             cache_record_bytes,
             cache_header_bytes,
@@ -221,27 +238,61 @@ class DelimiterWARCParser(BaseParser):
         if stop:
             # Don't include the delimiter in the record's data or offsets
             end = stop - len(CRLF * 2)
-            data = self.file_handle.read(end - start)
-            self.file_handle.read(len(CRLF * 2))
         else:
             self.warnings.append("Last record may have been truncated.")
-            data = self.file_handle.read()
             end = self.file_handle.tell()
 
         record = Record(start=start, end=end)
         if self.cache_record_bytes:
-            record._bytes = data
+            record._bytes = self.file_handle.read(record.length)
+        else:
+            self.file_handle.seek(end)
         if self.enable_lazy_loading_of_bytes:
             record._file_handle = self.file_handle
-        record.split(
-            data,
-            cache_header_bytes=self.cache_header_bytes,
-            cache_content_block_bytes=self.cache_content_block_bytes,
-            enable_lazy_loading_of_bytes=self.enable_lazy_loading_of_bytes,
-        )
 
-        if self.check_content_lengths:
-            record.check_content_length()
+        if self.split_records:
+
+            header_start = record.start
+            self.file_handle.seek(header_start)
+            header_with_linebreak_end = find_next_header_end(
+                self.file_handle, self.parsing_chunk_size
+            )
+
+            if header_with_linebreak_end:
+                # Don't include the line break in the header's data or offsets
+                header_end = header_with_linebreak_end - len(CRLF)
+
+                content_block_start = header_end + len(CRLF * 2)
+                content_block_end = record.end
+
+                record.header = Header(start=header_start, end=header_end)
+                if self.cache_header_bytes:
+                    record.header._bytes = self.file_handle.read(record.header.length)
+                if self.enable_lazy_loading_of_bytes:
+                    record.header._file_handle = self.file_handle
+
+                record.content_block = ContentBlock(
+                    start=content_block_start,
+                    end=content_block_end,
+                )
+                if self.cache_content_block_bytes:
+                    self.file_handle.seek(content_block_start)
+                    record.content_block._bytes = self.file_handle.read(record.content_block.length)
+                if self.enable_lazy_loading_of_bytes:
+                    record.content_block._file_handle = self.file_handle
+
+                if self.check_content_lengths:
+                    record.check_content_length()
+
+            else:
+                self.warnings.append(
+                    f"Could not split the record between {record.start} and {record.end} "
+                    "into header and content block components."
+                )
+
+        # Advance the cursor
+        self.file_handle.read(len(CRLF * 2))
+
         self.current_record = record
         return STATES["CHECK_RECORD_AGAINST_FILTERS"]
 
@@ -305,22 +356,7 @@ class ContentLengthWARCParser(BaseParser):
         #
         # Build the Record object
         #
-
-        header = Header(start=header_start, end=header_end)
-        if self.cache_header_bytes:
-            header._bytes = header_bytes
-        if self.enable_lazy_loading_of_bytes:
-            header._file_handle = self.file_handle
-
-        content_block = ContentBlock(start=content_start, end=content_end)
-        if self.cache_content_block_bytes:
-            content_block._bytes = content_bytes
-        if self.enable_lazy_loading_of_bytes:
-            content_block._file_handle = self.file_handle
-
         record = Record(start=header_start, end=content_end)
-        record.header = header
-        record.content_block = content_block
         if self.cache_record_bytes:
             data = bytearray()
             data.extend(header_bytes)
@@ -329,6 +365,22 @@ class ContentLengthWARCParser(BaseParser):
             record._bytes = bytes(data)
         if self.enable_lazy_loading_of_bytes:
             record._file_handle = self.file_handle
+
+        if self.split_records:
+            header = Header(start=header_start, end=header_end)
+            if self.cache_header_bytes:
+                header._bytes = header_bytes
+            if self.enable_lazy_loading_of_bytes:
+                header._file_handle = self.file_handle
+
+            content_block = ContentBlock(start=content_start, end=content_end)
+            if self.cache_content_block_bytes:
+                content_block._bytes = content_bytes
+            if self.enable_lazy_loading_of_bytes:
+                content_block._file_handle = self.file_handle
+
+            record.header = header
+            record.content_block = content_block
 
         #
         # Advance the cursor past the expected WARC record delimiter

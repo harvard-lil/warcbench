@@ -86,36 +86,6 @@ class Record(ByteRange):
 
     content_length_check_result: Optional[int] = None
 
-    def split(
-        self,
-        record_bytes,
-        cache_header_bytes,
-        cache_content_block_bytes,
-        enable_lazy_loading_of_bytes,
-    ):
-        header_start = self.start
-        header_end_index = record_bytes.find(CRLF * 2)
-        header_end = header_start + header_end_index
-
-        content_block_start_index = header_end_index + len(CRLF * 2)
-        content_block_start = self.start + content_block_start_index
-        content_block_end = self.end
-
-        self.header = Header(start=header_start, end=header_end)
-        if cache_header_bytes:
-            self.header._bytes = record_bytes[:header_end_index]
-        if enable_lazy_loading_of_bytes:
-            self.header._file_handle = self._file_handle
-
-        self.content_block = ContentBlock(
-            start=content_block_start,
-            end=content_block_end,
-        )
-        if cache_content_block_bytes:
-            self.content_block._bytes = record_bytes[content_block_start_index:]
-        if enable_lazy_loading_of_bytes:
-            self.content_block._file_handle = self._file_handle
-
     def check_content_length(self):
         """
         Valid WARC record headers include a Content-Length field that specifies the number of bytes

@@ -18,6 +18,7 @@ def parse_example() -> None:
             # parsing_style="content_length",
             # check_content_lengths=True,
             cache_unparsable_lines=True,
+            # split_records=False,
             # cache_record_bytes=True,
             # cache_header_bytes=True,
             # cache_content_block_bytes=True,

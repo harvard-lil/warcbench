@@ -8,6 +8,7 @@ class WARCParser:
         parsing_style="delimiter",
         parsing_chunk_size=1024,
         check_content_lengths=False,
+        split_records=True,
         cache_unparsable_lines=False,
         cache_record_bytes=False,
         cache_header_bytes=False,
@@ -36,6 +37,7 @@ class WARCParser:
                     file_handle=file_handle,
                     parsing_chunk_size=parsing_chunk_size,
                     check_content_lengths=check_content_lengths,
+                    split_records=split_records,
                     cache_unparsable_lines=cache_unparsable_lines,
                     cache_record_bytes=cache_record_bytes,
                     cache_header_bytes=cache_header_bytes,
@@ -49,6 +51,7 @@ class WARCParser:
                 self._parser = ContentLengthWARCParser(
                     file_handle=file_handle,
                     parsing_chunk_size=parsing_chunk_size,
+                    split_records=split_records,
                     cache_unparsable_lines=cache_unparsable_lines,
                     cache_record_bytes=cache_record_bytes,
                     cache_header_bytes=cache_header_bytes,

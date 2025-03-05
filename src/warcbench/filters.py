@@ -14,29 +14,11 @@ from warcbench.patterns import (
 from warcbench.utils import find_pattern_in_bytes, is_target_in_bytes
 
 
-def warc_named_field_filter(
-    field_name, target, case_insensitive=True, exact_match=False
-):
-    def f(record):
-        match = find_pattern_in_bytes(
-            get_warc_named_field_pattern(field_name),
-            record.header.bytes,
-            case_insensitive=case_insensitive,
-        )
-        if match:
-            extracted = match.group(1)
-            return is_target_in_bytes(
-                extracted,
-                target,
-                case_insensitive=case_insensitive,
-                exact_match=exact_match,
-            )
-        return False
-
-    return f
-
 
 def warc_header_regex_filter(regex, case_insensitive=True):
+    """
+    Finds WARC records with whose header bytes match the passed in regex.
+    """
     def f(record):
         return bool(
             find_pattern_in_bytes(
@@ -50,6 +32,11 @@ def warc_header_regex_filter(regex, case_insensitive=True):
 
 
 def record_content_length_filter(target_length, use_operator="eq"):
+    """
+    Finds WARC records with whose header includes a specified Content-Length
+    that matches the target length. Available comparison operators:
+    eq (default), lt, le, gt, ge, ne.
+    """
     allowed_operators = {
         "lt": operator.lt,
         "le": operator.le,
@@ -98,6 +85,32 @@ def record_content_type_filter(content_type, case_insensitive=True, exact_match=
             return is_target_in_bytes(
                 extracted,
                 content_type,
+                case_insensitive=case_insensitive,
+                exact_match=exact_match,
+            )
+        return False
+
+    return f
+
+
+def warc_named_field_filter(
+    field_name, target, case_insensitive=True, exact_match=False
+):
+    """
+    Finds WARC records with a named header field that matches the specified target
+    http://iipc.github.io/warc-specifications/specifications/warc-format/warc-1.1/#named-fields
+    """
+    def f(record):
+        match = find_pattern_in_bytes(
+            get_warc_named_field_pattern(field_name),
+            record.header.bytes,
+            case_insensitive=case_insensitive,
+        )
+        if match:
+            extracted = match.group(1)
+            return is_target_in_bytes(
+                extracted,
+                target,
                 case_insensitive=case_insensitive,
                 exact_match=exact_match,
             )

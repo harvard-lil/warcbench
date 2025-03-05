@@ -13,6 +13,7 @@ logger = logging.getLogger(__name__)
 
 
 def skip_leading_whitespace(file_handle):
+    """Advances the cursor to the first non-whitespace byte."""
     while True:
         byte = file_handle.read(1)
         if not byte.isspace():
@@ -26,12 +27,14 @@ def skip_leading_whitespace(file_handle):
 
 @contextmanager
 def preserve_cursor_position(file_handle):
-    # Save the original position of the file handle
+    """
+    Saves the original cursor position, and returns the file handle there
+    when the context manager exits.
+    """
     original_position = file_handle.tell()
     try:
         yield
     finally:
-        # Reset the file handle to the original position
         file_handle.seek(original_position)
 
 
@@ -91,6 +94,10 @@ def advance_to_next_line(file_handle, chunk_size=1024):
 
 
 def find_next_delimiter(file_handle, chunk_size=1024):
+    """
+    WARC records are supposed to be separated by two newlines (\r\n\r\n).
+    Attempt to locate the next boundary. May rarely find a false positive.
+    """
     with preserve_cursor_position(file_handle):
         last_line_had_a_break = False
         last_line_was_a_break = False
@@ -119,9 +126,11 @@ def find_next_delimiter(file_handle, chunk_size=1024):
                         # (Expect this after content blocks with binary payloads.)
                         # Otherwise, we're still in the middle of a record.
                         if file_handle.peek(len(WARC_VERSION)).startswith(WARC_VERSION):
-                            # TODO: in rare cases, I bet this catches false positives.
-                            # For instance, what if the content block's payload is an
-                            # HTML page with code blocks about WARC contents? :-)
+                            # In rare cases, this may catch a false positive...
+                            # For instance, an unlikely but random series of bytes in
+                            # a content block's payload, or... maybe an uncompressed
+                            # HTML page with code blocks about WARC contents :-).
+                            # In that case... use a different strategy to parse the WARC.
                             return file_handle.tell()  # End of record found
 
                     last_line_was_a_break = True
@@ -135,6 +144,11 @@ def find_next_delimiter(file_handle, chunk_size=1024):
 
 
 def find_next_header_end(file_handle, chunk_size=1024):
+    """
+    WARC record headers are supposed to be separated from their content blocks
+    by an empty newline (\r\n). Attempt to find the end of the current header
+    (and the start of the next content block).
+    """
     with preserve_cursor_position(file_handle):
         while True:
             line = advance_to_next_line(file_handle, chunk_size)
@@ -150,6 +164,10 @@ def find_next_header_end(file_handle, chunk_size=1024):
 
 
 def find_content_length_in_bytes(bytes):
+    """
+    If a content-length header is present in the passed in bytes, return
+    the stated content length as an integer, else return None.
+    """
     match = find_pattern_in_bytes(CONTENT_LENGTH_PATTERN, bytes)
     if match:
         return int(match.group(1))
@@ -157,10 +175,18 @@ def find_content_length_in_bytes(bytes):
 
 
 def find_pattern_in_bytes(pattern, data, case_insensitive=True):
+    """
+    Search for a regex pattern in the passed in bytes, return the
+    re.Match object if found, else return None.
+    https://docs.python.org/3/library/re.html#re.Match
+    """
     return re.search(pattern, data, re.IGNORECASE if case_insensitive else 0)
 
 
 def is_target_in_bytes(extracted, target, case_insensitive=True, exact_match=False):
+    """
+    Matches the target bytes against the passed in bytestring.
+    """
     extracted_bytes = extracted.lower() if case_insensitive else extracted
     target_string = target.lower() if case_insensitive else target
     target_bytes = bytes(target_string, "utf-8")

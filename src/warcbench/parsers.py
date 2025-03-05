@@ -8,7 +8,7 @@ import os
 
 from warcbench.exceptions import AttributeNotInitializedError
 from warcbench.models import Record, Header, ContentBlock, UnparsableLine
-from warcbench.patterns import CRLF, WARC_VERSION
+from warcbench.patterns import CRLF, WARC_VERSIONS
 from warcbench.utils import (
     skip_leading_whitespace,
     advance_to_next_line,
@@ -130,18 +130,21 @@ class BaseParser(ABC):
 
     def find_warc_header(self):
         skip_leading_whitespace(self.file_handle)
-        header_found = self.file_handle.peek(len(WARC_VERSION)).startswith(WARC_VERSION)
-        if header_found:
-            return STATES["EXTRACT_NEXT_RECORD"]
-        else:
-            self.error = "No WARC header found."
-            return STATES["END"]
+        for warc_version in WARC_VERSIONS:
+            header_found = self.file_handle.peek(len(warc_version)).startswith(
+                warc_version
+            )
+            if header_found:
+                return STATES["EXTRACT_NEXT_RECORD"]
+        self.error = "No WARC header found."
+        return STATES["END"]
 
     def find_next_record(self):
         while True:
             initial_position = self.file_handle.tell()
-            if self.file_handle.peek(len(WARC_VERSION)).startswith(WARC_VERSION):
-                return STATES["EXTRACT_NEXT_RECORD"]
+            for warc_version in WARC_VERSIONS:
+                if self.file_handle.peek(len(warc_version)).startswith(warc_version):
+                    return STATES["EXTRACT_NEXT_RECORD"]
 
             next_line = advance_to_next_line(self.file_handle)
             current_position = self.file_handle.tell()

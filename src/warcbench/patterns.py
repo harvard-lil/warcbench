@@ -3,7 +3,7 @@
 """
 
 CRLF = b"\r\n"
-WARC_VERSION = b"WARC/1.1\r\n"
+WARC_VERSIONS = [b"WARC/1.0\r\n", b"WARC/1.1\r\n"]
 CONTENT_LENGTH_PATTERN = rb"Content-Length:\s*(\d+)"
 CONTENT_TYPE_PATTERN = rb"Content-Type:\s*(.*)((\r\n)|$)"
 

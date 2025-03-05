@@ -16,6 +16,7 @@ def parse_example() -> None:
         parser = WARCParser(
             warc_file,
             # parsing_style="content_length",
+            stop_after_nth=3,
             # check_content_lengths=True,
             cache_unparsable_lines=True,
             # split_records=False,
@@ -50,7 +51,5 @@ def parse_example() -> None:
             #     lambda line: print(len(line.bytes))
             # ]
         )
-        parser.parse(
-            # find_first_record_only=True,
-        )
+        parser.parse()
         click.echo(f"Found {len(parser.records)} records!")

@@ -7,6 +7,7 @@ class WARCParser:
         file_handle,
         parsing_style="delimiter",
         parsing_chunk_size=1024,
+        stop_after_nth=None,
         check_content_lengths=False,
         split_records=True,
         cache_unparsable_lines=False,
@@ -37,6 +38,7 @@ class WARCParser:
                 self._parser = DelimiterWARCParser(
                     file_handle=file_handle,
                     parsing_chunk_size=parsing_chunk_size,
+                    stop_after_nth=stop_after_nth,
                     check_content_lengths=check_content_lengths,
                     split_records=split_records,
                     cache_unparsable_lines=cache_unparsable_lines,
@@ -53,6 +55,7 @@ class WARCParser:
                 self._parser = ContentLengthWARCParser(
                     file_handle=file_handle,
                     parsing_chunk_size=parsing_chunk_size,
+                    stop_after_nth=stop_after_nth,
                     split_records=split_records,
                     cache_unparsable_lines=cache_unparsable_lines,
                     cache_record_bytes=cache_record_bytes,
@@ -90,8 +93,8 @@ class WARCParser:
     def unparsable_lines(self):
         return self._parser.unparsable_lines
 
-    def parse(self, find_first_record_only=False):
-        return self._parser.parse(find_first_record_only)
+    def parse(self):
+        return self._parser.parse()
 
-    def iterator(self, find_first_record_only=False):
-        return self._parser.iterator(find_first_record_only)
+    def iterator(self):
+        return self._parser.iterator()

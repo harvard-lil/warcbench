@@ -41,6 +41,7 @@ class BaseParser(ABC):
         self,
         file_handle,
         parsing_chunk_size,
+        stop_after_nth,
         split_records,
         cache_unparsable_lines,
         cache_record_bytes,
@@ -63,6 +64,7 @@ class BaseParser(ABC):
         }
 
         self.file_handle = file_handle
+        self.stop_after_nth = stop_after_nth
         self.split_records = split_records
         self.cache_unparsable_lines = cache_unparsable_lines
         self.cache_record_bytes = cache_record_bytes
@@ -98,21 +100,26 @@ class BaseParser(ABC):
             )
         return self._unparsable_lines
 
-    def parse(self, find_first_record_only=False):
+    def parse(self):
         self._records = []
-        iterator = self.iterator(find_first_record_only=find_first_record_only)
+        iterator = self.iterator()
         for record in iterator:
             self._records.append(record)
 
-    def iterator(self, find_first_record_only=False):
+    def iterator(self):
+        yielded = 0
         self.file_handle.seek(0)
 
         while self.state != STATES["END"]:
             if self.state == STATES["YIELD_CURRENT_RECORD"]:
+                yielded = yielded + 1
                 yield self.current_record
                 self.current_record = None
 
-                if find_first_record_only:
+                if self.stop_after_nth and yielded >= self.stop_after_nth:
+                    logger.debug(
+                        f"Stopping early after yielding {self.stop_after_nth} records."
+                    )
                     self.state = STATES["END"]
                     continue
 
@@ -190,6 +197,7 @@ class DelimiterWARCParser(BaseParser):
         self,
         file_handle,
         parsing_chunk_size,
+        stop_after_nth,
         split_records,
         check_content_lengths,
         cache_unparsable_lines,
@@ -233,6 +241,7 @@ class DelimiterWARCParser(BaseParser):
         super().__init__(
             file_handle,
             parsing_chunk_size,
+            stop_after_nth,
             split_records,
             cache_unparsable_lines,
             cache_record_bytes,

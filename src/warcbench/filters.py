@@ -14,11 +14,11 @@ from warcbench.patterns import (
 from warcbench.utils import find_pattern_in_bytes, is_target_in_bytes
 
 
-
 def warc_header_regex_filter(regex, case_insensitive=True):
     """
     Finds WARC records with whose header bytes match the passed in regex.
     """
+
     def f(record):
         return bool(
             find_pattern_in_bytes(
@@ -100,6 +100,7 @@ def warc_named_field_filter(
     Finds WARC records with a named header field that matches the specified target
     http://iipc.github.io/warc-specifications/specifications/warc-format/warc-1.1/#named-fields
     """
+
     def f(record):
         match = find_pattern_in_bytes(
             get_warc_named_field_pattern(field_name),

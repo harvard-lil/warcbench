@@ -304,12 +304,12 @@ class ContentLengthWARCParser(BaseParser):
         #
 
         header_start = self.file_handle.tell()
-        header_with_linkbreak_end = find_next_header_end(
+        header_with_linebreak_end = find_next_header_end(
             self.file_handle, self.parsing_chunk_size
         )
-        if header_with_linkbreak_end:
+        if header_with_linebreak_end:
             # Don't include the line break in the header's data or offsets
-            header_end = header_with_linkbreak_end - len(CRLF)
+            header_end = header_with_linebreak_end - len(CRLF)
             header_bytes = self.file_handle.read(header_end - header_start)
             self.file_handle.read(len(CRLF))
         else:

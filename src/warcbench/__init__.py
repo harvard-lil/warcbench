@@ -5,7 +5,7 @@ class WARCParser:
     def __init__(
         self,
         file_handle,
-        parsing_style="delimiter",
+        parsing_style="content_length",
         parsing_chunk_size=1024,
         stop_after_nth=None,
         check_content_lengths=False,

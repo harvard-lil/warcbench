@@ -23,7 +23,7 @@ def extract_file(mimetype, basename, verbose):
     return f
 
 
-def open_and_parse(ctx, filters=[], record_handlers=[], parser_callbacks=[]):
+def open_and_parse(ctx, filters=None, record_handlers=None, parser_callbacks=None):
     """This function runs the parser, filtering and running record handlers and parser callbacks as necessary."""
     try:
         with open_archive(ctx.obj["FILEPATH"]) as warc_file:

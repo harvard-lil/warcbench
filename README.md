@@ -103,38 +103,6 @@ Then, use `pip install -r requirements.txt` and `pip install -r requirements.txt
 If you are running WARCbench from the command line, make sure you have activated your virtualenv first.
 
 
-### Using `poetry`'s `pyproject.toml`
-
-```
-[tool.poetry]
-name = "your_project_name"
-version = "0.1.0"
-description = "A brief description of your project."
-authors = ["Your Name <you@example.com>"]
-
-[tool.poetry.dependencies]
-# Example other regular packages used by your project
-python = "^3.8"
-pytest = "^6.2.4"
-requests = "^2.25.1"
-
-# Git dependency
-warcbench = { git = "ssh://git@github.com/rebeccacremona/warcbench.git" }
-
-# If you want to specify a branch, tag, or commit:
-# warcbench = { git = "ssh://git@github.com/rebeccacremona/warcbench.git", branch = "main" }
-# warcbench = { git = "ssh://git@github.com/rebeccacremona/warcbench.git", tag = "v1.0.0" }
-# warcbench = { git = "ssh://git@github.com/rebeccacremona/warcbench.git", rev = "commit_hash" }
-
-[build-system]
-requires = ["poetry-core>=1.0.0"]
-build-backend = "poetry.core.masonry.api"
-```
-
-Then, use `poetry install` and `poetry install --no-cache` or `poetry update warcbench` as needed.
-
-If you are running WARCbench from the command line, make sure you preface your commands with `poetry run`, or run unprefaced by entering a shell with the virtualenv activated using `poetry shell`.
-
 [👆 Back to the summary](#summary)
 
 ---

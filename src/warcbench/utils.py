@@ -3,12 +3,14 @@
 """
 
 from contextlib import contextmanager
+import filetype
 import logging
 import os
 import re
 import gzip
 import shutil
 import subprocess
+import sys
 import tempfile
 import zipfile
 
@@ -206,7 +208,7 @@ def is_target_in_bytes(extracted, target, case_insensitive=True, exact_match=Fal
 
 @contextmanager
 def python_open_archive(filepath):
-    """This function uses native Python packages for decompression, It will eventually handle stdin."""
+    """This function uses native Python packages for decompression."""
     if filepath.lower().endswith(".wacz"):
         with (
             open(filepath, "rb") as wacz_file,
@@ -224,14 +226,15 @@ def python_open_archive(filepath):
         with open(filepath, "rb") as warc_file:
             yield warc_file
     elif filepath == "-":
-        raise NotImplementedError("stdin not yet available")
+        with open_stdin(python_open_archive) as warc_file:
+            yield warc_file
     else:
         raise ValueError("This doesn't look like a web archive")
 
 
 @contextmanager
 def system_open_archive(filepath):
-    """This function uses tempfiles generated with system unzip and gunzip, for speed. It will eventually handle stdin."""
+    """This function uses tempfiles generated with system unzip and gunzip, for speed."""
     if not (shutil.which("unzip") and shutil.which("gunzip")):
         raise RuntimeError("Both unzip and gunzip must be installed.")
 
@@ -251,6 +254,33 @@ def system_open_archive(filepath):
         with open(filepath, "rb") as warc_file:
             yield warc_file
     elif filepath == "-":
-        raise NotImplementedError("stdin not yet available")
+        with open_stdin(system_open_archive) as warc_file:
+            yield warc_file
     else:
         raise ValueError("This doesn't look like a web archive")
+
+
+@contextmanager
+def open_stdin(caller):
+    """This context manager tries to determine if stdin is a WACZ or a compressed WARC. When it can't determine filetype at all, it assumes an uncompressed WARC."""
+    with tempfile.NamedTemporaryFile(delete=False) as fp:
+        fp.write(sys.stdin.buffer.read())
+        fp.close()
+        guess = filetype.guess(fp.name)
+        if guess:
+            if guess.mime == "application/zip":
+                shutil.move(fp.name, f"{fp.name}.wacz")
+                with caller(f"{fp.name}.wacz") as warc_file:
+                    yield warc_file
+                os.unlink(f"{fp.name}.wacz")
+            elif guess.mime == "application/gzip":
+                shutil.move(fp.name, f"{fp.name}.warc.gz")
+                with caller(f"{fp.name}.warc.gz") as warc_file:
+                    yield warc_file
+                os.unlink(f"{fp.name}.warc.gz")
+            else:
+                raise ValueError("This doesn't look like a web archive")
+        else:
+            with open(fp.name, "rb") as warc_file:
+                yield warc_file
+            os.unlink(fp.name)

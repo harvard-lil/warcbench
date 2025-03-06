@@ -1,6 +1,6 @@
 # WARCbench 🛠️
 
-Utilities for exploring, analyzing, munging, recombining, and extracting data from WARC (Web ARChive) files.
+Utilities for exploring, analyzing, mungeing, recombining, and extracting data from WARC (Web ARChive) files.
 
 **Use it in the terminal...**
 ```bash

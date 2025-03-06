@@ -6,6 +6,8 @@ from contextlib import contextmanager
 import logging
 import os
 import re
+import gzip
+import zipfile
 
 from warcbench.patterns import CRLF, CONTENT_LENGTH_PATTERN, WARC_VERSIONS
 
@@ -197,3 +199,28 @@ def is_target_in_bytes(extracted, target, case_insensitive=True, exact_match=Fal
     if exact_match:
         return target_bytes == extracted_bytes
     return target_bytes in extracted_bytes
+
+
+@contextmanager
+def open_archive(filepath):
+    """This function will eventually handle stdin, and will likely switch to, or offer the option of, tempfiles generated with system unzip and gunzip, for speed."""
+    if filepath.lower().endswith(".wacz"):
+        with (
+            open(filepath, "rb") as wacz_file,
+            zipfile.Path(wacz_file, "archive/data.warc.gz").open("rb") as warc_gz_file,
+            gzip.open(warc_gz_file, "rb") as warc_file,
+        ):
+            yield warc_file
+    elif filepath.lower().endswith(".warc.gz"):
+        with (
+            open(filepath, "rb") as warc_gz_file,
+            gzip.open(warc_gz_file, "rb") as warc_file,
+        ):
+            yield warc_file
+    elif filepath.lower().endswith(".warc"):
+        with open(filepath, "rb") as warc_file:
+            yield warc_file
+    elif filepath == "-":
+        raise NotImplementedError("stdin not yet available")
+    else:
+        raise ValueError("This doesn't look like a web archive")

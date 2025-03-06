@@ -7,7 +7,7 @@ import logging
 import os
 import re
 
-from warcbench.patterns import CRLF, CONTENT_LENGTH_PATTERN, WARC_VERSION
+from warcbench.patterns import CRLF, CONTENT_LENGTH_PATTERN, WARC_VERSIONS
 
 logger = logging.getLogger(__name__)
 
@@ -125,13 +125,16 @@ def find_next_delimiter(file_handle, chunk_size=1024):
                         # the end of this record and the start of the next one.
                         # (Expect this after content blocks with binary payloads.)
                         # Otherwise, we're still in the middle of a record.
-                        if file_handle.peek(len(WARC_VERSION)).startswith(WARC_VERSION):
-                            # In rare cases, this may catch a false positive...
-                            # For instance, an unlikely but random series of bytes in
-                            # a content block's payload, or... maybe an uncompressed
-                            # HTML page with code blocks about WARC contents :-).
-                            # In that case... use a different strategy to parse the WARC.
-                            return file_handle.tell()  # End of record found
+                        for warc_version in WARC_VERSIONS:
+                            if file_handle.peek(len(warc_version)).startswith(
+                                warc_version
+                            ):
+                                # In rare cases, this may catch a false positive...
+                                # For instance, an unlikely but random series of bytes in
+                                # a content block's payload, or... maybe an uncompressed
+                                # HTML page with code blocks about WARC contents :-).
+                                # In that case... use a different strategy to parse the WARC.
+                                return file_handle.tell()  # End of record found
 
                     last_line_was_a_break = True
 

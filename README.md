@@ -274,7 +274,7 @@ with system_open_archive('example.com.wacz') as warc_file:
 ### Linting
 
 `uv run ruff check`
-`uv run ruff format`
+`uv run ruff format --check`, then `uv run ruff format` to make the changes
 
 ### Tests
 

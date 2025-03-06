@@ -21,13 +21,13 @@ with open("example.com.warc", "rb") as warc_file:
 ---
 
 ## Summary
--- Preamble [#preamble]
--- About [#about]
--- Installation [#installation]
--- Major Features [#major-features]
--- Using WARCbench on the command line [#using-warcbench-on-the-command-line]
--- Using WARCbench as a python library [#using-warcbench-as-a-python-library]
--- Development [#development]
+- Preamble [#preamble]
+- About [#about]
+- Installation [#installation]
+- Major Features [#major-features]
+- Using WARCbench on the command line [#using-warcbench-on-the-command-line]
+- Using WARCbench as a python library [#using-warcbench-as-a-python-library]
+- Development [#development]
 
 
 ## Preamble
@@ -241,8 +241,8 @@ with system_open_archive('example.com.wacz') as warc_file:
 
 ### Linting
 
-`uv run ruff check`
-`uv run ruff format --check`, then `uv run ruff format` to make the changes
+- `uv run ruff check`
+- `uv run ruff format --check`, then `uv run ruff format` to make the changes
 
 ### Tests
 

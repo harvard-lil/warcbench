@@ -50,7 +50,7 @@ with open("example.com.warc", "rb") as warc_file:
 - https://github.com/nlnwa/warchaeology
 - https://github.com/chfoo/warcat
 - https://github.com/webrecorder/warcio
-- http://code.hanzoarchives.com/warc-tools
+- https://github.com/internetarchive/warctools
 - https://github.com/internetarchive/warc
 
 [👆 Back to the summary](#summary)

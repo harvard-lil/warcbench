@@ -4,7 +4,6 @@ from pathlib import Path
 
 from warcbench.filters import http_response_content_type_filter
 from warcbench.scripts.cli_utils import open_and_parse, extract_file
-from warcbench.scripts.example import parse_example
 
 
 @click.group()
@@ -21,9 +20,6 @@ def cli(ctx, out, verbose):
     ctx.ensure_object(dict)
     ctx.obj["OUT"] = out
     ctx.obj["VERBOSE"] = verbose
-
-
-cli.add_command(parse_example)
 
 
 @cli.command()

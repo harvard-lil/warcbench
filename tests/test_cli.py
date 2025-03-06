@@ -5,7 +5,7 @@ from warcbench.scripts import cli
 
 def test_parse():
     runner = CliRunner()
-    result = runner.invoke(cli, ["parse", "assets/example.com.wacz"])
+    result = runner.invoke(cli, ["parse", "tests/assets/example.com.wacz"])
     assert result.exit_code == 0
     assert "Found 9 records" in result.output
 
@@ -19,7 +19,7 @@ def test_extract(tmp_path):
             "extract",
             "--basename",
             f"{tmp_path}/example",
-            "assets/example.com.wacz",
+            "tests/assets/example.com.wacz",
             "image/png",
         ],
     )

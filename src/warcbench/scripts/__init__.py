@@ -1,11 +1,8 @@
 import click
 import json
-from mimetypes import guess_extension
 from pathlib import Path
-from warcbench import WARCParser
 from warcbench.filters import http_response_content_type_filter
-from warcbench.scripts.example import parse_example
-from warcbench.utils import python_open_archive, system_open_archive
+from warcbench.scripts.utils import extract_file, open_and_parse
 
 
 @click.group()
@@ -33,9 +30,6 @@ def cli(ctx, out, verbose, decompression):
     ctx.obj["DECOMPRESSION"] = decompression
 
 
-cli.add_command(parse_example)
-
-
 @cli.command()
 @click.option("--world", default="World")
 @click.pass_context
@@ -60,7 +54,7 @@ def parse(ctx, filepath):
     """This counts the records found in the archive, and reports warning and error messages."""
     ctx.obj["FILEPATH"] = filepath
 
-    parse_and_run(
+    open_and_parse(
         ctx,
         parser_callbacks=[
             lambda parser: click.echo(
@@ -84,7 +78,7 @@ def extract(ctx, filepath, mimetype, basename):
     """This extracts files of the given MIMETYPE from the archive at FILEPATH, writing them to {basename}-{recordstart}.{extension}."""
     ctx.obj["FILEPATH"] = filepath
 
-    parse_and_run(
+    open_and_parse(
         ctx,
         filters=[
             http_response_content_type_filter(mimetype),
@@ -97,40 +91,3 @@ def extract(ctx, filepath, mimetype, basename):
             )
         ],
     )
-
-
-def extract_file(mimetype, basename, verbose):
-    """A record-handler for file extraction."""
-
-    def f(record):
-        if verbose:
-            click.echo(
-                f"Found a response of type {mimetype} at position {record.start}",
-                err=True,
-            )
-        filename = f"{basename}-{record.start}{guess_extension(mimetype)}"
-        Path(filename).parent.mkdir(exist_ok=True, parents=True)
-        with open(filename, "wb") as f:
-            f.write(record.get_http_body_block())
-
-    return f
-
-
-def parse_and_run(ctx, filters=[], record_handlers=[], parser_callbacks=[]):
-    """This function runs the parser, filtering and running record handlers and parser callbacks as necessary."""
-    if ctx.obj["DECOMPRESSION"] == "python":
-        open_archive = python_open_archive
-    elif ctx.obj["DECOMPRESSION"] == "system":
-        open_archive = system_open_archive
-
-    try:
-        with open_archive(ctx.obj["FILEPATH"]) as warc_file:
-            parser = WARCParser(
-                warc_file,
-                filters=filters,
-                record_handlers=record_handlers,
-                parser_callbacks=parser_callbacks,
-            )
-            parser.parse()
-    except (ValueError, NotImplementedError, RuntimeError) as e:
-        raise click.ClickException(e)

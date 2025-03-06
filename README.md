@@ -43,7 +43,7 @@ with open("example.com.warc", "rb") as warc_file:
 - work with malformed or misbehaving WARCs without everything breaking
 - give developers total control: hooks and custom callbacks, everything is configurable
 - pick your poison: optimize for RAM usage, or speed, or convenience, or etc., depending on your circumstances
-- do as little as possible. e.g., don't decode bytes into strings or parse individual WARC headers into a dict until we have some reason to do so
+- do as little as possible: e.g., don't decode bytes into strings or parse individual WARC headers into a dict until we have some reason to do so
 
 ### Alternatives/Inspired By
 

@@ -91,3 +91,28 @@ def extract(ctx, filepath, mimetype, basename):
             )
         ],
     )
+
+
+@cli.command()
+def extract_payload():
+    """Similar to `extract`, but accepts generic filtering options."""
+    raise click.ClickException("Not yet implemented")
+
+
+@cli.command()
+def filter():
+    """This could filter records to stdout, or write them into a file."""
+    raise click.ClickException("Not yet implemented")
+
+
+@cli.command()
+def inspect():
+    """This could report variously detailed information on the WARC's contents."""
+    # Possibly replaces the 'parse' command.
+    raise click.ClickException("Not yet implemented")
+
+
+@cli.command()
+def compare_parsers():
+    """This could parse the same WARC with all parsing strategies, and report if/how the results differ."""
+    raise click.ClickException("Not yet implemented")

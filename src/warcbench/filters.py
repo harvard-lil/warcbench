@@ -127,7 +127,7 @@ def http_verb_filter(verb):
     """
 
     def f(record):
-        if record_content_type_filter("application/http; msgtype=request")(record):
+        if record_content_type_filter("msgtype=request")(record):
             http_headers = record.get_http_header_block()
             match = find_pattern_in_bytes(get_http_verb_pattern(verb), http_headers)
             if match:
@@ -145,7 +145,7 @@ def http_status_filter(status_code):
     """
 
     def f(record):
-        if record_content_type_filter("application/http; msgtype=response")(record):
+        if record_content_type_filter("msgtype=response")(record):
             http_headers = record.get_http_header_block()
             match = find_pattern_in_bytes(
                 get_http_status_pattern(status_code), http_headers
@@ -194,7 +194,7 @@ def http_response_content_type_filter(
     """
 
     def f(record):
-        if record_content_type_filter("application/http; msgtype=response")(record):
+        if record_content_type_filter("msgtype=response")(record):
             http_headers = record.get_http_header_block()
             match = find_pattern_in_bytes(
                 CONTENT_TYPE_PATTERN, http_headers, case_insensitive=case_insensitive

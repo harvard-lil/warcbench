@@ -19,6 +19,7 @@ class WARCParser:
         filters=None,
         record_handlers=None,
         unparsable_line_handlers=None,
+        parser_callbacks=None,
     ):
         #
         # Validate Options
@@ -50,6 +51,7 @@ class WARCParser:
                     filters=filters,
                     record_handlers=record_handlers,
                     unparsable_line_handlers=unparsable_line_handlers,
+                    parser_callbacks=parser_callbacks,
                 )
             case "content_length":
                 self._parser = ContentLengthWARCParser(
@@ -66,6 +68,7 @@ class WARCParser:
                     filters=filters,
                     record_handlers=record_handlers,
                     unparsable_line_handlers=unparsable_line_handlers,
+                    parser_callbacks=parser_callbacks,
                 )
             case _:
                 supported_parsing_styles = ["delimiter", "content_length"]

@@ -47,6 +47,9 @@ def parse_example() -> None:
             record_handlers=[
                 # print_record_attribute('length')
             ],
+            parser_callbacks=[
+                # lambda parser: print(len(parser.records))
+            ],
             # unparsable_line_handlers=[
             #     lambda line: print(len(line.bytes))
             # ]

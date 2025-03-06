@@ -27,6 +27,7 @@ STATES = {
     "RUN_RECORD_HANDLERS": "run_record_handlers",
     "YIELD_CURRENT_RECORD": "yield_record",
     "FIND_NEXT_RECORD": "find_next_record",
+    "RUN_PARSER_CALLBACKS": "run_parser_callbacks",
     "END": "end",
 }
 
@@ -52,6 +53,7 @@ class BaseParser(ABC):
         filters,
         record_handlers,
         unparsable_line_handlers,
+        parser_callbacks,
     ):
         self.state = STATES["FIND_WARC_HEADER"]
         self.transitions = {
@@ -60,10 +62,12 @@ class BaseParser(ABC):
             STATES["EXTRACT_NEXT_RECORD"]: self.extract_next_record,
             STATES["CHECK_RECORD_AGAINST_FILTERS"]: self.check_record_against_filters,
             STATES["RUN_RECORD_HANDLERS"]: self.run_record_handlers,
+            STATES["RUN_PARSER_CALLBACKS"]: self.run_parser_callbacks,
             STATES["END"]: None,
         }
 
         self.file_handle = file_handle
+        self.parsing_chunk_size = parsing_chunk_size
         self.stop_after_nth = stop_after_nth
         self.split_records = split_records
         self.cache_unparsable_lines = cache_unparsable_lines
@@ -75,7 +79,7 @@ class BaseParser(ABC):
         self.filters = filters
         self.record_handlers = record_handlers
         self.unparsable_line_handlers = unparsable_line_handlers
-        self.parsing_chunk_size = parsing_chunk_size
+        self.parser_callbacks = parser_callbacks
 
         if cache_unparsable_lines:
             self._unparsable_lines = []
@@ -120,7 +124,7 @@ class BaseParser(ABC):
                     logger.debug(
                         f"Stopping early after yielding {self.stop_after_nth} records."
                     )
-                    self.state = STATES["END"]
+                    self.state = STATES["RUN_PARSER_CALLBACKS"]
                     continue
 
                 self.state = STATES["FIND_NEXT_RECORD"]
@@ -137,7 +141,7 @@ class BaseParser(ABC):
             if header_found:
                 return STATES["EXTRACT_NEXT_RECORD"]
         self.error = "No WARC header found."
-        return STATES["END"]
+        return STATES["RUN_PARSER_CALLBACKS"]
 
     def find_next_record(self):
         while True:
@@ -166,7 +170,7 @@ class BaseParser(ABC):
                 if self.cache_unparsable_lines:
                     self.unparsable_lines.append(unparsable_line)
             else:
-                return STATES["END"]
+                return STATES["RUN_PARSER_CALLBACKS"]
 
     def check_record_against_filters(self):
         retained = True
@@ -190,6 +194,13 @@ class BaseParser(ABC):
 
         return STATES["YIELD_CURRENT_RECORD"]
 
+    def run_parser_callbacks(self):
+        if self.parser_callbacks:
+            for f in self.parser_callbacks:
+                f(self)
+
+        return STATES["END"]
+
     @abstractmethod
     def extract_next_record(self):
         pass
@@ -212,6 +223,7 @@ class DelimiterWARCParser(BaseParser):
         filters,
         record_handlers,
         unparsable_line_handlers,
+        parser_callbacks,
     ):
         #
         # Validate Options
@@ -255,6 +267,7 @@ class DelimiterWARCParser(BaseParser):
             filters,
             record_handlers,
             unparsable_line_handlers,
+            parser_callbacks,
         )
 
     def extract_next_record(self):

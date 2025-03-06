@@ -7,6 +7,9 @@ import logging
 import os
 import re
 import gzip
+import shutil
+import subprocess
+import tempfile
 import zipfile
 
 from warcbench.patterns import CRLF, CONTENT_LENGTH_PATTERN, WARC_VERSIONS
@@ -202,8 +205,8 @@ def is_target_in_bytes(extracted, target, case_insensitive=True, exact_match=Fal
 
 
 @contextmanager
-def open_archive(filepath):
-    """This function will eventually handle stdin, and will likely switch to, or offer the option of, tempfiles generated with system unzip and gunzip, for speed."""
+def python_open_archive(filepath):
+    """This function uses native Python packages for decompression, It will eventually handle stdin."""
     if filepath.lower().endswith(".wacz"):
         with (
             open(filepath, "rb") as wacz_file,
@@ -217,6 +220,33 @@ def open_archive(filepath):
             gzip.open(warc_gz_file, "rb") as warc_file,
         ):
             yield warc_file
+    elif filepath.lower().endswith(".warc"):
+        with open(filepath, "rb") as warc_file:
+            yield warc_file
+    elif filepath == "-":
+        raise NotImplementedError("stdin not yet available")
+    else:
+        raise ValueError("This doesn't look like a web archive")
+
+
+@contextmanager
+def system_open_archive(filepath):
+    """This function uses tempfiles generated with system unzip and gunzip, for speed. It will eventually handle stdin."""
+    if not (shutil.which("unzip") and shutil.which("gunzip")):
+        raise RuntimeError("Both unzip and gunzip must be installed.")
+
+    if filepath.lower().endswith(".wacz"):
+        with tempfile.TemporaryDirectory() as tmpdirname:
+            subprocess.run(["unzip", "-q", "-d", tmpdirname, filepath])
+            subprocess.run(["gunzip", f"{tmpdirname}/archive/data.warc.gz"])
+            with open(f"{tmpdirname}/archive/data.warc", "rb") as warc_file:
+                yield warc_file
+    elif filepath.lower().endswith(".warc.gz"):
+        with tempfile.TemporaryDirectory() as tmpdirname:
+            shutil.copy(filepath, f"{tmpdirname}/data.warc.gz")
+            subprocess.run(["gunzip", f"{tmpdirname}/data.warc.gz"])
+            with open(f"{tmpdirname}/data.warc", "rb") as warc_file:
+                yield warc_file
     elif filepath.lower().endswith(".warc"):
         with open(filepath, "rb") as warc_file:
             yield warc_file

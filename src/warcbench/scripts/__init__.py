@@ -5,7 +5,7 @@ from pathlib import Path
 from warcbench import WARCParser
 from warcbench.filters import http_response_content_type_filter
 from warcbench.scripts.example import parse_example
-from warcbench.utils import open_archive
+from warcbench.utils import python_open_archive, system_open_archive
 
 
 @click.group()
@@ -16,12 +16,21 @@ from warcbench.utils import open_archive
     default="raw",
 )
 @click.option("-v", "--verbose", count=True, help="Verbosity; repeatable")
+@click.option(
+    "-d",
+    "--decompression",
+    type=click.Choice(["python", "system"], case_sensitive=False),
+    default="python",
+    show_default=True,
+    help="Use native Python or system tools for extracting archives.",
+)
 @click.pass_context
-def cli(ctx, out, verbose):
+def cli(ctx, out, verbose, decompression):
     """warcbench command framework, work in progress"""
     ctx.ensure_object(dict)
     ctx.obj["OUT"] = out
     ctx.obj["VERBOSE"] = verbose
+    ctx.obj["DECOMPRESSION"] = decompression
 
 
 cli.add_command(parse_example)
@@ -109,6 +118,11 @@ def extract_file(mimetype, basename, verbose):
 
 def parse_and_run(ctx, filters=[], record_handlers=[], parser_callbacks=[]):
     """This function runs the parser, filtering and running record handlers and parser callbacks as necessary."""
+    if ctx.obj["DECOMPRESSION"] == "python":
+        open_archive = python_open_archive
+    elif ctx.obj["DECOMPRESSION"] == "system":
+        open_archive = system_open_archive
+
     try:
         with open_archive(ctx.obj["FILEPATH"]) as warc_file:
             parser = WARCParser(
@@ -118,5 +132,5 @@ def parse_and_run(ctx, filters=[], record_handlers=[], parser_callbacks=[]):
                 parser_callbacks=parser_callbacks,
             )
             parser.parse()
-    except (ValueError, NotImplementedError) as e:
+    except (ValueError, NotImplementedError, RuntimeError) as e:
         raise click.ClickException(e)

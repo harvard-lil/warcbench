@@ -1,12 +1,10 @@
 import click
 import json
-from mimetypes import guess_extension
 from pathlib import Path
 
-from warcbench import WARCParser
 from warcbench.filters import http_response_content_type_filter
+from warcbench.scripts.cli_utils import open_and_parse, extract_file
 from warcbench.scripts.example import parse_example
-from warcbench.utils import open_archive
 
 
 @click.group()
@@ -89,35 +87,3 @@ def extract(ctx, filepath, mimetype, basename):
             )
         ],
     )
-
-
-def extract_file(mimetype, basename, verbose):
-    """A record-handler for file extraction."""
-
-    def f(record):
-        if verbose:
-            click.echo(
-                f"Found a response of type {mimetype} at position {record.start}",
-                err=True,
-            )
-        filename = f"{basename}-{record.start}{guess_extension(mimetype)}"
-        Path(filename).parent.mkdir(exist_ok=True, parents=True)
-        with open(filename, "wb") as f:
-            f.write(record.get_http_body_block())
-
-    return f
-
-
-def open_and_parse(ctx, filters=[], record_handlers=[], parser_callbacks=[]):
-    """This function runs the parser, filtering and running record handlers and parser callbacks as necessary."""
-    try:
-        with open_archive(ctx.obj["FILEPATH"]) as warc_file:
-            parser = WARCParser(
-                warc_file,
-                filters=filters,
-                record_handlers=record_handlers,
-                parser_callbacks=parser_callbacks,
-            )
-            parser.parse()
-    except (ValueError, NotImplementedError) as e:
-        raise click.ClickException(e)

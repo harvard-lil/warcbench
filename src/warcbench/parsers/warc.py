@@ -1,5 +1,5 @@
 """
-`parsers` module: Classes that slice a WARC into pieces, using different strategies
+`parsers.warc` module: Classes that slice a WARC into pieces, using different strategies
 """
 
 from abc import ABC, abstractmethod

@@ -1,4 +1,8 @@
-from warcbench.parsers import DelimiterWARCParser, ContentLengthWARCParser
+from warcbench.parsers import (
+    DelimiterWARCParser,
+    ContentLengthWARCParser,
+    GzippedWARCMemberParser,
+)
 
 
 class WARCParser:
@@ -27,7 +31,7 @@ class WARCParser:
 
         if check_content_lengths and parsing_style == "content_length":
             raise ValueError(
-                "Checking content lengths is only meaningful when parsing in delimter mode."
+                "Checking content lengths is only meaningful when parsing in delimiter mode."
             )
 
         #
@@ -71,7 +75,10 @@ class WARCParser:
                     parser_callbacks=parser_callbacks,
                 )
             case _:
-                supported_parsing_styles = ["delimiter", "content_length"]
+                supported_parsing_styles = [
+                    "delimiter",
+                    "content_length",
+                ]
                 raise ValueError(
                     f"Supported parsing styles: {', '.join(supported_parsing_styles)}"
                 )
@@ -95,6 +102,77 @@ class WARCParser:
     @property
     def unparsable_lines(self):
         return self._parser.unparsable_lines
+
+    def parse(self):
+        return self._parser.parse()
+
+    def iterator(self):
+        return self._parser.iterator()
+
+
+class WARCGZParser:
+    def __init__(
+        self,
+        file_handle,
+        parsing_style="gzip_members",
+        stop_after_nth=None,
+        decompress_and_parse_members=True,
+        decompress_chunk_size=1024,
+        cache_non_warc_member_bytes=False,
+        filters=None,
+        member_handlers=None,
+        record_handlers=None,
+        non_warc_member_handlers=None,
+        parser_callbacks=None,
+    ):
+        #
+        # Validate Options
+        #
+
+        if decompress_and_parse_members and parsing_style != "gzip_members":
+            raise ValueError("Decompressing records only applies to gzip member mode.")
+
+        #
+        # Set up
+        #
+
+        match parsing_style:
+            case "gzip_members":
+                self._parser = GzippedWARCMemberParser(
+                    file_handle=file_handle,
+                    stop_after_nth=stop_after_nth,
+                    decompress_and_parse_members=decompress_and_parse_members,
+                    decompress_chunk_size=decompress_chunk_size,
+                    cache_non_warc_member_bytes=cache_non_warc_member_bytes,
+                    filters=filters,
+                    member_handlers=member_handlers,
+                    record_handlers=record_handlers,
+                    non_warc_member_handlers=non_warc_member_handlers,
+                    parser_callbacks=parser_callbacks,
+                )
+            case _:
+                supported_parsing_styles = [
+                    "gzip_members",
+                ]
+                raise ValueError(
+                    f"Supported parsing styles: {', '.join(supported_parsing_styles)}"
+                )
+
+    @property
+    def warnings(self):
+        return self._parser.warnings
+
+    @property
+    def error(self):
+        return self._parser.error
+
+    @property
+    def current_member(self):
+        return self._parser.current_member
+
+    @property
+    def members(self):
+        return self._parser.members
 
     def parse(self):
         return self._parser.parse()

@@ -6,13 +6,13 @@ from contextlib import contextmanager
 import logging
 import os
 import re
-import gzip
 import shutil
 import subprocess
 import tempfile
 import zipfile
 
 from warcbench.patterns import CRLF, CONTENT_LENGTH_PATTERN, WARC_VERSIONS
+from warcbench.patches import patched_gzip
 
 logger = logging.getLogger(__name__)
 
@@ -211,13 +211,13 @@ def python_open_archive(filepath):
         with (
             open(filepath, "rb") as wacz_file,
             zipfile.Path(wacz_file, "archive/data.warc.gz").open("rb") as warc_gz_file,
-            gzip.open(warc_gz_file, "rb") as warc_file,
+            patched_gzip.open(warc_gz_file, "rb") as warc_file,
         ):
             yield warc_file
     elif filepath.lower().endswith(".warc.gz"):
         with (
             open(filepath, "rb") as warc_gz_file,
-            gzip.open(warc_gz_file, "rb") as warc_file,
+            patched_gzip.open(warc_gz_file, "rb") as warc_file,
         ):
             yield warc_file
     elif filepath.lower().endswith(".warc"):
@@ -254,3 +254,8 @@ def system_open_archive(filepath):
         raise NotImplementedError("stdin not yet available")
     else:
         raise ValueError("This doesn't look like a web archive")
+
+
+def get_gzip_file_member_offsets(file):
+    with patched_gzip.open(file, "rb") as file:
+        return file.get_member_offsets()

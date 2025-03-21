@@ -159,3 +159,17 @@ class UnparsableLine(ByteRange):
     """
 
     pass
+
+
+@dataclass
+class UncompressedGzipData:
+    """ """
+
+    bytes: bytes
+
+
+@dataclass
+class GzippedMember(ByteRange):
+    """ """
+
+    pass

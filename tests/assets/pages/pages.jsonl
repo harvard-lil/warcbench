@@ -1,0 +1,6 @@
+{"format": "json-pages-1.0", "id": "pages", "title": "All Pages"}
+{"id":"61dd639c2bb744f4866012573fc96887","url":"file:///dom-snapshot.html","title":"Capture Time DOM Snapshot of http://example.com/","ts":"2024-11-04T19:10:51.934Z"}
+{"id":"adb4c6d419bd4f5ea6a30fe5dbbdf6e4","url":"file:///pdf-snapshot.pdf","title":"Capture Time PDF Snapshot of http://example.com/","ts":"2024-11-04T19:10:51.987Z"}
+{"id":"3a9bce4a1edf438a88658921976a868a","url":"file:///provenance-summary.html","title":"Provenance Summary","ts":"2024-11-04T19:10:55.805Z"}
+{"id":"cd47fc7d81ac4440b29236cb8b395add","url":"file:///screenshot.png","title":"Capture Time Screenshot of http://example.com/","ts":"2024-11-04T19:10:51.931Z"}
+{"id":"a9bfc07c692946818450f7056559e1ce","url":"http://example.com/","title":"High-Fidelity Web Capture of http://example.com/","ts":"2024-11-04T19:10:51.248Z"}

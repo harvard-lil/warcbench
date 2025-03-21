@@ -15,7 +15,7 @@ from warcbench.models import (
     ContentBlock,
 )
 from warcbench.patches import patched_gzip
-from warcbench.patterns import CRLF
+from warcbench.patterns import CRLF, WARC_VERSIONS
 from warcbench.utils import (
     find_next_header_end,
     find_content_length_in_bytes,
@@ -248,11 +248,18 @@ class GzippedWARCMemberParser:
                 # Build the Record object
                 #
 
+                # See if this claims to be a WARC header
+                header_found = False
+                for warc_version in WARC_VERSIONS:
+                    if header_bytes.startswith(warc_version):
+                        header_found = True
+                        break
+
                 # Extract the value of the mandatory Content-Length field
                 content_length = find_content_length_in_bytes(header_bytes)
 
-                if not content_length:
-                    # If we can't, then this member isn't parsable as a WARC record
+                if not header_found or not content_length:
+                    # This member isn't parsable as a WARC record
                     if self.cache_non_warc_member_bytes:
                         gunzipped_file.seek(0)
                         member.uncompressed_non_warc_data = UncompressedGzipData(

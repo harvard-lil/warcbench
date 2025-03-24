@@ -50,6 +50,11 @@ class GzippedWARCMemberParser:
         stop_after_nth,
         decompress_and_parse_members,
         decompress_chunk_size,
+        split_records,
+        cache_member_bytes,
+        cache_record_bytes,
+        cache_header_bytes,
+        cache_content_block_bytes,
         cache_non_warc_member_bytes,
         filters,
         member_handlers,
@@ -99,6 +104,11 @@ class GzippedWARCMemberParser:
         self.stop_after_nth = stop_after_nth
         self.decompress_and_parse_members = decompress_and_parse_members
         self.decompress_chunk_size = decompress_chunk_size
+        self.split_records = split_records
+        self.cache_member_bytes = cache_member_bytes
+        self.cache_record_bytes = cache_record_bytes
+        self.cache_header_bytes = cache_header_bytes
+        self.cache_content_block_bytes = cache_content_block_bytes
         self.cache_non_warc_member_bytes = cache_non_warc_member_bytes
         self.filters = filters
         self.member_handlers = member_handlers
@@ -208,6 +218,9 @@ class GzippedWARCMemberParser:
             end=end,
         )
         self.current_member = member
+        if self.cache_member_bytes:
+            self.file_handle.seek(member.start)
+            member._bytes = self.file_handle.read(member.length)
 
         #
         # Individually gunzip memmbers for further parsing
@@ -236,71 +249,99 @@ class GzippedWARCMemberParser:
                 extracted_member_file.flush()
 
             with patched_gzip.open(extracted_member_file_name, "rb") as gunzipped_file:
-                header_start = uncompressed_start
-                header_with_linebreak_end = find_next_header_end(
-                    gunzipped_file, self.decompress_chunk_size
-                )
-                if header_with_linebreak_end:
-                    # Don't include the line break in the header's data or offsets
-                    header_end = (
-                        uncompressed_start + header_with_linebreak_end - len(CRLF)
+                if self.split_records:
+                    # See if this claims to be a WARC record
+                    header_found = False
+                    for warc_version in WARC_VERSIONS:
+                        if gunzipped_file.peek(len(warc_version)).startswith(
+                            warc_version
+                        ):
+                            header_found = True
+                            break
+
+                    # Find the header
+                    header_start = uncompressed_start
+                    header_with_linebreak_end = find_next_header_end(
+                        gunzipped_file, self.decompress_chunk_size
                     )
-                    header_bytes = gunzipped_file.read(header_end - header_start)
-                    gunzipped_file.read(len(CRLF))
-                else:
-                    header_bytes = gunzipped_file.read()
-                    header_end = header_start + gunzipped_file.tell()
-
-                #
-                # Build the Record object
-                #
-
-                # See if this claims to be a WARC header
-                header_found = False
-                for warc_version in WARC_VERSIONS:
-                    if header_bytes.startswith(warc_version):
-                        header_found = True
-                        break
-
-                # Extract the value of the mandatory Content-Length field
-                content_length = find_content_length_in_bytes(header_bytes)
-
-                if not header_found or not content_length:
-                    # This member isn't parsable as a WARC record
-                    if self.cache_non_warc_member_bytes:
-                        gunzipped_file.seek(0)
-                        member.uncompressed_non_warc_data = gunzipped_file.read()
-                        self.warnings.append(
-                            f"The member at {start}-{end}, when gunzipped, does not appear to be a WARC record."
+                    if header_with_linebreak_end:
+                        # Don't include the line break in the header's data or offsets
+                        header_end = (
+                            uncompressed_start + header_with_linebreak_end - len(CRLF)
                         )
+                        header_bytes = gunzipped_file.read(header_end - header_start)
+                        gunzipped_file.read(len(CRLF))
+                    else:
+                        header_bytes = gunzipped_file.read()
+                        header_end = header_start + gunzipped_file.tell()
+
+                    # Extract the value of the mandatory Content-Length field
+                    content_length = find_content_length_in_bytes(header_bytes)
+
+                    if not header_found or not content_length:
+                        # This member isn't parsable as a WARC record
+                        if self.cache_non_warc_member_bytes:
+                            gunzipped_file.seek(0)
+                            member.uncompressed_non_warc_data = gunzipped_file.read()
+                            self.warnings.append(
+                                f"The member at {start}-{end}, when gunzipped, does not appear to be a WARC record."
+                            )
+
+                    else:
+                        content_start = header_end + len(CRLF)
+                        content_end = content_start + content_length
+                        if self.cache_record_bytes or self.cache_content_block_bytes:
+                            content_bytes = gunzipped_file.read(content_length)
+
+                        # Build the Record object
+                        record = Record(start=header_start, end=content_end)
+                        if self.cache_record_bytes:
+                            data = bytearray()
+                            data.extend(header_bytes)
+                            data.extend(b"\n")
+                            data.extend(content_bytes)
+                            record._bytes = bytes(data)
+
+                        header = Header(start=header_start, end=header_end)
+                        if self.cache_header_bytes:
+                            header._bytes = header_bytes
+
+                        content_block = ContentBlock(
+                            start=content_start, end=content_end
+                        )
+                        if self.cache_content_block_bytes:
+                            content_block._bytes = content_bytes
+
+                        record.header = header
+                        record.content_block = content_block
+
+                        member.uncompressed_warc_record = record
+
+                        if gunzipped_file.read() == CRLF * 2:
+                            self.warnings.append(
+                                f"The member at {start}-{end}, when gunzipped, does not end with the expected WARC delimiter."
+                            )
 
                 else:
-                    content_start = header_end + len(CRLF)
-                    content_bytes = gunzipped_file.read(content_length)
-                    content_end = content_start + content_length
+                    gunzipped_file.seek(-(len(CRLF * 2)), os.SEEK_END)
+                    record_length = gunzipped_file.tell()
+                    suffix = gunzipped_file.read()
 
-                    record = Record(start=header_start, end=content_end)
-                    data = bytearray()
-                    data.extend(header_bytes)
-                    data.extend(b"\n")
-                    data.extend(content_bytes)
-                    record._bytes = bytes(data)
-
-                    header = Header(start=header_start, end=header_end)
-                    header._bytes = header_bytes
-
-                    content_block = ContentBlock(start=content_start, end=content_end)
-                    content_block._bytes = content_bytes
-
-                    record.header = header
-                    record.content_block = content_block
-
-                    member.uncompressed_warc_record = record
-
-                    if gunzipped_file.read() == CRLF * 2:
+                    if suffix != CRLF * 2:
                         self.warnings.append(
                             f"The member at {start}-{end}, when gunzipped, does not end with the expected WARC delimiter."
                         )
+                        record_length = record_length + len(CRLF * 2)
+
+                    record = Record(
+                        start=uncompressed_start, end=uncompressed_start + record_length
+                    )
+
+                    if self.cache_record_bytes:
+                        gunzipped_file.seek(0)
+                        record._bytes = gunzipped_file.read(record_length)
+
+                    member.uncompressed_warc_record = record
 
             os.remove(extracted_member_file_name)
 

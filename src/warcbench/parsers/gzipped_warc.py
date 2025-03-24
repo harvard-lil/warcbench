@@ -9,7 +9,6 @@ from tempfile import NamedTemporaryFile
 from warcbench.exceptions import AttributeNotInitializedError, DecompressionError
 from warcbench.models import (
     GzippedMember,
-    UncompressedGzipData,
     Record,
     Header,
     ContentBlock,
@@ -211,7 +210,7 @@ class GzippedWARCMemberParser:
         self.current_member = member
 
         #
-        # Gunzip for further parsing
+        # Individually gunzip memmbers for further parsing
         #
 
         if self.decompress_and_parse_members:
@@ -237,18 +236,20 @@ class GzippedWARCMemberParser:
                 extracted_member_file.flush()
 
             with patched_gzip.open(extracted_member_file_name, "rb") as gunzipped_file:
-                header_start = 0
+                header_start = uncompressed_start
                 header_with_linebreak_end = find_next_header_end(
                     gunzipped_file, self.decompress_chunk_size
                 )
                 if header_with_linebreak_end:
                     # Don't include the line break in the header's data or offsets
-                    header_end = header_with_linebreak_end - len(CRLF)
+                    header_end = (
+                        uncompressed_start + header_with_linebreak_end - len(CRLF)
+                    )
                     header_bytes = gunzipped_file.read(header_end - header_start)
                     gunzipped_file.read(len(CRLF))
                 else:
                     header_bytes = gunzipped_file.read()
-                    header_end = gunzipped_file.tell()
+                    header_end = header_start + gunzipped_file.tell()
 
                 #
                 # Build the Record object
@@ -268,16 +269,14 @@ class GzippedWARCMemberParser:
                     # This member isn't parsable as a WARC record
                     if self.cache_non_warc_member_bytes:
                         gunzipped_file.seek(0)
-                        member.uncompressed_non_warc_data = UncompressedGzipData(
-                            bytes=gunzipped_file.read()
-                        )
+                        member.uncompressed_non_warc_data = gunzipped_file.read()
 
                 else:
-                    content_start = gunzipped_file.tell()
+                    content_start = header_end + len(CRLF)
                     content_bytes = gunzipped_file.read(content_length)
-                    content_end = gunzipped_file.tell()
+                    content_end = content_start + content_length
 
-                    record = Record(start=start, end=end)
+                    record = Record(start=header_start, end=content_end)
                     data = bytearray()
                     data.extend(header_bytes)
                     data.extend(b"\n")
@@ -294,6 +293,11 @@ class GzippedWARCMemberParser:
                     record.content_block = content_block
 
                     member.uncompressed_warc_record = record
+
+                    if gunzipped_file.read() == CRLF * 2:
+                        self.warnings.append(
+                            f"The member at {start}-{end}, when gunzipped, does not end with the expected WARC delimiter."
+                        )
 
             os.remove(extracted_member_file_name)
 

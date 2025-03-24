@@ -162,17 +162,11 @@ class UnparsableLine(ByteRange):
 
 
 @dataclass
-class UncompressedGzipData:
-    """ """
-
-    bytes: bytes
-
-
-@dataclass
 class GzippedMember(ByteRange):
     """ """
 
     uncompressed_start: Optional[int] = None
     uncompressed_end: Optional[int] = None
+    uncompressed_non_warc_data: Optional[bytes] = None
 
     pass

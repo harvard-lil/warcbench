@@ -270,6 +270,9 @@ class GzippedWARCMemberParser:
                     if self.cache_non_warc_member_bytes:
                         gunzipped_file.seek(0)
                         member.uncompressed_non_warc_data = gunzipped_file.read()
+                        self.warnings.append(
+                            f"The member at {start}-{end}, when gunzipped, does not appear to be a WARC record."
+                        )
 
                 else:
                     content_start = header_end + len(CRLF)

@@ -299,7 +299,7 @@ class DelimiterWARCParser(BaseParser):
                 # Don't include the line break in the header's data or offsets
                 header_end = header_with_linebreak_end - len(CRLF)
 
-                content_block_start = header_end + len(CRLF * 2)
+                content_block_start = header_end + len(CRLF)
                 content_block_end = record.end
 
                 record.header = Header(start=header_start, end=header_end)
@@ -317,6 +317,8 @@ class DelimiterWARCParser(BaseParser):
                     record.content_block._bytes = self.file_handle.read(
                         record.content_block.length
                     )
+                else:
+                    self.file_handle.seek(content_block_end)
                 if self.enable_lazy_loading_of_bytes:
                     record.content_block._file_handle = self.file_handle
 

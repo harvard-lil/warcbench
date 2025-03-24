@@ -63,25 +63,23 @@ class GzippedWARCMemberParser:
         #
         # Validate Options
         #
-        # if not decompress_and_parse_members:
-        #     if (
-        #         split_records
-        #         or cache_non_warc_members
-        #         or cache_record_bytes
-        #         or cache_header_bytes
-        #         or cache_content_block_bytes
-        #         or cache_non_warc_members_bytes
-        #         or non_warc_member_handlers
-        #     ):
-        #         raise ValueError(
-        #             "You must enable the decompression of members to further parse their contents."
-        #         )
+        if not decompress_and_parse_members:
+            if (
+                split_records
+                or cache_record_bytes
+                or cache_header_bytes
+                or cache_content_block_bytes
+                or cache_non_warc_member_bytes
+            ):
+                raise ValueError(
+                    "You must enable the decompression of members to further parse their contents."
+                )
 
-        # if cache_header_bytes or cache_content_block_bytes:
-        #     if not split_records:
-        #         raise ValueError(
-        #             "To cache header or content block bytes, you must split records."
-        #         )
+        if cache_header_bytes or cache_content_block_bytes:
+            if not split_records:
+                raise ValueError(
+                    "To cache header or content block bytes, you must split records."
+                )
 
         #
         # Set Up

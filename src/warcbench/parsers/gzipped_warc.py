@@ -180,9 +180,9 @@ class GzippedWARCMemberParser:
         """
         Read through the entire gzip file and locate the boundaries of its members.
         """
-        self.offsets = get_gzip_file_member_offsets(self.file_handle)
+        self._offsets = get_gzip_file_member_offsets(self.file_handle)
         self.file_handle.seek(0)
-        if len(self.offsets) == 1:
+        if len(self._offsets) == 1:
             self.warnings.append(
                 "This file may not be composed of separately gzipped WARC records: only one gzip member found."
             )
@@ -190,7 +190,7 @@ class GzippedWARCMemberParser:
 
     def find_next_member(self):
         try:
-            self.current_offsets = self.offsets.popleft()
+            self.current_offsets = self._offsets.popleft()
             return STATES["EXTRACT_NEXT_MEMBER"]
         except IndexError:
             return STATES["RUN_PARSER_CALLBACKS"]
@@ -200,8 +200,14 @@ class GzippedWARCMemberParser:
         # The raw bytes of the still-gzipped record
         #
 
-        start, end = self.current_offsets
-        member = GzippedMember(start=start, end=end)
+        start, end = self.current_offsets[0]
+        uncompressed_start, uncompressed_end = self.current_offsets[1]
+        member = GzippedMember(
+            uncompressed_start=uncompressed_start,
+            uncompressed_end=uncompressed_end,
+            start=start,
+            end=end,
+        )
         self.current_member = member
 
         #

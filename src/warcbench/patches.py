@@ -21,16 +21,8 @@ class MemberOffsetTrackingGzipReader(_OrigReader):
     def __init__(self, *args, **kwargs):
         self.offsets = deque()
         self.current_member_start_offset = 0
+        self.current_member_uncompressed_start_offset = 0
         return super().__init__(*args, **kwargs)
-
-    def get_member_offsets(self):
-        """
-        This is a custom LIL method, that calls our altered file.read(),
-        and then reports the boundaries of the "members" of the file.
-        """
-        self.seek(0)
-        self.read()
-        return self.offsets
 
     def read(self, size=-1):
         """
@@ -76,8 +68,12 @@ class MemberOffsetTrackingGzipReader(_OrigReader):
                     current_member_end_offset = current_position
 
                 offsets = (self.current_member_start_offset, current_member_end_offset)
-                self.offsets.append(offsets)
                 self.current_member_start_offset = current_member_end_offset
+
+                uncompressed_offsets = (self.current_member_uncompressed_start_offset, self._pos)
+                self.current_member_uncompressed_start_offset = self._pos
+
+                self.offsets.append((offsets, uncompressed_offsets))
                 logger.debug(f"Gzipped member from {offsets[0]} to {offsets[1]}.")
                 #
                 # End LIL changes

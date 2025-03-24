@@ -58,8 +58,6 @@ class GzippedWARCMemberParser:
         cache_non_warc_member_bytes,
         filters,
         member_handlers,
-        record_handlers,
-        non_warc_member_handlers,
         parser_callbacks,
     ):
         #
@@ -112,7 +110,6 @@ class GzippedWARCMemberParser:
         self.cache_non_warc_member_bytes = cache_non_warc_member_bytes
         self.filters = filters
         self.member_handlers = member_handlers
-        self.non_warc_member_handlers = non_warc_member_handlers
         self.parser_callbacks = parser_callbacks
 
         if cache_non_warc_member_bytes:

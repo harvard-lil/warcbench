@@ -126,8 +126,6 @@ class WARCGZParser:
         cache_non_warc_member_bytes=False,
         filters=None,
         member_handlers=None,
-        record_handlers=None,
-        non_warc_member_handlers=None,
         parser_callbacks=None,
     ):
         #
@@ -156,8 +154,6 @@ class WARCGZParser:
                     cache_non_warc_member_bytes=cache_non_warc_member_bytes,
                     filters=filters,
                     member_handlers=member_handlers,
-                    record_handlers=record_handlers,
-                    non_warc_member_handlers=non_warc_member_handlers,
                     parser_callbacks=parser_callbacks,
                 )
             case _:

@@ -70,7 +70,10 @@ class MemberOffsetTrackingGzipReader(_OrigReader):
                 offsets = (self.current_member_start_offset, current_member_end_offset)
                 self.current_member_start_offset = current_member_end_offset
 
-                uncompressed_offsets = (self.current_member_uncompressed_start_offset, self._pos)
+                uncompressed_offsets = (
+                    self.current_member_uncompressed_start_offset,
+                    self._pos,
+                )
                 self.current_member_uncompressed_start_offset = self._pos
 
                 self.offsets.append((offsets, uncompressed_offsets))

@@ -171,6 +171,7 @@ class UncompressedGzipData:
 @dataclass
 class GzippedMember(ByteRange):
     """ """
+
     uncompressed_start: Optional[int] = None
     uncompressed_end: Optional[int] = None
 

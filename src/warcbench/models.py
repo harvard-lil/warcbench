@@ -169,4 +169,6 @@ class GzippedMember(ByteRange):
     uncompressed_end: Optional[int] = None
     uncompressed_non_warc_data: Optional[bytes] = None
 
-    pass
+    def __post_init__(self):
+        super().__post_init__()
+        self.uncompressed_length = self.uncompressed_end - self.uncompressed_start

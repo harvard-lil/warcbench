@@ -2,6 +2,7 @@
 `parsers.gzipped_warc` module: Classes that slice a gzipped WARC into pieces, using different strategies
 """
 
+from abc import ABC, abstractmethod
 import logging
 import os
 from tempfile import NamedTemporaryFile
@@ -18,7 +19,7 @@ from warcbench.patterns import CRLF, WARC_VERSIONS
 from warcbench.utils import (
     find_next_header_end,
     find_content_length_in_bytes,
-    get_gzip_file_member_offsets,
+    decompress_and_get_gzip_file_member_offsets,
 )
 
 logger = logging.getLogger(__name__)
@@ -35,7 +36,7 @@ STATES = {
 }
 
 
-class GzippedWARCMemberParser:
+class BaseParser(ABC):
     warnings = []
     error = None
     current_member = None
@@ -180,24 +181,65 @@ class GzippedWARCMemberParser:
                 transition_func = self.transitions[self.state]
                 self.state = transition_func()
 
-    def locate_members(self):
-        """
-        Read through the entire gzip file and locate the boundaries of its members.
-        """
-        self._offsets = get_gzip_file_member_offsets(self.file_handle)
-        self.file_handle.seek(0)
-        if len(self._offsets) == 1:
-            self.warnings.append(
-                "This file may not be composed of separately gzipped WARC records: only one gzip member found."
-            )
-        return STATES["FIND_NEXT_MEMBER"]
-
     def find_next_member(self):
         try:
             self.current_offsets = self._offsets.popleft()
             return STATES["EXTRACT_NEXT_MEMBER"]
         except IndexError:
             return STATES["RUN_PARSER_CALLBACKS"]
+
+    def check_member_against_filters(self):
+        retained = True
+        if self.filters:
+            for f in self.filters:
+                if not f(self.current_member):
+                    retained = False
+                    logger.debug(
+                        f"Skipping member at {self.current_member.start}-{self.current_member.end} due to filter."
+                    )
+                    break
+
+        if retained:
+            return STATES["RUN_MEMBER_HANDLERS"]
+        return STATES["FIND_NEXT_MEMBER"]
+
+    def run_member_handlers(self):
+        if self.member_handlers:
+            for f in self.member_handlers:
+                f(self.current_member)
+
+        return STATES["YIELD_CURRENT_MEMBER"]
+
+    def run_parser_callbacks(self):
+        if self.parser_callbacks:
+            for f in self.parser_callbacks:
+                f(self)
+
+        return STATES["END"]
+
+    @abstractmethod
+    def locate_members(self):
+        pass
+
+    @abstractmethod
+    def extract_next_member(self):
+        pass
+
+
+class GzippedWARCMemberParser(BaseParser):
+    def locate_members(self):
+        """
+        Read through the entire gzip file and locate the boundaries of its members.
+        """
+        self._offsets = decompress_and_get_gzip_file_member_offsets(
+            self.file_handle,
+            chunk_size=self.decompress_chunk_size,
+        )
+        if len(self._offsets) == 1:
+            self.warnings.append(
+                "This file may not be composed of separately gzipped WARC records: only one gzip member found."
+            )
+        return STATES["FIND_NEXT_MEMBER"]
 
     def extract_next_member(self):
         #
@@ -218,30 +260,28 @@ class GzippedWARCMemberParser:
             member._bytes = self.file_handle.read(member.length)
 
         #
-        # Individually gunzip memmbers for further parsing
+        # Individually gunzip members for further parsing
         #
 
         if self.decompress_and_parse_members:
-            with NamedTemporaryFile("w+b", delete=False) as extracted_member_file:
-                extracted_member_file_name = extracted_member_file.name
+            extracted_member_file = NamedTemporaryFile("w+b", delete=False)
+            extracted_member_file_name = extracted_member_file.name
 
-                self.file_handle.seek(member.start)
+            self.file_handle.seek(member.start)
 
-                # Read the member data in chunks and write to the temp file
-                bytes_read = 0
-                while bytes_read < member.length:
-                    to_read = min(
-                        self.decompress_chunk_size, member.length - bytes_read
-                    )
-                    chunk = self.file_handle.read(to_read)
-                    if not chunk:
-                        raise DecompressionError(
-                            f"Invalid offsets for member reported at {member.start} - {member.end}."
-                        )  # End of file reached unexpectedly
-                    extracted_member_file.write(chunk)
-                    bytes_read += len(chunk)
+            # Read the member data in chunks and write to the temp file
+            bytes_read = 0
+            while bytes_read < member.length:
+                to_read = min(self.decompress_chunk_size, member.length - bytes_read)
+                chunk = self.file_handle.read(to_read)
+                if not chunk:
+                    raise DecompressionError(
+                        f"Invalid offsets for member reported at {member.start} - {member.end}."
+                    )  # End of file reached unexpectedly
+                extracted_member_file.write(chunk)
+                bytes_read += len(chunk)
 
-                extracted_member_file.flush()
+            extracted_member_file.flush()
 
             with patched_gzip.open(extracted_member_file_name, "rb") as gunzipped_file:
                 if self.split_records:
@@ -342,31 +382,152 @@ class GzippedWARCMemberParser:
 
         return STATES["CHECK_MEMBER_AGAINST_FILTERS"]
 
-    def check_member_against_filters(self):
-        retained = True
-        if self.filters:
-            for f in self.filters:
-                if not f(self.current_member):
-                    retained = False
-                    logger.debug(
-                        f"Skipping member at {self.current_member.start}-{self.current_member.end} due to filter."
-                    )
-                    break
 
-        if retained:
-            return STATES["RUN_MEMBER_HANDLERS"]
+class GzippedWARCDecompressingParser(BaseParser):
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        self.uncompressed_file_handle = NamedTemporaryFile("w+b", delete=False)
+
+    def iterator(self, *args, **kwargs):
+        for member in super().iterator(*args, **kwargs):
+            yield member
+        os.remove(self.uncompressed_file_handle.name)
+
+    def locate_members(self):
+        """
+        Read through the entire gzip file and locate the boundaries of its members.
+        Store the uncompressed data in a tempfile, for further processing.
+        """
+        self._offsets = decompress_and_get_gzip_file_member_offsets(
+            self.file_handle,
+            self.uncompressed_file_handle,
+            self.decompress_chunk_size,
+        )
+        if len(self._offsets) == 1:
+            self.warnings.append(
+                "This file may not be composed of separately gzipped WARC records: only one gzip member found."
+            )
         return STATES["FIND_NEXT_MEMBER"]
 
-    def run_member_handlers(self):
-        if self.member_handlers:
-            for f in self.member_handlers:
-                f(self.current_member)
+    def extract_next_member(self):
+        #
+        # The raw bytes of the still-gzipped record
+        #
 
-        return STATES["YIELD_CURRENT_MEMBER"]
+        start, end = self.current_offsets[0]
+        uncompressed_start, uncompressed_end = self.current_offsets[1]
+        member = GzippedMember(
+            uncompressed_start=uncompressed_start,
+            uncompressed_end=uncompressed_end,
+            start=start,
+            end=end,
+        )
+        self.current_member = member
+        if self.cache_member_bytes:
+            self.file_handle.seek(member.start)
+            member._bytes = self.file_handle.read(member.length)
 
-    def run_parser_callbacks(self):
-        if self.parser_callbacks:
-            for f in self.parser_callbacks:
-                f(self)
+        #
+        # Further parse the gunzipped members
+        #
 
-        return STATES["END"]
+        self.uncompressed_file_handle.seek(uncompressed_start)
+
+        if self.split_records:
+
+            # See if this claims to be a WARC record
+            header_found = False
+            for warc_version in WARC_VERSIONS:
+                if self.uncompressed_file_handle.peek(len(warc_version)).startswith(
+                    warc_version
+                ):
+                    header_found = True
+                    break
+
+            # Find the header
+            header_start = uncompressed_start
+            header_with_linebreak_end = find_next_header_end(
+                self.uncompressed_file_handle, self.decompress_chunk_size
+            )
+            if header_with_linebreak_end:
+                # Don't include the line break in the header's data or offsets
+                header_end = (
+                    header_with_linebreak_end - len(CRLF)
+                )
+                header_bytes = self.uncompressed_file_handle.read(header_end - header_start)
+                self.uncompressed_file_handle.read(len(CRLF))
+            else:
+                header_bytes = self.uncompressed_file_handle.read()
+                header_end = self.uncompressed_file_handle.tell()
+
+            # Extract the value of the mandatory Content-Length field
+            content_length = find_content_length_in_bytes(header_bytes)
+
+            if not header_found or not content_length:
+                # This member isn't parsable as a WARC record
+                if self.cache_non_warc_member_bytes:
+                    self.uncompressed_file_handle.seek(uncompressed_start)
+                    member.uncompressed_non_warc_data = self.uncompressed_file_handle.read(member.uncompressed_length)
+                    self.warnings.append(
+                        f"The member at {start}-{end}, when gunzipped, does not appear to be a WARC record."
+                    )
+
+            else:
+                content_start = header_end + len(CRLF)
+                content_end = content_start + content_length
+                if self.cache_record_bytes or self.cache_content_block_bytes:
+                    content_bytes = self.uncompressed_file_handle.read(content_length)
+
+                # Build the Record object
+                record = Record(start=header_start, end=content_end)
+                if self.cache_record_bytes:
+                    data = bytearray()
+                    data.extend(header_bytes)
+                    data.extend(b"\n")
+                    data.extend(content_bytes)
+                    record._bytes = bytes(data)
+
+                header = Header(start=header_start, end=header_end)
+                if self.cache_header_bytes:
+                    header._bytes = header_bytes
+
+                content_block = ContentBlock(
+                    start=content_start, end=content_end
+                )
+                if self.cache_content_block_bytes:
+                    content_block._bytes = content_bytes
+
+                record.header = header
+                record.content_block = content_block
+
+                member.uncompressed_warc_record = record
+
+                if not self.uncompressed_file_handle.peek(len(CRLF * 2)).startswith(CRLF * 2):
+                    self.warnings.append(
+                        f"The member at {start}-{end}, when gunzipped, does not end with the expected WARC delimiter."
+                    )
+
+        else:
+            record_length = member.uncompressed_length - len(CRLF * 2)
+            if self.cache_record_bytes:
+                record_bytes = bytearray
+                record_bytes.extend(self.uncompressed_file_handle.read(record_length))
+            else:
+                self.uncompressed_file_handle.read(record_length)
+            suffix = self.uncompressed_file_handle.read(len(CRLF * 2))
+            if suffix != CRLF * 2:
+                self.warnings.append(
+                    f"The member at {start}-{end}, when gunzipped, does not end with the expected WARC delimiter."
+                )
+                record_length = record_length + len(CRLF * 2)
+                record_bytes.extend(CRLF * 2)
+
+            record = Record(
+                start=uncompressed_start, end=uncompressed_start + record_length
+            )
+            if self.cache_record_bytes:
+                record._bytes = record_bytes
+
+            member.uncompressed_warc_record = record
+
+        return STATES["CHECK_MEMBER_AGAINST_FILTERS"]

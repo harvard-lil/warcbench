@@ -121,13 +121,17 @@ gzip._GzipReader = MemberOffsetTrackingGzipReader
 
 
 class MemberOffsetTrackingGzipFile(gzip.GzipFile):
-    def get_member_offsets(self):
+    def decompress_and_get_member_offsets(self, outputfile=None, chunk_size=1024):
         """
         This is a custom LIL method, that calls our patched file-reading
         logic, and then reports the boundaries of the "members" of the file.
         """
         self.seek(0)
-        self.read()
+        chunk = self.read(chunk_size)
+        while chunk:
+            if outputfile:
+                outputfile.write(chunk)
+            chunk = self.read(chunk_size)
         return self._buffer.raw.offsets
 
 

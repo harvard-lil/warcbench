@@ -256,6 +256,6 @@ def system_open_archive(filepath):
         raise ValueError("This doesn't look like a web archive")
 
 
-def get_gzip_file_member_offsets(file):
+def decompress_and_get_gzip_file_member_offsets(file, outputfile=None, chunk_size=1024):
     with patched_gzip.open(file, "rb") as file:
-        return file.get_member_offsets()
+        return file.decompress_and_get_member_offsets(outputfile, chunk_size)

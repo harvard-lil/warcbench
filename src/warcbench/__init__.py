@@ -2,6 +2,7 @@ from warcbench.parsers import (
     DelimiterWARCParser,
     ContentLengthWARCParser,
     GzippedWARCMemberParser,
+    GzippedWARCDecompressingParser,
 )
 
 
@@ -114,9 +115,10 @@ class WARCGZParser:
     def __init__(
         self,
         file_handle,
-        parsing_style="gzip_members",
+        parsing_style="split_gzip_members",
         stop_after_nth=None,
         decompress_and_parse_members=True,
+        decompression_style="file",
         decompress_chunk_size=1024,
         split_records=True,
         cache_member_bytes=False,
@@ -132,33 +134,59 @@ class WARCGZParser:
         # Validate Options
         #
 
-        if decompress_and_parse_members and parsing_style != "gzip_members":
-            raise ValueError("Decompressing records only applies to gzip member mode.")
+        if decompress_and_parse_members and parsing_style != "split_gzip_members":
+            raise ValueError("Decompressing records only applies to gzip member splitting mode.")
+
+        if decompression_style not in ["member", "file"]:
+            supported_decompression_styles = [
+                "member",
+                "file",
+            ]
+            raise ValueError(
+                f"Supported decompression styles: {', '.join(supported_decompression_styles)}"
+            )
 
         #
         # Set up
         #
 
         match parsing_style:
-            case "gzip_members":
-                self._parser = GzippedWARCMemberParser(
-                    file_handle=file_handle,
-                    stop_after_nth=stop_after_nth,
-                    decompress_and_parse_members=decompress_and_parse_members,
-                    decompress_chunk_size=decompress_chunk_size,
-                    split_records=split_records,
-                    cache_member_bytes=cache_member_bytes,
-                    cache_record_bytes=cache_record_bytes,
-                    cache_header_bytes=cache_header_bytes,
-                    cache_content_block_bytes=cache_content_block_bytes,
-                    cache_non_warc_member_bytes=cache_non_warc_member_bytes,
-                    filters=filters,
-                    member_handlers=member_handlers,
-                    parser_callbacks=parser_callbacks,
-                )
+            case "split_gzip_members":
+                if decompression_style == "member":
+                    self._parser = GzippedWARCMemberParser(
+                        file_handle=file_handle,
+                        stop_after_nth=stop_after_nth,
+                        decompress_and_parse_members=decompress_and_parse_members,
+                        decompress_chunk_size=decompress_chunk_size,
+                        split_records=split_records,
+                        cache_member_bytes=cache_member_bytes,
+                        cache_record_bytes=cache_record_bytes,
+                        cache_header_bytes=cache_header_bytes,
+                        cache_content_block_bytes=cache_content_block_bytes,
+                        cache_non_warc_member_bytes=cache_non_warc_member_bytes,
+                        filters=filters,
+                        member_handlers=member_handlers,
+                        parser_callbacks=parser_callbacks,
+                    )
+                elif decompression_style == "file":
+                    self._parser = GzippedWARCDecompressingParser(
+                        file_handle=file_handle,
+                        stop_after_nth=stop_after_nth,
+                        decompress_and_parse_members=decompress_and_parse_members,
+                        decompress_chunk_size=decompress_chunk_size,
+                        split_records=split_records,
+                        cache_member_bytes=cache_member_bytes,
+                        cache_record_bytes=cache_record_bytes,
+                        cache_header_bytes=cache_header_bytes,
+                        cache_content_block_bytes=cache_content_block_bytes,
+                        cache_non_warc_member_bytes=cache_non_warc_member_bytes,
+                        filters=filters,
+                        member_handlers=member_handlers,
+                        parser_callbacks=parser_callbacks,
+                    )
             case _:
                 supported_parsing_styles = [
-                    "gzip_members",
+                    "split_gzip_members",
                 ]
                 raise ValueError(
                     f"Supported parsing styles: {', '.join(supported_parsing_styles)}"

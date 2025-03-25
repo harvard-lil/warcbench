@@ -434,7 +434,6 @@ class GzippedWARCDecompressingParser(BaseParser):
         self.uncompressed_file_handle.seek(uncompressed_start)
 
         if self.split_records:
-
             # See if this claims to be a WARC record
             header_found = False
             for warc_version in WARC_VERSIONS:
@@ -451,10 +450,10 @@ class GzippedWARCDecompressingParser(BaseParser):
             )
             if header_with_linebreak_end:
                 # Don't include the line break in the header's data or offsets
-                header_end = (
-                    header_with_linebreak_end - len(CRLF)
+                header_end = header_with_linebreak_end - len(CRLF)
+                header_bytes = self.uncompressed_file_handle.read(
+                    header_end - header_start
                 )
-                header_bytes = self.uncompressed_file_handle.read(header_end - header_start)
                 self.uncompressed_file_handle.read(len(CRLF))
             else:
                 header_bytes = self.uncompressed_file_handle.read()
@@ -467,7 +466,9 @@ class GzippedWARCDecompressingParser(BaseParser):
                 # This member isn't parsable as a WARC record
                 if self.cache_non_warc_member_bytes:
                     self.uncompressed_file_handle.seek(uncompressed_start)
-                    member.uncompressed_non_warc_data = self.uncompressed_file_handle.read(member.uncompressed_length)
+                    member.uncompressed_non_warc_data = (
+                        self.uncompressed_file_handle.read(member.uncompressed_length)
+                    )
                     self.warnings.append(
                         f"The member at {start}-{end}, when gunzipped, does not appear to be a WARC record."
                     )
@@ -491,9 +492,7 @@ class GzippedWARCDecompressingParser(BaseParser):
                 if self.cache_header_bytes:
                     header._bytes = header_bytes
 
-                content_block = ContentBlock(
-                    start=content_start, end=content_end
-                )
+                content_block = ContentBlock(start=content_start, end=content_end)
                 if self.cache_content_block_bytes:
                     content_block._bytes = content_bytes
 
@@ -502,7 +501,9 @@ class GzippedWARCDecompressingParser(BaseParser):
 
                 member.uncompressed_warc_record = record
 
-                if not self.uncompressed_file_handle.peek(len(CRLF * 2)).startswith(CRLF * 2):
+                if not self.uncompressed_file_handle.peek(len(CRLF * 2)).startswith(
+                    CRLF * 2
+                ):
                     self.warnings.append(
                         f"The member at {start}-{end}, when gunzipped, does not end with the expected WARC delimiter."
                     )

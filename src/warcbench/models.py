@@ -2,6 +2,8 @@
 `models` module: Dataclasses for storing parsed WARC pieces
 """
 
+from __future__ import annotations
+
 from abc import ABC
 from dataclasses import dataclass, field
 import io
@@ -84,6 +86,8 @@ class Record(ByteRange):
     Comprises a WARC record header and a WARC record content block.
     """
 
+    header: Optional[Header] = None
+    content_block: Optional[ContentBlock] = None
     content_length_check_result: Optional[int] = None
 
     def check_content_length(self):
@@ -163,10 +167,40 @@ class UnparsableLine(ByteRange):
 
 @dataclass
 class GzippedMember(ByteRange):
-    """ """
+    """
+    A "member" of a gzipped file.
 
+    Excerpt from the WARC spec "Annex D: (informative) Compression recommendations"
+    http://iipc.github.io/warc-specifications/specifications/warc-format/warc-1.1/#record-at-time-compression
+
+    > Section 12.2 Record-at-time compression
+    >
+    > As specified in 2.2 of the GZIP specification (see [RFC 1952]), a valid GZIP
+    > file consists of any number of GZIP “members”, each independently compressed.
+    >
+    > Where possible, this property should be exploited to compress each record of
+    > a WARC file independently. This results in a valid GZIP file whose per-record
+    > subranges also stand alone as valid GZIP files.
+    >
+    > External indexes of WARC file content may then be used to record each record’s
+    > starting position in the GZIP file, allowing for random access of individual
+    > records without requiring decompression of all preceding records.
+    >
+    > Note that the application of this convention causes no change to the uncompressed
+    > contents of an individual WARC record.
+    """
+
+    # If the gzip file were decompressed in its entirety, where this member's
+    # uncompressed data would begin and end in the resulting file.
     uncompressed_start: Optional[int] = None
     uncompressed_end: Optional[int] = None
+
+    # If this member is decompressed and successfully parsed into a WARC record,
+    # the Record object.
+    uncompressed_warc_record: Optional[Record] = None
+
+    # If this member is decompressed and does not seem to comprise a WARC record,
+    # the raw uncompressed bytes.
     uncompressed_non_warc_data: Optional[bytes] = None
 
     def __post_init__(self):

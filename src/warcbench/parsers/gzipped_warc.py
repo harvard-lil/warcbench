@@ -64,14 +64,15 @@ class BaseParser(ABC):
         #
         # Validate Options
         #
-        if not decompress_and_parse_members:
-            if (
-                split_records
-                or cache_record_bytes
-                or cache_header_bytes
-                or cache_content_block_bytes
-                or cache_non_warc_member_bytes
-            ):
+
+        if (
+            split_records
+            or cache_record_bytes
+            or cache_header_bytes
+            or cache_content_block_bytes
+            or cache_non_warc_member_bytes
+        ):
+            if not decompress_and_parse_members:
                 raise ValueError(
                     "You must enable the decompression of members to further parse their contents."
                 )

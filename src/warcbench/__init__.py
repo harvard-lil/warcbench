@@ -139,15 +139,6 @@ class WARCGZParser:
                 "Decompressing records only applies to gzip member splitting mode."
             )
 
-        if decompression_style not in ["member", "file"]:
-            supported_decompression_styles = [
-                "member",
-                "file",
-            ]
-            raise ValueError(
-                f"Supported decompression styles: {', '.join(supported_decompression_styles)}"
-            )
-
         #
         # Set up
         #
@@ -185,6 +176,14 @@ class WARCGZParser:
                         filters=filters,
                         member_handlers=member_handlers,
                         parser_callbacks=parser_callbacks,
+                    )
+                else:
+                    supported_decompression_styles = [
+                        "member",
+                        "file",
+                    ]
+                    raise ValueError(
+                        f"Supported decompression styles: {', '.join(supported_decompression_styles)}"
                     )
             case _:
                 supported_parsing_styles = [

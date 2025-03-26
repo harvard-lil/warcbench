@@ -111,11 +111,6 @@ class BaseParser(ABC):
         self.member_handlers = member_handlers
         self.parser_callbacks = parser_callbacks
 
-        if cache_non_warc_member_bytes:
-            self._non_warc_members = []
-        else:
-            self._non_warc_members = None
-
     @property
     def members(self):
         if self._members is None:
@@ -134,15 +129,6 @@ class BaseParser(ABC):
                 "parsed records without preloading."
             )
         return [member.record for member in self._members if member.record]
-
-    @property
-    def non_warc_members(self):
-        if self._non_warc_members is None:
-            raise AttributeNotInitializedError(
-                "Pass cache_non_warc_members=True to WARCGZParser() to store NonWARCMembers "
-                "in parser.unparsable_lines."
-            )
-        return self._non_warc_members
 
     def parse(self):
         self._members = []

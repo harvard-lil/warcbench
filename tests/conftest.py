@@ -14,8 +14,14 @@ def assets_path():
 @pytest.fixture
 def wacz_file(assets_path: Path):
     filepath = assets_path / "example.com.wacz"
-    with filepath.open("rb") as doc:
-        yield doc
+    with filepath.open("rb") as wacz:
+        yield wacz
+
+
+@pytest.fixture
+def gzipped_warc_file(wacz_file: BufferedReader):
+    with zipfile.Path(wacz_file, "archive/data.warc.gz").open("rb") as warc_gz_file:
+        yield warc_gz_file
 
 
 @pytest.fixture
@@ -23,3 +29,18 @@ def warc_file(wacz_file: BufferedReader):
     with zipfile.Path(wacz_file, "archive/data.warc.gz").open("rb") as warc_gz_file:
         with gzip.open(warc_gz_file, "rb") as warc_file:
             yield warc_file
+
+
+@pytest.fixture
+def expected_warc_offsets():
+    return [
+        (0, 280),
+        (284, 1237),
+        (1241, 2736),
+        (2740, 3644),
+        (3648, 5172),
+        (5176, 34535),
+        (34539, 36484),
+        (36488, 76087),
+        (76091, 82943),
+    ]

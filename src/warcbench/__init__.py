@@ -122,10 +122,12 @@ class WARCGZParser:
         decompress_chunk_size=1024,
         split_records=True,
         cache_member_bytes=False,
+        cache_member_uncompressed_bytes=False,
         cache_record_bytes=False,
         cache_header_bytes=False,
         cache_content_block_bytes=False,
         cache_non_warc_member_bytes=False,
+        enable_lazy_loading_of_bytes=True,
         filters=None,
         member_handlers=None,
         parser_callbacks=None,
@@ -137,6 +139,11 @@ class WARCGZParser:
         if decompress_and_parse_members and parsing_style != "split_gzip_members":
             raise ValueError(
                 "Decompressing records only applies to gzip member splitting mode."
+            )
+
+        if enable_lazy_loading_of_bytes and decompression_style != "file":
+            raise ValueError(
+                "The lazy loading of bytes is only supported when decompression style is 'file'."
             )
 
         #
@@ -153,6 +160,7 @@ class WARCGZParser:
                         decompress_chunk_size=decompress_chunk_size,
                         split_records=split_records,
                         cache_member_bytes=cache_member_bytes,
+                        cache_member_uncompressed_bytes=cache_member_uncompressed_bytes,
                         cache_record_bytes=cache_record_bytes,
                         cache_header_bytes=cache_header_bytes,
                         cache_content_block_bytes=cache_content_block_bytes,
@@ -169,10 +177,12 @@ class WARCGZParser:
                         decompress_chunk_size=decompress_chunk_size,
                         split_records=split_records,
                         cache_member_bytes=cache_member_bytes,
+                        cache_member_uncompressed_bytes=cache_member_uncompressed_bytes,
                         cache_record_bytes=cache_record_bytes,
                         cache_header_bytes=cache_header_bytes,
                         cache_content_block_bytes=cache_content_block_bytes,
                         cache_non_warc_member_bytes=cache_non_warc_member_bytes,
+                        enable_lazy_loading_of_bytes=enable_lazy_loading_of_bytes,
                         filters=filters,
                         member_handlers=member_handlers,
                         parser_callbacks=parser_callbacks,

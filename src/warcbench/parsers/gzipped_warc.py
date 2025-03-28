@@ -53,6 +53,7 @@ class BaseParser(ABC):
         decompress_chunk_size,
         split_records,
         cache_member_bytes,
+        cache_member_uncompressed_bytes,
         cache_record_bytes,
         cache_header_bytes,
         cache_content_block_bytes,
@@ -71,6 +72,7 @@ class BaseParser(ABC):
             or cache_header_bytes
             or cache_content_block_bytes
             or cache_non_warc_member_bytes
+            or cache_member_uncompressed_bytes
         ):
             if not decompress_and_parse_members:
                 raise ValueError(
@@ -104,6 +106,7 @@ class BaseParser(ABC):
         self.decompress_chunk_size = decompress_chunk_size
         self.split_records = split_records
         self.cache_member_bytes = cache_member_bytes
+        self.cache_member_uncompressed_bytes = cache_member_uncompressed_bytes,
         self.cache_record_bytes = cache_record_bytes
         self.cache_header_bytes = cache_header_bytes
         self.cache_content_block_bytes = cache_content_block_bytes
@@ -365,14 +368,51 @@ class GzippedWARCMemberParser(BaseParser):
 
                     member.uncompressed_warc_record = record
 
+                if self.cache_member_uncompressed_bytes:
+                    gunzipped_file.seek(0)
+                    member._uncompressed_bytes = gunzipped_file.read()
+
             os.remove(extracted_member_file_name)
 
         return STATES["CHECK_MEMBER_AGAINST_FILTERS"]
 
 
 class GzippedWARCDecompressingParser(BaseParser):
-    def __init__(self, *args, **kwargs):
-        super().__init__(*args, **kwargs)
+    def __init__(
+        self,
+        file_handle,
+        stop_after_nth,
+        decompress_and_parse_members,
+        decompress_chunk_size,
+        split_records,
+        cache_member_bytes,
+        cache_member_uncompressed_bytes,
+        cache_record_bytes,
+        cache_header_bytes,
+        cache_content_block_bytes,
+        cache_non_warc_member_bytes,
+        enable_lazy_loading_of_bytes,
+        filters,
+        member_handlers,
+        parser_callbacks,
+    ):
+        super().__init__(
+            file_handle,
+            stop_after_nth,
+            decompress_and_parse_members,
+            decompress_chunk_size,
+            split_records,
+            cache_member_bytes,
+            cache_member_uncompressed_bytes,
+            cache_record_bytes,
+            cache_header_bytes,
+            cache_content_block_bytes,
+            cache_non_warc_member_bytes,
+            filters,
+            member_handlers,
+            parser_callbacks,
+        )
+        self.enable_lazy_loading_of_bytes = enable_lazy_loading_of_bytes
         self.uncompressed_file_handle = NamedTemporaryFile("w+b", delete=False)
 
     def iterator(self, *args, **kwargs):
@@ -413,6 +453,12 @@ class GzippedWARCDecompressingParser(BaseParser):
         if self.cache_member_bytes:
             self.file_handle.seek(member.start)
             member._bytes = self.file_handle.read(member.length)
+        if self.cache_member_uncompressed_bytes:
+            self.uncompressed_file_handle.seek(member.uncompressed_start)
+            member._uncompressed_bytes = self.uncompressed_file_handle.read(member.uncompressed_length)
+        if self.enable_lazy_loading_of_bytes:
+            member._file_handle = self.file_handle
+            member._uncompressed_file_handle = self.uncompressed_file_handle
 
         #
         # Further parse the gunzipped members
@@ -474,14 +520,20 @@ class GzippedWARCDecompressingParser(BaseParser):
                     data.extend(b"\n")
                     data.extend(content_bytes)
                     record._bytes = bytes(data)
+                if self.enable_lazy_loading_of_bytes:
+                    record._file_handle = self.uncompressed_file_handle
 
                 header = Header(start=header_start, end=header_end)
                 if self.cache_header_bytes:
                     header._bytes = header_bytes
+                if self.enable_lazy_loading_of_bytes:
+                    header._file_handle = self.uncompressed_file_handle
 
                 content_block = ContentBlock(start=content_start, end=content_end)
                 if self.cache_content_block_bytes:
                     content_block._bytes = content_bytes
+                if self.enable_lazy_loading_of_bytes:
+                    content_block._file_handle = self.uncompressed_file_handle
 
                 record.header = header
                 record.content_block = content_block

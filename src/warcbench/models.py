@@ -11,7 +11,7 @@ import logging
 from typing import Optional
 
 from warcbench.patterns import CRLF, CONTENT_LENGTH_PATTERN
-from warcbench.utils import find_pattern_in_bytes
+from warcbench.utils import find_pattern_in_bytes, yield_bytes_from_file
 from warcbench.filters import record_content_type_filter
 
 logger = logging.getLogger(__name__)
@@ -61,20 +61,10 @@ class ByteRange(ABC):
                 )
 
             logger.debug(f"Reading from {self.start} to {self.end}.")
-
-            original_position = self._file_handle.tell()
-
-            self._file_handle.seek(self.start)
-            while self._file_handle.tell() < self.end:
-                # Calculate the remaining bytes to read
-                remaining_bytes = self.end - self._file_handle.tell()
-
-                # Determine the actual chunk size to read
-                actual_chunk_size = min(chunk_size, remaining_bytes)
-
-                yield self._file_handle.read(actual_chunk_size)
-
-            self._file_handle.seek(original_position)
+            for chunk in yield_bytes_from_file(
+                self._file_handle, self.start, self.end, chunk_size
+            ):
+                yield chunk
 
 
 @dataclass
@@ -190,6 +180,11 @@ class GzippedMember(ByteRange):
     > contents of an individual WARC record.
     """
 
+    _uncompressed_file_handle: Optional[io.BufferedReader] = field(
+        repr=False, default=None
+    )
+    _uncompressed_bytes: Optional[bytes] = field(repr=False, default=None)
+
     # If the gzip file were decompressed in its entirety, where this member's
     # uncompressed data would begin and end in the resulting file.
     uncompressed_start: Optional[int] = None
@@ -206,3 +201,60 @@ class GzippedMember(ByteRange):
     def __post_init__(self):
         super().__post_init__()
         self.uncompressed_length = self.uncompressed_end - self.uncompressed_start
+
+    @property
+    def uncompressed_bytes(self):
+        """
+        Load all the bytes into memory and return them as a bytestring.
+        """
+        if self._uncompressed_bytes is None:
+            data = bytearray()
+            for chunk in self.iterator(compressed=False):
+                data.extend(chunk)
+            return bytes(data)
+        return self._uncompressed_bytes
+
+    def iterator(self, compressed=True, chunk_size=1024):
+        """
+        Returns an iterator that yields the bytes in chunks.
+        """
+        if compressed:
+            if self._bytes:
+                for i in range(0, len(self._bytes), chunk_size):
+                    yield self._bytes[i : i + chunk_size]
+
+            else:
+                if not self._file_handle:
+                    raise ValueError(
+                        "To access member bytes, you must either enable_lazy_loading_of_bytes or "
+                        "cache_member_bytes/cache_record_bytes/cache_header_bytes/cache_content_block_bytes."
+                    )
+
+                logger.debug(f"Reading from {self.start} to {self.end}.")
+                for chunk in yield_bytes_from_file(
+                    self._file_handle, self.start, self.end, chunk_size
+                ):
+                    yield chunk
+
+        else:
+            if self._uncompressed_bytes:
+                for i in range(0, len(self._uncompressed_bytes), chunk_size):
+                    yield self._uncompressed_bytes[i : i + chunk_size]
+
+            else:
+                if not self._uncompressed_file_handle:
+                    raise ValueError(
+                        "To access uncompressed member bytes, you must either cache_member_uncompressed bytes "
+                        "or enable_lazy_loading_of_bytes and use decompression style 'file'."
+                    )
+
+                logger.debug(
+                    f"Reading from {self.uncompressed_start} to {self.uncompressed_end} (decompressed)."
+                )
+                for chunk in yield_bytes_from_file(
+                    self._uncompressed_file_handle,
+                    self.uncompressed_start,
+                    self.uncompressed_end,
+                    chunk_size,
+                ):
+                    yield chunk

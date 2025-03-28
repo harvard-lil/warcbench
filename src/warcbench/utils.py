@@ -204,6 +204,25 @@ def is_target_in_bytes(extracted, target, case_insensitive=True, exact_match=Fal
     return target_bytes in extracted_bytes
 
 
+def yield_bytes_from_file(file_handle, start_offset, end_offset, chunk_size=1024):
+    """
+    An iterator that yields bytes from the file handle in chunks.
+    """
+    original_position = file_handle.tell()
+
+    file_handle.seek(start_offset)
+
+    while file_handle.tell() < end_offset:
+        # Calculate the remaining bytes to read
+        remaining_bytes = end_offset - file_handle.tell()
+
+        # Determine the actual chunk size to read
+        actual_chunk_size = min(chunk_size, remaining_bytes)
+        yield file_handle.read(actual_chunk_size)
+
+    file_handle.seek(original_position)
+
+
 @contextmanager
 def python_open_archive(filepath):
     """This function uses native Python packages for decompression, It will eventually handle stdin."""

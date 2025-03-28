@@ -6,13 +6,13 @@ from contextlib import contextmanager
 import logging
 import os
 import re
-import gzip
 import shutil
 import subprocess
 import tempfile
 import zipfile
 
 from warcbench.patterns import CRLF, CONTENT_LENGTH_PATTERN, WARC_VERSIONS
+from warcbench.patches import patched_gzip
 
 logger = logging.getLogger(__name__)
 
@@ -204,6 +204,25 @@ def is_target_in_bytes(extracted, target, case_insensitive=True, exact_match=Fal
     return target_bytes in extracted_bytes
 
 
+def yield_bytes_from_file(file_handle, start_offset, end_offset, chunk_size=1024):
+    """
+    An iterator that yields bytes from the file handle in chunks.
+    """
+    original_position = file_handle.tell()
+
+    file_handle.seek(start_offset)
+
+    while file_handle.tell() < end_offset:
+        # Calculate the remaining bytes to read
+        remaining_bytes = end_offset - file_handle.tell()
+
+        # Determine the actual chunk size to read
+        actual_chunk_size = min(chunk_size, remaining_bytes)
+        yield file_handle.read(actual_chunk_size)
+
+    file_handle.seek(original_position)
+
+
 @contextmanager
 def python_open_archive(filepath):
     """This function uses native Python packages for decompression, It will eventually handle stdin."""
@@ -211,13 +230,13 @@ def python_open_archive(filepath):
         with (
             open(filepath, "rb") as wacz_file,
             zipfile.Path(wacz_file, "archive/data.warc.gz").open("rb") as warc_gz_file,
-            gzip.open(warc_gz_file, "rb") as warc_file,
+            patched_gzip.open(warc_gz_file, "rb") as warc_file,
         ):
             yield warc_file
     elif filepath.lower().endswith(".warc.gz"):
         with (
             open(filepath, "rb") as warc_gz_file,
-            gzip.open(warc_gz_file, "rb") as warc_file,
+            patched_gzip.open(warc_gz_file, "rb") as warc_file,
         ):
             yield warc_file
     elif filepath.lower().endswith(".warc"):
@@ -254,3 +273,8 @@ def system_open_archive(filepath):
         raise NotImplementedError("stdin not yet available")
     else:
         raise ValueError("This doesn't look like a web archive")
+
+
+def decompress_and_get_gzip_file_member_offsets(file, outputfile=None, chunk_size=1024):
+    with patched_gzip.open(file, "rb") as file:
+        return file.decompress_and_get_member_offsets(outputfile, chunk_size)

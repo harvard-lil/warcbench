@@ -2,6 +2,8 @@
 `models` module: Dataclasses for storing parsed WARC pieces
 """
 
+from __future__ import annotations
+
 from abc import ABC
 from dataclasses import dataclass, field
 import io
@@ -9,7 +11,7 @@ import logging
 from typing import Optional
 
 from warcbench.patterns import CRLF, CONTENT_LENGTH_PATTERN
-from warcbench.utils import find_pattern_in_bytes
+from warcbench.utils import find_pattern_in_bytes, yield_bytes_from_file
 from warcbench.filters import record_content_type_filter
 
 logger = logging.getLogger(__name__)
@@ -59,20 +61,10 @@ class ByteRange(ABC):
                 )
 
             logger.debug(f"Reading from {self.start} to {self.end}.")
-
-            original_position = self._file_handle.tell()
-
-            self._file_handle.seek(self.start)
-            while self._file_handle.tell() < self.end:
-                # Calculate the remaining bytes to read
-                remaining_bytes = self.end - self._file_handle.tell()
-
-                # Determine the actual chunk size to read
-                actual_chunk_size = min(chunk_size, remaining_bytes)
-
-                yield self._file_handle.read(actual_chunk_size)
-
-            self._file_handle.seek(original_position)
+            for chunk in yield_bytes_from_file(
+                self._file_handle, self.start, self.end, chunk_size
+            ):
+                yield chunk
 
 
 @dataclass
@@ -84,6 +76,8 @@ class Record(ByteRange):
     Comprises a WARC record header and a WARC record content block.
     """
 
+    header: Optional[Header] = None
+    content_block: Optional[ContentBlock] = None
     content_length_check_result: Optional[int] = None
 
     def check_content_length(self):
@@ -159,3 +153,108 @@ class UnparsableLine(ByteRange):
     """
 
     pass
+
+
+@dataclass
+class GzippedMember(ByteRange):
+    """
+    A "member" of a gzipped file.
+
+    Excerpt from the WARC spec "Annex D: (informative) Compression recommendations"
+    http://iipc.github.io/warc-specifications/specifications/warc-format/warc-1.1/#record-at-time-compression
+
+    > Section 12.2 Record-at-time compression
+    >
+    > As specified in 2.2 of the GZIP specification (see [RFC 1952]), a valid GZIP
+    > file consists of any number of GZIP “members”, each independently compressed.
+    >
+    > Where possible, this property should be exploited to compress each record of
+    > a WARC file independently. This results in a valid GZIP file whose per-record
+    > subranges also stand alone as valid GZIP files.
+    >
+    > External indexes of WARC file content may then be used to record each record’s
+    > starting position in the GZIP file, allowing for random access of individual
+    > records without requiring decompression of all preceding records.
+    >
+    > Note that the application of this convention causes no change to the uncompressed
+    > contents of an individual WARC record.
+    """
+
+    _uncompressed_file_handle: Optional[io.BufferedReader] = field(
+        repr=False, default=None
+    )
+    _uncompressed_bytes: Optional[bytes] = field(repr=False, default=None)
+
+    # If the gzip file were decompressed in its entirety, where this member's
+    # uncompressed data would begin and end in the resulting file.
+    uncompressed_start: Optional[int] = None
+    uncompressed_end: Optional[int] = None
+
+    # If this member is decompressed and successfully parsed into a WARC record,
+    # the Record object.
+    uncompressed_warc_record: Optional[Record] = None
+
+    # If this member is decompressed and does not seem to comprise a WARC record,
+    # the raw uncompressed bytes.
+    uncompressed_non_warc_data: Optional[bytes] = None
+
+    def __post_init__(self):
+        super().__post_init__()
+        self.uncompressed_length = self.uncompressed_end - self.uncompressed_start
+
+    @property
+    def uncompressed_bytes(self):
+        """
+        Load all the bytes into memory and return them as a bytestring.
+        """
+        if self._uncompressed_bytes is None:
+            data = bytearray()
+            for chunk in self.iterator(compressed=False):
+                data.extend(chunk)
+            return bytes(data)
+        return self._uncompressed_bytes
+
+    def iterator(self, compressed=True, chunk_size=1024):
+        """
+        Returns an iterator that yields the bytes in chunks.
+        """
+        if compressed:
+            if self._bytes:
+                for i in range(0, len(self._bytes), chunk_size):
+                    yield self._bytes[i : i + chunk_size]
+
+            else:
+                if not self._file_handle:
+                    raise ValueError(
+                        "To access member bytes, you must either enable_lazy_loading_of_bytes or "
+                        "cache_member_bytes/cache_record_bytes/cache_header_bytes/cache_content_block_bytes."
+                    )
+
+                logger.debug(f"Reading from {self.start} to {self.end}.")
+                for chunk in yield_bytes_from_file(
+                    self._file_handle, self.start, self.end, chunk_size
+                ):
+                    yield chunk
+
+        else:
+            if self._uncompressed_bytes:
+                for i in range(0, len(self._uncompressed_bytes), chunk_size):
+                    yield self._uncompressed_bytes[i : i + chunk_size]
+
+            else:
+                if not self._uncompressed_file_handle:
+                    raise ValueError(
+                        "To access uncompressed member bytes, you must either cache_member_uncompressed bytes "
+                        "or enable_lazy_loading_of_bytes and use decompression style 'file'."
+                    )
+
+                logger.debug(
+                    f"Reading from {self.uncompressed_start} to {self.uncompressed_end} (decompressed)."
+                )
+                for chunk in yield_bytes_from_file(
+                    self._uncompressed_file_handle,
+                    self.uncompressed_start,
+                    self.uncompressed_end,
+                    chunk_size,
+                ):
+                    yield chunk

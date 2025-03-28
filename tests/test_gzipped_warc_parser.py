@@ -25,3 +25,15 @@ def test_warcgz_parser_offsets(
         assert member.end == member_end
         assert member.uncompressed_warc_record.start == record_start
         assert member.uncompressed_warc_record.end == record_end
+
+
+@pytest.mark.parametrize("decompression_style", ["file", "member"])
+def test_warc_parser_stop_after_nth(gzipped_warc_file, decompression_style):
+    parser = WARCGZParser(
+        gzipped_warc_file,
+        decompression_style=decompression_style,
+        enable_lazy_loading_of_bytes=False,
+        stop_after_nth=2,
+    )
+    parser.parse()
+    assert len(parser.members) == 2

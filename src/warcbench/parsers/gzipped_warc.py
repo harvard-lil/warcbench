@@ -219,7 +219,6 @@ class GzippedWARCMemberParser(BaseParser):
         member_handlers,
         parser_callbacks,
     ):
-
         #
         # Validate options
         #

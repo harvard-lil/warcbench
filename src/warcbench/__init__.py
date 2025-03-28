@@ -218,6 +218,10 @@ class WARCGZParser:
     def members(self):
         return self._parser.members
 
+    @property
+    def records(self):
+        return self._parser.records
+
     def parse(self):
         return self._parser.parse()
 

@@ -25,9 +25,7 @@ def test_warc_parser_check_content_lengths_not_supported_in_content_length_mode(
     warc_file,
 ):
     with pytest.raises(ValueError):
-        parser = WARCParser(
-            warc_file, check_content_lengths=True
-        )
+        parser = WARCParser(warc_file, check_content_lengths=True)
 
 
 def test_warc_parser_check_content_lengths_false(warc_file):
@@ -48,3 +46,34 @@ def test_warc_parser_check_content_lengths_true(warc_file):
     parser.parse()
     for record in parser.records:
         assert record.content_length_check_result is True
+
+
+@pytest.mark.parametrize("parsing_style", ["delimiter", "content_length"])
+def test_warc_parser_records_not_split(warc_file, parsing_style):
+    parser = WARCParser(warc_file, parsing_style=parsing_style, split_records=False)
+    parser.parse()
+
+    for record in parser.records:
+        assert record.header is None
+        assert record.content_block is None
+
+
+@pytest.mark.parametrize("parsing_style", ["delimiter", "content_length"])
+def test_warc_parser_records_split_correctly(
+    warc_file, expected_offsets, parsing_style
+):
+    parser = WARCParser(warc_file, parsing_style=parsing_style)
+    parser.parse()
+
+    for record, (header_start, header_end), (
+        content_block_start,
+        content_block_end,
+    ) in zip(
+        parser.records,
+        expected_offsets["record_headers"],
+        expected_offsets["record_content_blocks"],
+    ):
+        assert record.header.start == header_start
+        assert record.header.end == header_end
+        assert record.content_block.start == content_block_start
+        assert record.content_block.end == content_block_end

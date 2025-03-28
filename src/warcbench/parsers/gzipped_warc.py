@@ -117,7 +117,11 @@ class BaseParser(ABC):
                 "or use parser.iterator(yield_type='records') to iterate through successfully "
                 "parsed records without preloading."
             )
-        return [member.record for member in self._members if member.record]
+        return [
+            member.uncompressed_warc_record
+            for member in self._members
+            if member.uncompressed_warc_record
+        ]
 
     def parse(self):
         self._members = []

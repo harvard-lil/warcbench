@@ -32,7 +32,7 @@ def warc_file(wacz_file: BufferedReader):
 
 
 @pytest.fixture
-def expected_warc_offsets():
+def expected_warc_record_offsets():
     return [
         (0, 280),
         (284, 1237),
@@ -43,4 +43,19 @@ def expected_warc_offsets():
         (34539, 36484),
         (36488, 76087),
         (76091, 82943),
+    ]
+
+
+@pytest.fixture
+def expected_warcgz_member_offsets():
+    return [
+        (0, 237),
+        (237, 876),
+        (876, 2216),
+        (2216, 2829),
+        (2829, 4183),
+        (4183, 27222),
+        (27222, 28294),
+        (28294, 49670),
+        (49670, 51764),
     ]

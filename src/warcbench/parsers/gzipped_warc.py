@@ -106,7 +106,7 @@ class BaseParser(ABC):
         self.decompress_chunk_size = decompress_chunk_size
         self.split_records = split_records
         self.cache_member_bytes = cache_member_bytes
-        self.cache_member_uncompressed_bytes = cache_member_uncompressed_bytes,
+        self.cache_member_uncompressed_bytes = (cache_member_uncompressed_bytes,)
         self.cache_record_bytes = cache_record_bytes
         self.cache_header_bytes = cache_header_bytes
         self.cache_content_block_bytes = cache_content_block_bytes
@@ -455,7 +455,9 @@ class GzippedWARCDecompressingParser(BaseParser):
             member._bytes = self.file_handle.read(member.length)
         if self.cache_member_uncompressed_bytes:
             self.uncompressed_file_handle.seek(member.uncompressed_start)
-            member._uncompressed_bytes = self.uncompressed_file_handle.read(member.uncompressed_length)
+            member._uncompressed_bytes = self.uncompressed_file_handle.read(
+                member.uncompressed_length
+            )
         if self.enable_lazy_loading_of_bytes:
             member._file_handle = self.file_handle
             member._uncompressed_file_handle = self.uncompressed_file_handle

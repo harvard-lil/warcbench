@@ -49,7 +49,6 @@ class BaseParser(ABC):
         self,
         file_handle,
         stop_after_nth,
-        decompress_and_parse_members,
         decompress_chunk_size,
         split_records,
         cache_member_bytes,
@@ -65,19 +64,6 @@ class BaseParser(ABC):
         #
         # Validate Options
         #
-
-        if (
-            split_records
-            or cache_record_bytes
-            or cache_header_bytes
-            or cache_content_block_bytes
-            or cache_non_warc_member_bytes
-            or cache_member_uncompressed_bytes
-        ):
-            if not decompress_and_parse_members:
-                raise ValueError(
-                    "You must enable the decompression of members to further parse their contents."
-                )
 
         if cache_header_bytes or cache_content_block_bytes:
             if not split_records:
@@ -102,7 +88,6 @@ class BaseParser(ABC):
 
         self.file_handle = file_handle
         self.stop_after_nth = stop_after_nth
-        self.decompress_and_parse_members = decompress_and_parse_members
         self.decompress_chunk_size = decompress_chunk_size
         self.split_records = split_records
         self.cache_member_bytes = cache_member_bytes
@@ -217,6 +202,62 @@ class BaseParser(ABC):
 
 
 class GzippedWARCMemberParser(BaseParser):
+    def __init__(
+        self,
+        file_handle,
+        stop_after_nth,
+        decompress_and_parse_members,
+        decompress_chunk_size,
+        split_records,
+        cache_member_bytes,
+        cache_member_uncompressed_bytes,
+        cache_record_bytes,
+        cache_header_bytes,
+        cache_content_block_bytes,
+        cache_non_warc_member_bytes,
+        filters,
+        member_handlers,
+        parser_callbacks,
+    ):
+
+        #
+        # Validate options
+        #
+
+        if (
+            split_records
+            or cache_record_bytes
+            or cache_header_bytes
+            or cache_content_block_bytes
+            or cache_non_warc_member_bytes
+            or cache_member_uncompressed_bytes
+        ):
+            if not decompress_and_parse_members:
+                raise ValueError(
+                    "You must enable the decompression of members to further parse their contents."
+                )
+
+        #
+        # Set up
+        #
+
+        super().__init__(
+            file_handle,
+            stop_after_nth,
+            decompress_chunk_size,
+            split_records,
+            cache_member_bytes,
+            cache_member_uncompressed_bytes,
+            cache_record_bytes,
+            cache_header_bytes,
+            cache_content_block_bytes,
+            cache_non_warc_member_bytes,
+            filters,
+            member_handlers,
+            parser_callbacks,
+        )
+        self.decompress_and_parse_members = decompress_and_parse_members
+
     def locate_members(self):
         """
         Read through the entire gzip file and locate the boundaries of its members.
@@ -382,7 +423,6 @@ class GzippedWARCDecompressingParser(BaseParser):
         self,
         file_handle,
         stop_after_nth,
-        decompress_and_parse_members,
         decompress_chunk_size,
         split_records,
         cache_member_bytes,
@@ -399,7 +439,6 @@ class GzippedWARCDecompressingParser(BaseParser):
         super().__init__(
             file_handle,
             stop_after_nth,
-            decompress_and_parse_members,
             decompress_chunk_size,
             split_records,
             cache_member_bytes,

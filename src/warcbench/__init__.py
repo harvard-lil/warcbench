@@ -136,9 +136,9 @@ class WARCGZParser:
         # Validate Options
         #
 
-        if decompress_and_parse_members and parsing_style != "split_gzip_members":
+        if not decompress_and_parse_members and decompression_style != "member":
             raise ValueError(
-                "Decompressing records only applies to gzip member splitting mode."
+                "Decompressing records can only be disabled when decompression style is set to 'member'."
             )
 
         if enable_lazy_loading_of_bytes and decompression_style != "file":
@@ -173,7 +173,6 @@ class WARCGZParser:
                     self._parser = GzippedWARCDecompressingParser(
                         file_handle=file_handle,
                         stop_after_nth=stop_after_nth,
-                        decompress_and_parse_members=decompress_and_parse_members,
                         decompress_chunk_size=decompress_chunk_size,
                         split_records=split_records,
                         cache_member_bytes=cache_member_bytes,

@@ -79,3 +79,27 @@ def expected_offsets():
             (76687, 82943),
         ],
     }
+
+
+@pytest.fixture
+def expected_record_last_bytes():
+    return [
+        b"\r\n",
+        b"\r\n",
+        b"\x00\x00",
+        b"\r\n",
+        b"\x00\x00",
+        b"`\x82",
+        b"l>",
+        b"F\n",
+        b"\n\n",
+        b"\r\n",
+        b"\r\n",
+        b"\x00\x00",
+        b"\r\n",
+        b"\x00\x00",
+        b"`\x82",
+        b"l>",
+        b"F\n",
+        b"\n\n",
+    ]

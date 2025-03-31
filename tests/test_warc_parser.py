@@ -77,3 +77,78 @@ def test_warc_parser_records_split_correctly(
         assert record.header.end == header_end
         assert record.content_block.start == content_block_start
         assert record.content_block.end == content_block_end
+
+
+@pytest.mark.parametrize("parsing_style", ["delimiter", "content_length"])
+def test_warc_parser_records_split_correctly(
+    warc_file, expected_offsets, parsing_style
+):
+    parser = WARCParser(warc_file, parsing_style=parsing_style)
+    parser.parse()
+
+    for record, (header_start, header_end), (
+        content_block_start,
+        content_block_end,
+    ) in zip(
+        parser.records,
+        expected_offsets["record_headers"],
+        expected_offsets["record_content_blocks"],
+    ):
+        assert record.header.start == header_start
+        assert record.header.end == header_end
+        assert record.content_block.start == content_block_start
+        assert record.content_block.end == content_block_end
+
+
+@pytest.mark.parametrize("parsing_style", ["delimiter", "content_length"])
+def test_warc_parser_records_caches_bytes(
+    warc_file, parsing_style, expected_record_last_bytes
+):
+    parser = WARCParser(
+        warc_file,
+        parsing_style=parsing_style,
+        cache_record_bytes=True,
+        cache_header_bytes=True,
+        cache_content_block_bytes=True,
+        cache_unparsable_line_bytes=True,
+    )
+    parser.parse()
+
+    header_prefix = b"WARC/1.1\r\n"
+    for record, last_bytes in zip(parser.records, expected_record_last_bytes):
+        assert record._bytes
+        assert record.bytes[:10] == header_prefix
+        assert record.bytes[-2:] == last_bytes
+
+        assert record.header._bytes
+        assert record.header.bytes[:10] == header_prefix
+        assert record.header.bytes[-2:] == b"\r\n"
+
+        assert record.content_block._bytes
+        assert record.content_block.bytes[:2] != b"\r\n"
+        assert record.content_block.bytes[-2:] == last_bytes
+
+
+@pytest.mark.parametrize("parsing_style", ["delimiter", "content_length"])
+def test_warc_parser_records_lazy_loads_bytes(
+    warc_file, parsing_style, expected_record_last_bytes
+):
+    parser = WARCParser(
+        warc_file,
+        parsing_style=parsing_style,
+    )
+    parser.parse()
+
+    header_prefix = b"WARC/1.1\r\n"
+    for record, last_bytes in zip(parser.records, expected_record_last_bytes):
+        assert not record._bytes
+        assert record.bytes[:10] == header_prefix
+        assert record.bytes[-2:] == last_bytes
+
+        assert not record.header._bytes
+        assert record.header.bytes[:10] == header_prefix
+        assert record.header.bytes[-2:] == b"\r\n"
+
+        assert not record.content_block._bytes
+        assert record.content_block.bytes[:2] != b"\r\n"
+        assert record.content_block.bytes[-2:] == last_bytes

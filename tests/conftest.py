@@ -103,3 +103,23 @@ def expected_record_last_bytes():
         b"F\n",
         b"\n\n",
     ]
+
+
+@pytest.fixture
+def check_records_start_and_end_bytes(expected_record_last_bytes):
+    def f(records, expect_cached_bytes):
+        header_prefix = b"WARC/1.1\r\n"
+        for record, last_bytes in zip(records, expected_record_last_bytes):
+            assert bool(record._bytes) == expect_cached_bytes
+            assert record.bytes[:10] == header_prefix
+            assert record.bytes[-2:] == last_bytes
+
+            assert bool(record.header._bytes) == expect_cached_bytes
+            assert record.header.bytes[:10] == header_prefix
+            assert record.header.bytes[-2:] == b"\r\n"
+
+            assert bool(record.content_block._bytes) == expect_cached_bytes
+            assert record.content_block.bytes[:2] != b"\r\n"
+            assert record.content_block.bytes[-2:] == last_bytes
+
+    return f

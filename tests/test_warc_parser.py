@@ -102,7 +102,10 @@ def test_warc_parser_records_split_correctly(
 
 @pytest.mark.parametrize("parsing_style", ["delimiter", "content_length"])
 def test_warc_parser_records_caches_bytes(
-    warc_file, parsing_style, expected_record_last_bytes
+    warc_file,
+    parsing_style,
+    expected_record_last_bytes,
+    check_records_start_and_end_bytes,
 ):
     parser = WARCParser(
         warc_file,
@@ -114,24 +117,15 @@ def test_warc_parser_records_caches_bytes(
     )
     parser.parse()
 
-    header_prefix = b"WARC/1.1\r\n"
-    for record, last_bytes in zip(parser.records, expected_record_last_bytes):
-        assert record._bytes
-        assert record.bytes[:10] == header_prefix
-        assert record.bytes[-2:] == last_bytes
-
-        assert record.header._bytes
-        assert record.header.bytes[:10] == header_prefix
-        assert record.header.bytes[-2:] == b"\r\n"
-
-        assert record.content_block._bytes
-        assert record.content_block.bytes[:2] != b"\r\n"
-        assert record.content_block.bytes[-2:] == last_bytes
+    check_records_start_and_end_bytes(parser.records, expect_cached_bytes=True)
 
 
 @pytest.mark.parametrize("parsing_style", ["delimiter", "content_length"])
 def test_warc_parser_records_lazy_loads_bytes(
-    warc_file, parsing_style, expected_record_last_bytes
+    warc_file,
+    parsing_style,
+    expected_record_last_bytes,
+    check_records_start_and_end_bytes,
 ):
     parser = WARCParser(
         warc_file,
@@ -139,16 +133,4 @@ def test_warc_parser_records_lazy_loads_bytes(
     )
     parser.parse()
 
-    header_prefix = b"WARC/1.1\r\n"
-    for record, last_bytes in zip(parser.records, expected_record_last_bytes):
-        assert not record._bytes
-        assert record.bytes[:10] == header_prefix
-        assert record.bytes[-2:] == last_bytes
-
-        assert not record.header._bytes
-        assert record.header.bytes[:10] == header_prefix
-        assert record.header.bytes[-2:] == b"\r\n"
-
-        assert not record.content_block._bytes
-        assert record.content_block.bytes[:2] != b"\r\n"
-        assert record.content_block.bytes[-2:] == last_bytes
+    check_records_start_and_end_bytes(parser.records, expect_cached_bytes=False)

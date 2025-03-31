@@ -83,3 +83,19 @@ def test_warc_gz_parser_records_split_correctly(
         assert record.header.end == header_end
         assert record.content_block.start == content_block_start
         assert record.content_block.end == content_block_end
+
+
+@pytest.mark.parametrize("decompression_style", ["file", "member"])
+def test_warc_gz_parser_caches_uncompressed_bytes(
+    gzipped_warc_file, decompression_style
+):
+    parser = WARCGZParser(
+        gzipped_warc_file,
+        decompression_style=decompression_style,
+        enable_lazy_loading_of_bytes=False,
+        cache_member_uncompressed_bytes=False,
+        cache_record_bytes=False,
+        cache_header_bytes=False,
+        cache_content_block_bytes=False,
+    )
+    parser.parse()

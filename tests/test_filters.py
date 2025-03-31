@@ -16,6 +16,7 @@ from warcbench.filters import (
 ### Helpers
 ###
 
+
 def parse_and_check_record_count(request, file, filters, record_count):
     file_handle = request.getfixturevalue(file)
 
@@ -34,6 +35,7 @@ def parse_and_check_record_count(request, file, filters, record_count):
 #
 # Tests
 #
+
 
 @pytest.mark.parametrize("file", ["warc_file", "gzipped_warc_file"])
 @pytest.mark.parametrize(
@@ -70,7 +72,7 @@ def test_record_content_length_filter(request, file, length, operator, record_co
         ("warc-fields", 1),
         ("http", 8),
         ("application/http; msgtype=request", 2),
-        ("application/http; msgtype=response", 6)
+        ("application/http; msgtype=response", 6),
     ],
 )
 def test_record_content_type_filter(request, file, content_type, record_count):

@@ -57,7 +57,8 @@ class BaseParser(ABC):
         cache_header_bytes,
         cache_content_block_bytes,
         cache_non_warc_member_bytes,
-        filters,
+        member_filters,
+        record_filters,
         member_handlers,
         parser_callbacks,
     ):
@@ -96,7 +97,8 @@ class BaseParser(ABC):
         self.cache_header_bytes = cache_header_bytes
         self.cache_content_block_bytes = cache_content_block_bytes
         self.cache_non_warc_member_bytes = cache_non_warc_member_bytes
-        self.filters = filters
+        self.member_filters = member_filters
+        self.record_filters = record_filters
         self.member_handlers = member_handlers
         self.parser_callbacks = parser_callbacks
 
@@ -169,12 +171,24 @@ class BaseParser(ABC):
 
     def check_member_against_filters(self):
         retained = True
-        if self.filters:
-            for f in self.filters:
+
+        if self.member_filters:
+            for f in self.member_filters:
                 if not f(self.current_member):
                     retained = False
                     logger.debug(
-                        f"Skipping member at {self.current_member.start}-{self.current_member.end} due to filter."
+                        f"Skipping member at {self.current_member.start}-{self.current_member.end} due to member filter."
+                    )
+                    break
+
+        if self.record_filters:
+            for f in self.record_filters:
+                if not self.current_member.uncompressed_warc_record or not f(
+                    self.current_member.uncompressed_warc_record
+                ):
+                    retained = False
+                    logger.debug(
+                        f"Skipping member at {self.current_member.start}-{self.current_member.end} due to record filter."
                     )
                     break
 
@@ -219,7 +233,8 @@ class GzippedWARCMemberParser(BaseParser):
         cache_header_bytes,
         cache_content_block_bytes,
         cache_non_warc_member_bytes,
-        filters,
+        member_filters,
+        record_filters,
         member_handlers,
         parser_callbacks,
     ):
@@ -255,7 +270,8 @@ class GzippedWARCMemberParser(BaseParser):
             cache_header_bytes,
             cache_content_block_bytes,
             cache_non_warc_member_bytes,
-            filters,
+            member_filters,
+            record_filters,
             member_handlers,
             parser_callbacks,
         )
@@ -435,7 +451,8 @@ class GzippedWARCDecompressingParser(BaseParser):
         cache_content_block_bytes,
         cache_non_warc_member_bytes,
         enable_lazy_loading_of_bytes,
-        filters,
+        member_filters,
+        record_filters,
         member_handlers,
         parser_callbacks,
     ):
@@ -450,7 +467,8 @@ class GzippedWARCDecompressingParser(BaseParser):
             cache_header_bytes,
             cache_content_block_bytes,
             cache_non_warc_member_bytes,
-            filters,
+            member_filters,
+            record_filters,
             member_handlers,
             parser_callbacks,
         )

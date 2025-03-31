@@ -128,7 +128,8 @@ class WARCGZParser:
         cache_content_block_bytes=False,
         cache_non_warc_member_bytes=False,
         enable_lazy_loading_of_bytes=True,
-        filters=None,
+        member_filters=None,
+        record_filters=None,
         member_handlers=None,
         parser_callbacks=None,
     ):
@@ -165,7 +166,8 @@ class WARCGZParser:
                         cache_header_bytes=cache_header_bytes,
                         cache_content_block_bytes=cache_content_block_bytes,
                         cache_non_warc_member_bytes=cache_non_warc_member_bytes,
-                        filters=filters,
+                        member_filters=member_filters,
+                        record_filters=record_filters,
                         member_handlers=member_handlers,
                         parser_callbacks=parser_callbacks,
                     )
@@ -182,7 +184,8 @@ class WARCGZParser:
                         cache_content_block_bytes=cache_content_block_bytes,
                         cache_non_warc_member_bytes=cache_non_warc_member_bytes,
                         enable_lazy_loading_of_bytes=enable_lazy_loading_of_bytes,
-                        filters=filters,
+                        member_filters=member_filters,
+                        record_filters=record_filters,
                         member_handlers=member_handlers,
                         parser_callbacks=parser_callbacks,
                     )

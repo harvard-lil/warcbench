@@ -24,8 +24,13 @@ def test_warc_parser_stop_after_nth(warc_file, parsing_style):
 def test_warc_parser_check_content_lengths_not_supported_in_content_length_mode(
     warc_file,
 ):
-    with pytest.raises(ValueError):
+    with pytest.raises(ValueError) as e:
         parser = WARCParser(warc_file, check_content_lengths=True)
+
+    assert (
+        "Checking content lengths is only meaningful when parsing in delimiter mode."
+        in str(e)
+    )
 
 
 def test_warc_parser_check_content_lengths_false(warc_file):

@@ -91,7 +91,7 @@ class BaseParser(ABC):
         self.decompress_chunk_size = decompress_chunk_size
         self.split_records = split_records
         self.cache_member_bytes = cache_member_bytes
-        self.cache_member_uncompressed_bytes = (cache_member_uncompressed_bytes,)
+        self.cache_member_uncompressed_bytes = cache_member_uncompressed_bytes
         self.cache_record_bytes = cache_record_bytes
         self.cache_header_bytes = cache_header_bytes
         self.cache_content_block_bytes = cache_content_block_bytes

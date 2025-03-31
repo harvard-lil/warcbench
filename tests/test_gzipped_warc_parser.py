@@ -130,7 +130,7 @@ def test_warc_gz_parser_does_not_loads_bytes_in_member_mode(
     gzipped_warc_file, check_records_start_and_end_bytes
 ):
     with pytest.raises(ValueError) as e:
-        parser = WARCGZParser(
+        WARCGZParser(
             gzipped_warc_file,
             decompression_style="member",
             enable_lazy_loading_of_bytes=True,

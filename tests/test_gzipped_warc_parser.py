@@ -126,7 +126,7 @@ def test_warc_gz_parser_lazy_loads_bytes_in_file_mode(
     check_records_start_and_end_bytes(parser.records, expect_cached_bytes=False)
 
 
-def test_warc_gz_parser_does_not_loads_bytes_in_member_mode(
+def test_warc_gz_parser_does_not_load_bytes_in_member_mode(
     gzipped_warc_file, check_records_start_and_end_bytes
 ):
     with pytest.raises(ValueError) as e:

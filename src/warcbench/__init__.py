@@ -110,6 +110,9 @@ class WARCParser:
     def iterator(self):
         return self._parser.iterator()
 
+    def get_record_offsets(self, split=False):
+        return self._parser.get_record_offsets(split)
+
 
 class WARCGZParser:
     def __init__(
@@ -230,3 +233,9 @@ class WARCGZParser:
 
     def iterator(self):
         return self._parser.iterator()
+
+    def get_member_offsets(self, compressed=True):
+        return self._parser.get_member_offsets(compressed)
+
+    def get_record_offsets(self, split=False):
+        return self._parser.get_record_offsets(split)

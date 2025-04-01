@@ -132,6 +132,30 @@ class BaseParser(ABC):
                 transition_func = self.transitions[self.state]
                 self.state = transition_func()
 
+    def get_record_offsets(self, split):
+        records = self._records if self._records else self.iterator()
+
+        if split:
+            if not self.split_records:
+                raise ValueError(
+                    "Split record offsets are only available when the parser is initialized with split_records=True."
+                )
+            return [
+                (
+                    record.header.start,
+                    record.header.end,
+                    record.content_block.start,
+                    record.content_block.end,
+                )
+                for record in records
+            ]
+
+        return [(record.start, record.end) for record in records]
+
+    #
+    # Internal Methods
+    #
+
     def find_warc_header(self):
         skip_leading_whitespace(self.file_handle)
         for warc_version in WARC_VERSIONS:

@@ -141,9 +141,9 @@ class BaseParser(ABC):
                     yielded = yielded + 1
                     yield self.current_member
                 elif yield_type == "records":
-                    if self.current_member.record:
+                    if self.current_member.uncompressed_warc_record:
                         yielded = yielded + 1
-                        yield self.current_member.record
+                        yield self.current_member.uncompressed_warc_record
                     else:
                         logger.debug(
                             f"Skipping member at {self.current_member.start}-{self.current_member.end} because no WARC record was found."
@@ -161,6 +161,40 @@ class BaseParser(ABC):
             else:
                 transition_func = self.transitions[self.state]
                 self.state = transition_func()
+
+    def get_member_offsets(self, compressed):
+        members = self._members if self._members else self.iterator()
+        if compressed:
+            return [(member.start, member.end) for member in members]
+        return [
+            (member.uncompressed_start, member.uncompressed_end) for member in members
+        ]
+
+    def get_record_offsets(self, split):
+        records = (
+            self.records() if self._members else self.iterator(yield_type="records")
+        )
+
+        if split:
+            if not self.split_records:
+                raise ValueError(
+                    "Split record offsets are only available when the parser is initialized with split_records=True."
+                )
+            return [
+                (
+                    record.header.start,
+                    record.header.end,
+                    record.content_block.start,
+                    record.content_block.end,
+                )
+                for record in records
+            ]
+
+        return [(record.start, record.end) for record in records]
+
+    #
+    # Internal methods
+    #
 
     def find_next_member(self):
         try:
@@ -276,6 +310,13 @@ class GzippedWARCMemberParser(BaseParser):
             parser_callbacks,
         )
         self.decompress_and_parse_members = decompress_and_parse_members
+
+    def get_record_offsets(self, split):
+        if not self.decompress_and_parse_members:
+            raise ValueError(
+                "Record offsets are only available when the parser is initialized with decompress_and_parse_members=True."
+            )
+        return super().get_record_offsets(split)
 
     def locate_members(self):
         """

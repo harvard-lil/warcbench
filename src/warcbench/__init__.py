@@ -104,8 +104,8 @@ class WARCParser:
     def unparsable_lines(self):
         return self._parser.unparsable_lines
 
-    def parse(self):
-        return self._parser.parse()
+    def parse(self, cache_records=True):
+        return self._parser.parse(cache_records)
 
     def iterator(self):
         return self._parser.iterator()
@@ -228,8 +228,8 @@ class WARCGZParser:
     def records(self):
         return self._parser.records
 
-    def parse(self):
-        return self._parser.parse()
+    def parse(self, cache_members=True):
+        return self._parser.parse(cache_members)
 
     def iterator(self):
         return self._parser.iterator()

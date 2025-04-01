@@ -90,7 +90,7 @@ class BaseParser(ABC):
     def records(self):
         if self._records is None:
             raise AttributeNotInitializedError(
-                "Call parser.parse() to load records into RAM and populate parser.records, "
+                "Call parser.parse(cache_members=True) to load records into RAM and populate parser.records, "
                 "or use parser.iterator() to iterate through records without preloading."
             )
         return self._records
@@ -104,11 +104,13 @@ class BaseParser(ABC):
             )
         return self._unparsable_lines
 
-    def parse(self):
-        self._records = []
+    def parse(self, cache_records):
         iterator = self.iterator()
+        if cache_records:
+            self._records = []
         for record in iterator:
-            self._records.append(record)
+            if cache_records:
+                self._records.append(record)
 
     def iterator(self):
         yielded = 0

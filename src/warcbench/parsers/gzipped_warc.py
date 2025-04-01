@@ -106,7 +106,7 @@ class BaseParser(ABC):
     def members(self):
         if self._members is None:
             raise AttributeNotInitializedError(
-                "Call parser.parse() to load members into RAM and populate parser.members, "
+                "Call parser.parse(cache_members=True) to load members into RAM and populate parser.members, "
                 "or use parser.iterator() to iterate through members without preloading."
             )
         return self._members
@@ -115,7 +115,7 @@ class BaseParser(ABC):
     def records(self):
         if self._members is None:
             raise AttributeNotInitializedError(
-                "Call parser.parse() to load records into RAM and populate parser.records, "
+                "Call parser.parse(cache_members=True) to load records into RAM and populate parser.records, "
                 "or use parser.iterator(yield_type='records') to iterate through successfully "
                 "parsed records without preloading."
             )
@@ -125,11 +125,13 @@ class BaseParser(ABC):
             if member.uncompressed_warc_record
         ]
 
-    def parse(self):
-        self._members = []
+    def parse(self, cache_members):
         iterator = self.iterator()
+        if cache_members:
+            self._members = []
         for member in iterator:
-            self._members.append(member)
+            if cache_members:
+                self._members.append(member)
 
     def iterator(self, yield_type="members"):
         yielded = 0

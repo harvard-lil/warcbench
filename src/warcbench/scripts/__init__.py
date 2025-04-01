@@ -21,13 +21,20 @@ from warcbench.scripts.utils import extract_file, open_and_parse
     show_default=True,
     help="Use native Python or system tools for extracting archives.",
 )
+@click.option(
+    "--gunzip/--no-gunzip",
+    default=False,
+    show_default=True,
+    help="Gunzip the input archive before parsing, if it is gzipped.",
+)
 @click.pass_context
-def cli(ctx, out, verbose, decompression):
+def cli(ctx, out, verbose, decompression, gunzip):
     """warcbench command framework, work in progress"""
     ctx.ensure_object(dict)
     ctx.obj["OUT"] = out
     ctx.obj["VERBOSE"] = verbose
     ctx.obj["DECOMPRESSION"] = decompression
+    ctx.obj["GUNZIP"] = gunzip
 
 
 @cli.command()
@@ -80,7 +87,7 @@ def extract(ctx, filepath, mimetype, basename):
 
     open_and_parse(
         ctx,
-        filters=[
+        record_filters=[
             http_response_content_type_filter(mimetype),
         ],
         record_handlers=[

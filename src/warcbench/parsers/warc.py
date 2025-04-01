@@ -50,7 +50,7 @@ class BaseParser(ABC):
         cache_content_block_bytes,
         cache_unparsable_line_bytes,
         enable_lazy_loading_of_bytes,
-        filters,
+        record_filters,
         record_handlers,
         unparsable_line_handlers,
         parser_callbacks,
@@ -76,7 +76,7 @@ class BaseParser(ABC):
         self.cache_content_block_bytes = cache_content_block_bytes
         self.cache_unparsable_line_bytes = cache_unparsable_line_bytes
         self.enable_lazy_loading_of_bytes = enable_lazy_loading_of_bytes
-        self.filters = filters
+        self.record_filters = record_filters
         self.record_handlers = record_handlers
         self.unparsable_line_handlers = unparsable_line_handlers
         self.parser_callbacks = parser_callbacks
@@ -200,8 +200,8 @@ class BaseParser(ABC):
 
     def check_record_against_filters(self):
         retained = True
-        if self.filters:
-            for f in self.filters:
+        if self.record_filters:
+            for f in self.record_filters:
                 if not f(self.current_record):
                     retained = False
                     logger.debug(
@@ -246,7 +246,7 @@ class DelimiterWARCParser(BaseParser):
         cache_content_block_bytes,
         cache_unparsable_line_bytes,
         enable_lazy_loading_of_bytes,
-        filters,
+        record_filters,
         record_handlers,
         unparsable_line_handlers,
         parser_callbacks,
@@ -290,7 +290,7 @@ class DelimiterWARCParser(BaseParser):
             cache_content_block_bytes,
             cache_unparsable_line_bytes,
             enable_lazy_loading_of_bytes,
-            filters,
+            record_filters,
             record_handlers,
             unparsable_line_handlers,
             parser_callbacks,

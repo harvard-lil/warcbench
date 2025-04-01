@@ -134,6 +134,7 @@ class WARCGZParser:
         member_filters=None,
         record_filters=None,
         member_handlers=None,
+        record_handlers=None,
         parser_callbacks=None,
     ):
         #
@@ -172,6 +173,7 @@ class WARCGZParser:
                         member_filters=member_filters,
                         record_filters=record_filters,
                         member_handlers=member_handlers,
+                        record_handlers=record_handlers,
                         parser_callbacks=parser_callbacks,
                     )
                 elif decompression_style == "file":
@@ -190,6 +192,7 @@ class WARCGZParser:
                         member_filters=member_filters,
                         record_filters=record_filters,
                         member_handlers=member_handlers,
+                        record_handlers=record_handlers,
                         parser_callbacks=parser_callbacks,
                     )
                 else:

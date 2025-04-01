@@ -30,6 +30,7 @@ STATES = {
     "EXTRACT_NEXT_MEMBER": "extract_next_member",
     "CHECK_MEMBER_AGAINST_FILTERS": "check_member_against_filters",
     "RUN_MEMBER_HANDLERS": "run_member_handlers",
+    "RUN_RECORD_HANDLERS": "run_record_handlers",
     "YIELD_CURRENT_MEMBER": "yield_member",
     "RUN_PARSER_CALLBACKS": "run_parser_callbacks",
     "END": "end",
@@ -60,6 +61,7 @@ class BaseParser(ABC):
         member_filters,
         record_filters,
         member_handlers,
+        record_handlers,
         parser_callbacks,
     ):
         #
@@ -83,6 +85,7 @@ class BaseParser(ABC):
             STATES["EXTRACT_NEXT_MEMBER"]: self.extract_next_member,
             STATES["CHECK_MEMBER_AGAINST_FILTERS"]: self.check_member_against_filters,
             STATES["RUN_MEMBER_HANDLERS"]: self.run_member_handlers,
+            STATES["RUN_RECORD_HANDLERS"]: self.run_record_handlers,
             STATES["RUN_PARSER_CALLBACKS"]: self.run_parser_callbacks,
             STATES["END"]: None,
         }
@@ -100,6 +103,7 @@ class BaseParser(ABC):
         self.member_filters = member_filters
         self.record_filters = record_filters
         self.member_handlers = member_handlers
+        self.record_handlers = record_handlers
         self.parser_callbacks = parser_callbacks
 
     @property
@@ -237,6 +241,13 @@ class BaseParser(ABC):
             for f in self.member_handlers:
                 f(self.current_member)
 
+        return STATES["RUN_RECORD_HANDLERS"]
+
+    def run_record_handlers(self):
+        if self.record_handlers and self.current_member.uncompressed_warc_record:
+            for f in self.record_handlers:
+                f(self.current_member.uncompressed_warc_record)
+
         return STATES["YIELD_CURRENT_MEMBER"]
 
     def run_parser_callbacks(self):
@@ -272,6 +283,7 @@ class GzippedWARCMemberParser(BaseParser):
         member_filters,
         record_filters,
         member_handlers,
+        record_handlers,
         parser_callbacks,
     ):
         #
@@ -309,6 +321,7 @@ class GzippedWARCMemberParser(BaseParser):
             member_filters,
             record_filters,
             member_handlers,
+            record_handlers,
             parser_callbacks,
         )
         self.decompress_and_parse_members = decompress_and_parse_members
@@ -497,6 +510,7 @@ class GzippedWARCDecompressingParser(BaseParser):
         member_filters,
         record_filters,
         member_handlers,
+        record_handlers,
         parser_callbacks,
     ):
         super().__init__(
@@ -513,6 +527,7 @@ class GzippedWARCDecompressingParser(BaseParser):
             member_filters,
             record_filters,
             member_handlers,
+            record_handlers,
             parser_callbacks,
         )
         self.enable_lazy_loading_of_bytes = enable_lazy_loading_of_bytes

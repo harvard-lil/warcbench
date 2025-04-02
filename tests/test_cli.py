@@ -1,5 +1,7 @@
 from click.testing import CliRunner
+import json
 from pathlib import Path
+
 from warcbench.scripts import cli
 
 
@@ -8,6 +10,15 @@ def test_parse():
     result = runner.invoke(cli, ["parse", "tests/assets/example.com.wacz"])
     assert result.exit_code == 0
     assert "Found 9 records" in result.output
+
+
+def test_inspect(sample_inspect_json):
+    runner = CliRunner()
+    result = runner.invoke(
+        cli, ["--out", "json", "inspect", "tests/assets/example.com.wacz"]
+    )
+    assert result.exit_code == 0
+    assert json.loads(result.stdout) == sample_inspect_json
 
 
 def test_extract(tmp_path):

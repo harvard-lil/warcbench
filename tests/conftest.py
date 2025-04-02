@@ -1,5 +1,6 @@
 import gzip
 from io import BufferedReader
+import json
 from pathlib import Path
 import zipfile
 
@@ -134,3 +135,10 @@ def check_records_start_and_end_bytes(expected_record_last_bytes):
             assert record.content_block.bytes[-2:] == last_bytes
 
     return f
+
+
+@pytest.fixture
+def sample_inspect_json(assets_path: Path):
+    filepath = assets_path / "inspect.json"
+    with filepath.open("r") as json_file:
+        return json.loads(json_file.read())

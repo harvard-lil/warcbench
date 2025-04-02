@@ -23,7 +23,11 @@ def extract_file(mimetype, basename, verbose):
 
 
 def open_and_parse(
-    ctx, record_filters=None, record_handlers=None, parser_callbacks=None
+    ctx,
+    record_filters=None,
+    member_handlers=None,
+    record_handlers=None,
+    parser_callbacks=None,
 ):
     """This function runs the parser, filtering and running record handlers and parser callbacks as necessary."""
     if ctx.obj["DECOMPRESSION"] == "python":
@@ -34,20 +38,25 @@ def open_and_parse(
     try:
         with open_archive(ctx.obj["FILEPATH"], ctx.obj["GUNZIP"]) as (file, file_type):
             if file_type == FileType.WARC:
+                if member_handlers:
+                    click.echo(
+                        f"WARNING: parsing as WARC file, member_handlers will be ignored.",
+                        err=True,
+                    )
                 parser = WARCParser(
                     file,
                     record_filters=record_filters,
                     record_handlers=record_handlers,
                     parser_callbacks=parser_callbacks,
                 )
-                parser.parse()
             elif file_type == FileType.GZIPPED_WARC:
                 parser = WARCGZParser(
                     file,
                     record_filters=record_filters,
+                    member_handlers=member_handlers,
                     record_handlers=record_handlers,
                     parser_callbacks=parser_callbacks,
                 )
-                parser.parse()
+            parser.parse()
     except (ValueError, NotImplementedError, RuntimeError) as e:
         raise click.ClickException(e)

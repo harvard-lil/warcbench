@@ -40,7 +40,7 @@ def open_and_parse(
             if file_type == FileType.WARC:
                 if member_handlers:
                     click.echo(
-                        f"WARNING: parsing as WARC file, member_handlers will be ignored.",
+                        "WARNING: parsing as WARC file, member_handlers will be ignored.",
                         err=True,
                     )
                 parser = WARCParser(

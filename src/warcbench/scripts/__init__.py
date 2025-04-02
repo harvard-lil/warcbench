@@ -7,10 +7,7 @@ from warcbench.member_handlers import get_member_offsets
 from warcbench.record_handlers import (
     get_record_offsets,
     get_record_headers,
-    get_record_content,
     get_record_http_headers,
-    get_record_http_body,
-    print_separator,
 )
 from warcbench.scripts.utils import extract_file, open_and_parse
 

@@ -141,3 +141,70 @@ def test_warc_gz_parser_does_not_load_bytes_in_member_mode(
         "The lazy loading of bytes is only supported when decompression style is 'file'."
         in str(e)
     )
+
+
+@pytest.mark.parametrize("decompression_style", ["file", "member"])
+def test_warc_gz_parser_get_member_offsets(
+    gzipped_warc_file,
+    decompression_style,
+    expected_offsets,
+):
+    parser = WARCGZParser(
+        gzipped_warc_file,
+        decompression_style=decompression_style,
+        enable_lazy_loading_of_bytes=False,
+    )
+    assert parser.get_member_offsets() == expected_offsets["warc_gz_members"]
+
+
+@pytest.mark.parametrize("decompression_style", ["file", "member"])
+def test_warc_gz_parser_get_member_uncompressed_offsets(
+    gzipped_warc_file,
+    decompression_style,
+    expected_offsets,
+):
+    parser = WARCGZParser(
+        gzipped_warc_file,
+        decompression_style=decompression_style,
+        enable_lazy_loading_of_bytes=False,
+    )
+    assert (
+        parser.get_member_offsets(compressed=False)
+        == expected_offsets["warc_gz_members_uncompressed"]
+    )
+
+
+@pytest.mark.parametrize("decompression_style", ["file", "member"])
+def test_warc_gz_parser_get_record_offsets(
+    gzipped_warc_file,
+    decompression_style,
+    expected_offsets,
+):
+    parser = WARCGZParser(
+        gzipped_warc_file,
+        decompression_style=decompression_style,
+        enable_lazy_loading_of_bytes=False,
+    )
+    assert parser.get_record_offsets() == expected_offsets["warc_records"]
+
+
+@pytest.mark.parametrize("decompression_style", ["file", "member"])
+def test_warc_gz_parser_get_split_record_offsets(
+    gzipped_warc_file,
+    decompression_style,
+    expected_offsets,
+):
+    offsets = [
+        (h1, h2, c1, c2)
+        for (h1, h2), (c1, c2) in zip(
+            expected_offsets["record_headers"],
+            expected_offsets["record_content_blocks"],
+        )
+    ]
+
+    parser = WARCGZParser(
+        gzipped_warc_file,
+        decompression_style=decompression_style,
+        enable_lazy_loading_of_bytes=False,
+    )
+    assert parser.get_record_offsets(split=True) == offsets

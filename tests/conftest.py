@@ -1,5 +1,6 @@
 import gzip
 from io import BufferedReader
+import json
 from pathlib import Path
 import zipfile
 
@@ -44,6 +45,17 @@ def expected_offsets():
             (27222, 28294),
             (28294, 49670),
             (49670, 51764),
+        ],
+        "warc_gz_members_uncompressed": [
+            (0, 284),
+            (284, 1241),
+            (1241, 2740),
+            (2740, 3648),
+            (3648, 5176),
+            (5176, 34539),
+            (34539, 36488),
+            (36488, 76091),
+            (76091, 82947),
         ],
         "warc_records": [
             (0, 280),
@@ -123,3 +135,10 @@ def check_records_start_and_end_bytes(expected_record_last_bytes):
             assert record.content_block.bytes[-2:] == last_bytes
 
     return f
+
+
+@pytest.fixture
+def sample_inspect_json(assets_path: Path):
+    filepath = assets_path / "inspect.json"
+    with filepath.open("r") as json_file:
+        return json.loads(json_file.read())

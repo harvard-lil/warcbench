@@ -50,7 +50,7 @@ class BaseParser(ABC):
         cache_content_block_bytes,
         cache_unparsable_line_bytes,
         enable_lazy_loading_of_bytes,
-        filters,
+        record_filters,
         record_handlers,
         unparsable_line_handlers,
         parser_callbacks,
@@ -76,7 +76,7 @@ class BaseParser(ABC):
         self.cache_content_block_bytes = cache_content_block_bytes
         self.cache_unparsable_line_bytes = cache_unparsable_line_bytes
         self.enable_lazy_loading_of_bytes = enable_lazy_loading_of_bytes
-        self.filters = filters
+        self.record_filters = record_filters
         self.record_handlers = record_handlers
         self.unparsable_line_handlers = unparsable_line_handlers
         self.parser_callbacks = parser_callbacks
@@ -90,7 +90,7 @@ class BaseParser(ABC):
     def records(self):
         if self._records is None:
             raise AttributeNotInitializedError(
-                "Call parser.parse() to load records into RAM and populate parser.records, "
+                "Call parser.parse(cache_members=True) to load records into RAM and populate parser.records, "
                 "or use parser.iterator() to iterate through records without preloading."
             )
         return self._records
@@ -104,11 +104,13 @@ class BaseParser(ABC):
             )
         return self._unparsable_lines
 
-    def parse(self):
-        self._records = []
+    def parse(self, cache_records):
         iterator = self.iterator()
+        if cache_records:
+            self._records = []
         for record in iterator:
-            self._records.append(record)
+            if cache_records:
+                self._records.append(record)
 
     def iterator(self):
         yielded = 0
@@ -131,6 +133,30 @@ class BaseParser(ABC):
             else:
                 transition_func = self.transitions[self.state]
                 self.state = transition_func()
+
+    def get_record_offsets(self, split):
+        records = self._records if self._records else self.iterator()
+
+        if split:
+            if not self.split_records:
+                raise ValueError(
+                    "Split record offsets are only available when the parser is initialized with split_records=True."
+                )
+            return [
+                (
+                    record.header.start,
+                    record.header.end,
+                    record.content_block.start,
+                    record.content_block.end,
+                )
+                for record in records
+            ]
+
+        return [(record.start, record.end) for record in records]
+
+    #
+    # Internal Methods
+    #
 
     def find_warc_header(self):
         skip_leading_whitespace(self.file_handle)
@@ -174,8 +200,8 @@ class BaseParser(ABC):
 
     def check_record_against_filters(self):
         retained = True
-        if self.filters:
-            for f in self.filters:
+        if self.record_filters:
+            for f in self.record_filters:
                 if not f(self.current_record):
                     retained = False
                     logger.debug(
@@ -220,7 +246,7 @@ class DelimiterWARCParser(BaseParser):
         cache_content_block_bytes,
         cache_unparsable_line_bytes,
         enable_lazy_loading_of_bytes,
-        filters,
+        record_filters,
         record_handlers,
         unparsable_line_handlers,
         parser_callbacks,
@@ -264,7 +290,7 @@ class DelimiterWARCParser(BaseParser):
             cache_content_block_bytes,
             cache_unparsable_line_bytes,
             enable_lazy_loading_of_bytes,
-            filters,
+            record_filters,
             record_handlers,
             unparsable_line_handlers,
             parser_callbacks,

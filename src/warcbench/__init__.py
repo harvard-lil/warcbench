@@ -21,7 +21,7 @@ class WARCParser:
         cache_content_block_bytes=False,
         cache_unparsable_line_bytes=False,
         enable_lazy_loading_of_bytes=True,
-        filters=None,
+        record_filters=None,
         record_handlers=None,
         unparsable_line_handlers=None,
         parser_callbacks=None,
@@ -53,7 +53,7 @@ class WARCParser:
                     cache_content_block_bytes=cache_content_block_bytes,
                     cache_unparsable_line_bytes=cache_unparsable_line_bytes,
                     enable_lazy_loading_of_bytes=enable_lazy_loading_of_bytes,
-                    filters=filters,
+                    record_filters=record_filters,
                     record_handlers=record_handlers,
                     unparsable_line_handlers=unparsable_line_handlers,
                     parser_callbacks=parser_callbacks,
@@ -70,7 +70,7 @@ class WARCParser:
                     cache_content_block_bytes=cache_content_block_bytes,
                     cache_unparsable_line_bytes=cache_unparsable_line_bytes,
                     enable_lazy_loading_of_bytes=enable_lazy_loading_of_bytes,
-                    filters=filters,
+                    record_filters=record_filters,
                     record_handlers=record_handlers,
                     unparsable_line_handlers=unparsable_line_handlers,
                     parser_callbacks=parser_callbacks,
@@ -104,11 +104,14 @@ class WARCParser:
     def unparsable_lines(self):
         return self._parser.unparsable_lines
 
-    def parse(self):
-        return self._parser.parse()
+    def parse(self, cache_records=True):
+        return self._parser.parse(cache_records)
 
     def iterator(self):
         return self._parser.iterator()
+
+    def get_record_offsets(self, split=False):
+        return self._parser.get_record_offsets(split)
 
 
 class WARCGZParser:
@@ -131,6 +134,7 @@ class WARCGZParser:
         member_filters=None,
         record_filters=None,
         member_handlers=None,
+        record_handlers=None,
         parser_callbacks=None,
     ):
         #
@@ -169,6 +173,7 @@ class WARCGZParser:
                         member_filters=member_filters,
                         record_filters=record_filters,
                         member_handlers=member_handlers,
+                        record_handlers=record_handlers,
                         parser_callbacks=parser_callbacks,
                     )
                 elif decompression_style == "file":
@@ -187,6 +192,7 @@ class WARCGZParser:
                         member_filters=member_filters,
                         record_filters=record_filters,
                         member_handlers=member_handlers,
+                        record_handlers=record_handlers,
                         parser_callbacks=parser_callbacks,
                     )
                 else:
@@ -225,8 +231,14 @@ class WARCGZParser:
     def records(self):
         return self._parser.records
 
-    def parse(self):
-        return self._parser.parse()
+    def parse(self, cache_members=True):
+        return self._parser.parse(cache_members)
 
     def iterator(self):
         return self._parser.iterator()
+
+    def get_member_offsets(self, compressed=True):
+        return self._parser.get_member_offsets(compressed)
+
+    def get_record_offsets(self, split=False):
+        return self._parser.get_record_offsets(split)

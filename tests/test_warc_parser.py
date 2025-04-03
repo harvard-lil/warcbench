@@ -118,3 +118,37 @@ def test_warc_parser_records_lazy_loads_bytes(
     parser.parse()
 
     check_records_start_and_end_bytes(parser.records, expect_cached_bytes=False)
+
+
+@pytest.mark.parametrize("parsing_style", ["delimiter", "content_length"])
+def test_warc_parser_get_record_offsets(
+    warc_file,
+    parsing_style,
+    expected_offsets,
+):
+    parser = WARCParser(
+        warc_file,
+        parsing_style=parsing_style,
+    )
+    assert parser.get_record_offsets() == expected_offsets["warc_records"]
+
+
+@pytest.mark.parametrize("parsing_style", ["delimiter", "content_length"])
+def test_warc_parser_get_split_record_offsets(
+    warc_file,
+    parsing_style,
+    expected_offsets,
+):
+    offsets = [
+        (h1, h2, c1, c2)
+        for (h1, h2), (c1, c2) in zip(
+            expected_offsets["record_headers"],
+            expected_offsets["record_content_blocks"],
+        )
+    ]
+
+    parser = WARCParser(
+        warc_file,
+        parsing_style=parsing_style,
+    )
+    assert parser.get_record_offsets(split=True) == offsets

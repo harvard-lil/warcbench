@@ -30,6 +30,7 @@ STATES = {
     "EXTRACT_NEXT_MEMBER": "extract_next_member",
     "CHECK_MEMBER_AGAINST_FILTERS": "check_member_against_filters",
     "RUN_MEMBER_HANDLERS": "run_member_handlers",
+    "RUN_RECORD_HANDLERS": "run_record_handlers",
     "YIELD_CURRENT_MEMBER": "yield_member",
     "RUN_PARSER_CALLBACKS": "run_parser_callbacks",
     "END": "end",
@@ -60,6 +61,7 @@ class BaseParser(ABC):
         member_filters,
         record_filters,
         member_handlers,
+        record_handlers,
         parser_callbacks,
     ):
         #
@@ -83,6 +85,7 @@ class BaseParser(ABC):
             STATES["EXTRACT_NEXT_MEMBER"]: self.extract_next_member,
             STATES["CHECK_MEMBER_AGAINST_FILTERS"]: self.check_member_against_filters,
             STATES["RUN_MEMBER_HANDLERS"]: self.run_member_handlers,
+            STATES["RUN_RECORD_HANDLERS"]: self.run_record_handlers,
             STATES["RUN_PARSER_CALLBACKS"]: self.run_parser_callbacks,
             STATES["END"]: None,
         }
@@ -100,13 +103,14 @@ class BaseParser(ABC):
         self.member_filters = member_filters
         self.record_filters = record_filters
         self.member_handlers = member_handlers
+        self.record_handlers = record_handlers
         self.parser_callbacks = parser_callbacks
 
     @property
     def members(self):
         if self._members is None:
             raise AttributeNotInitializedError(
-                "Call parser.parse() to load members into RAM and populate parser.members, "
+                "Call parser.parse(cache_members=True) to load members into RAM and populate parser.members, "
                 "or use parser.iterator() to iterate through members without preloading."
             )
         return self._members
@@ -115,7 +119,7 @@ class BaseParser(ABC):
     def records(self):
         if self._members is None:
             raise AttributeNotInitializedError(
-                "Call parser.parse() to load records into RAM and populate parser.records, "
+                "Call parser.parse(cache_members=True) to load records into RAM and populate parser.records, "
                 "or use parser.iterator(yield_type='records') to iterate through successfully "
                 "parsed records without preloading."
             )
@@ -125,11 +129,13 @@ class BaseParser(ABC):
             if member.uncompressed_warc_record
         ]
 
-    def parse(self):
-        self._members = []
+    def parse(self, cache_members):
         iterator = self.iterator()
+        if cache_members:
+            self._members = []
         for member in iterator:
-            self._members.append(member)
+            if cache_members:
+                self._members.append(member)
 
     def iterator(self, yield_type="members"):
         yielded = 0
@@ -141,9 +147,9 @@ class BaseParser(ABC):
                     yielded = yielded + 1
                     yield self.current_member
                 elif yield_type == "records":
-                    if self.current_member.record:
+                    if self.current_member.uncompressed_warc_record:
                         yielded = yielded + 1
-                        yield self.current_member.record
+                        yield self.current_member.uncompressed_warc_record
                     else:
                         logger.debug(
                             f"Skipping member at {self.current_member.start}-{self.current_member.end} because no WARC record was found."
@@ -161,6 +167,40 @@ class BaseParser(ABC):
             else:
                 transition_func = self.transitions[self.state]
                 self.state = transition_func()
+
+    def get_member_offsets(self, compressed):
+        members = self._members if self._members else self.iterator()
+        if compressed:
+            return [(member.start, member.end) for member in members]
+        return [
+            (member.uncompressed_start, member.uncompressed_end) for member in members
+        ]
+
+    def get_record_offsets(self, split):
+        records = (
+            self.records() if self._members else self.iterator(yield_type="records")
+        )
+
+        if split:
+            if not self.split_records:
+                raise ValueError(
+                    "Split record offsets are only available when the parser is initialized with split_records=True."
+                )
+            return [
+                (
+                    record.header.start,
+                    record.header.end,
+                    record.content_block.start,
+                    record.content_block.end,
+                )
+                for record in records
+            ]
+
+        return [(record.start, record.end) for record in records]
+
+    #
+    # Internal methods
+    #
 
     def find_next_member(self):
         try:
@@ -201,6 +241,13 @@ class BaseParser(ABC):
             for f in self.member_handlers:
                 f(self.current_member)
 
+        return STATES["RUN_RECORD_HANDLERS"]
+
+    def run_record_handlers(self):
+        if self.record_handlers and self.current_member.uncompressed_warc_record:
+            for f in self.record_handlers:
+                f(self.current_member.uncompressed_warc_record)
+
         return STATES["YIELD_CURRENT_MEMBER"]
 
     def run_parser_callbacks(self):
@@ -236,6 +283,7 @@ class GzippedWARCMemberParser(BaseParser):
         member_filters,
         record_filters,
         member_handlers,
+        record_handlers,
         parser_callbacks,
     ):
         #
@@ -273,9 +321,17 @@ class GzippedWARCMemberParser(BaseParser):
             member_filters,
             record_filters,
             member_handlers,
+            record_handlers,
             parser_callbacks,
         )
         self.decompress_and_parse_members = decompress_and_parse_members
+
+    def get_record_offsets(self, split):
+        if not self.decompress_and_parse_members:
+            raise ValueError(
+                "Record offsets are only available when the parser is initialized with decompress_and_parse_members=True."
+            )
+        return super().get_record_offsets(split)
 
     def locate_members(self):
         """
@@ -454,6 +510,7 @@ class GzippedWARCDecompressingParser(BaseParser):
         member_filters,
         record_filters,
         member_handlers,
+        record_handlers,
         parser_callbacks,
     ):
         super().__init__(
@@ -470,6 +527,7 @@ class GzippedWARCDecompressingParser(BaseParser):
             member_filters,
             record_filters,
             member_handlers,
+            record_handlers,
             parser_callbacks,
         )
         self.enable_lazy_loading_of_bytes = enable_lazy_loading_of_bytes

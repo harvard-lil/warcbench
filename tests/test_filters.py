@@ -22,7 +22,7 @@ def parse_and_check_record_count(request, file, filters, record_count):
 
     match file:
         case "warc_file":
-            parser = WARCParser(file_handle, filters=filters)
+            parser = WARCParser(file_handle, record_filters=filters)
         case "gzipped_warc_file":
             parser = WARCGZParser(file_handle, record_filters=filters)
 

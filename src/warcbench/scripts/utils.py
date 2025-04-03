@@ -1,8 +1,8 @@
 import click
 from mimetypes import guess_extension
 from pathlib import Path
-from warcbench import WARCParser
-from warcbench.utils import python_open_archive, system_open_archive
+from warcbench import WARCParser, WARCGZParser
+from warcbench.utils import FileType, python_open_archive, system_open_archive
 
 
 def extract_file(mimetype, basename, verbose):
@@ -22,7 +22,13 @@ def extract_file(mimetype, basename, verbose):
     return f
 
 
-def open_and_parse(ctx, filters=None, record_handlers=None, parser_callbacks=None):
+def open_and_parse(
+    ctx,
+    record_filters=None,
+    member_handlers=None,
+    record_handlers=None,
+    parser_callbacks=None,
+):
     """This function runs the parser, filtering and running record handlers and parser callbacks as necessary."""
     if ctx.obj["DECOMPRESSION"] == "python":
         open_archive = python_open_archive
@@ -30,13 +36,27 @@ def open_and_parse(ctx, filters=None, record_handlers=None, parser_callbacks=Non
         open_archive = system_open_archive
 
     try:
-        with open_archive(ctx.obj["FILEPATH"]) as warc_file:
-            parser = WARCParser(
-                warc_file,
-                filters=filters,
-                record_handlers=record_handlers,
-                parser_callbacks=parser_callbacks,
-            )
+        with open_archive(ctx.obj["FILEPATH"], ctx.obj["GUNZIP"]) as (file, file_type):
+            if file_type == FileType.WARC:
+                if member_handlers:
+                    click.echo(
+                        "WARNING: parsing as WARC file, member_handlers will be ignored.",
+                        err=True,
+                    )
+                parser = WARCParser(
+                    file,
+                    record_filters=record_filters,
+                    record_handlers=record_handlers,
+                    parser_callbacks=parser_callbacks,
+                )
+            elif file_type == FileType.GZIPPED_WARC:
+                parser = WARCGZParser(
+                    file,
+                    record_filters=record_filters,
+                    member_handlers=member_handlers,
+                    record_handlers=record_handlers,
+                    parser_callbacks=parser_callbacks,
+                )
             parser.parse()
     except (ValueError, NotImplementedError, RuntimeError) as e:
         raise click.ClickException(e)

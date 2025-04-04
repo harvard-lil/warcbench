@@ -631,6 +631,8 @@ class GzippedWARCDecompressingParser(BaseParser):
                 content_end = content_start + content_length
                 if self.cache_record_bytes or self.cache_content_block_bytes:
                     content_bytes = self.uncompressed_file_handle.read(content_length)
+                else:
+                    self.uncompressed_file_handle.seek(content_length, os.SEEK_CUR)
 
                 # Build the Record object
                 record = Record(start=header_start, end=content_end)

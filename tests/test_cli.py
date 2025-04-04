@@ -5,11 +5,24 @@ from pathlib import Path
 from warcbench.scripts import cli
 
 
-def test_parse():
+def test_summarize():
     runner = CliRunner()
-    result = runner.invoke(cli, ["parse", "tests/assets/example.com.wacz"])
+    result = runner.invoke(
+        cli, ["--out", "json", "summarize", "tests/assets/example.com.wacz"]
+    )
     assert result.exit_code == 0
-    assert "Found 9 records" in result.output
+    summary_data = json.loads(result.stdout)
+    assert summary_data["record_count"] == 9
+    assert not summary_data["warnings"]
+    assert not summary_data["error"]
+    assert summary_data["record_types"] == {"request": 2, "response": 6, "warcinfo": 1}
+    assert summary_data["domains"] == ["example.com"]
+    assert summary_data["content_types"] == {
+        "application/pdf": 1,
+        "image/png": 1,
+        "text/html": 3,
+        "text/html; charset=UTF-8": 1,
+    }
 
 
 def test_inspect(sample_inspect_json):

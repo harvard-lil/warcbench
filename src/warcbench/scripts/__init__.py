@@ -2,6 +2,7 @@ import click
 from collections import defaultdict
 import json
 from pathlib import Path
+
 from warcbench.filters import http_response_content_type_filter
 from warcbench.member_handlers import get_member_offsets
 from warcbench.record_handlers import (
@@ -9,6 +10,8 @@ from warcbench.record_handlers import (
     get_record_headers,
     get_record_http_headers,
 )
+
+from warcbench.scripts.summarize import summarize
 from warcbench.scripts.utils import extract_file, open_and_parse
 
 
@@ -58,24 +61,7 @@ def hello(ctx, world):
         click.echo(msg)
 
 
-@cli.command()
-@click.argument(
-    "filepath",
-    type=click.Path(exists=True, readable=True, allow_dash=True, dir_okay=False),
-)
-@click.pass_context
-def parse(ctx, filepath):
-    """This counts the records found in the archive, and reports warning and error messages."""
-    ctx.obj["FILEPATH"] = filepath
-
-    open_and_parse(
-        ctx,
-        parser_callbacks=[
-            lambda parser: click.echo(
-                f"Found {len(parser.records)} records\nWarnings: {parser.warnings}\nError: {parser.error}"
-            )
-        ],
-    )
+cli.add_command(summarize)
 
 
 @cli.command()

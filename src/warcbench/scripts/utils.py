@@ -28,6 +28,7 @@ def open_and_parse(
     member_handlers=None,
     record_handlers=None,
     parser_callbacks=None,
+    cache_records_or_members=False,
 ):
     """This function runs the parser, filtering and running record handlers and parser callbacks as necessary."""
     if ctx.obj["DECOMPRESSION"] == "python":
@@ -49,6 +50,7 @@ def open_and_parse(
                     record_handlers=record_handlers,
                     parser_callbacks=parser_callbacks,
                 )
+                parse_kwargs = {"cache_records": cache_records_or_members}
             elif file_type == FileType.GZIPPED_WARC:
                 parser = WARCGZParser(
                     file,
@@ -57,6 +59,7 @@ def open_and_parse(
                     record_handlers=record_handlers,
                     parser_callbacks=parser_callbacks,
                 )
-            parser.parse()
+                parse_kwargs = {"cache_members": cache_records_or_members}
+            parser.parse(**parse_kwargs)
     except (ValueError, NotImplementedError, RuntimeError) as e:
         raise click.ClickException(e)

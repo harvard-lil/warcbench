@@ -231,7 +231,7 @@ def yield_bytes_from_file(file_handle, start_offset, end_offset, chunk_size=1024
 
 
 @contextmanager
-def archive_of(wacz_file):
+def get_archive_filepath(wacz_file):
     """This function extracts the path of the archive in a WACZ file, given its filehandle."""
     with zipfile.Path(wacz_file, "datapackage.json").open("r") as datapackage:
         yield archive_resource(datapackage)
@@ -253,7 +253,7 @@ def python_open_archive(filepath, gunzip=False):
     if filepath.lower().endswith(".wacz"):
         with (
             open(filepath, "rb") as wacz_file,
-            archive_of(wacz_file) as archive,
+            get_archive_filepath(wacz_file) as archive,
             zipfile.Path(wacz_file, archive).open("rb") as warc_gz_file,
         ):
             if gunzip:

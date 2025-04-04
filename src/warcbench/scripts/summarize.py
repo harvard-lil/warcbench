@@ -16,7 +16,7 @@ from warcbench.utils import find_pattern_in_bytes
 )
 @click.pass_context
 def summarize(ctx, filepath):
-    """This counts the records found in the archive, and reports warning and error messages."""
+    """Summarizes the contents of an archive, and reports warning and error messages."""
     ctx.obj["FILEPATH"] = filepath
 
     summary_data = {

@@ -139,9 +139,12 @@ def check_records_start_and_end_bytes(expected_record_last_bytes):
 
 @pytest.fixture
 def sample_inspect_json(assets_path: Path):
-    filepath = assets_path / "inspect.json"
-    with filepath.open("r") as json_file:
-        return json.loads(json_file.read())
+    inspect_json = {}
+    for wacz_file in ["example.com.wacz", "test-crawl.wacz"]:
+        filepath = assets_path / f"{wacz_file}.inspect.json"
+        with filepath.open("r") as json_file:
+            inspect_json[wacz_file] = json.loads(json_file.read())
+    return inspect_json
 
 
 @pytest.fixture

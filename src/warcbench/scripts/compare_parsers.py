@@ -19,7 +19,7 @@ from warcbench.utils import FileType, python_open_archive, system_open_archive
 )
 @click.pass_context
 def compare_parsers(ctx, filepath, output_offsets):
-    """This could parse the same WARC with all parsing strategies, and report if/how the results differ."""
+    """This parses a single WARC with all parsing strategies, and reports whether/how the results differ."""
     ctx.obj["FILEPATH"] = filepath
     ctx.obj["OUTPUT_OFFSETS"] = output_offsets
 

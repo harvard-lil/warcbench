@@ -6,7 +6,9 @@ import pytest
 from warcbench.scripts import cli
 
 
-@pytest.mark.parametrize("file_name", ["example.com.warc", "example.com.wacz", "test-crawl.wacz"])
+@pytest.mark.parametrize(
+    "file_name", ["example.com.warc", "example.com.wacz", "test-crawl.wacz"]
+)
 def test_summarize(file_name, expected_summary):
     runner = CliRunner()
     result = runner.invoke(
@@ -22,7 +24,9 @@ def test_summarize(file_name, expected_summary):
     assert summary_data["content_types"] == expected_summary[file_name]["content_types"]
 
 
-@pytest.mark.parametrize("file_name", ["example.com.warc", "example.com.wacz", "test-crawl.wacz"])
+@pytest.mark.parametrize(
+    "file_name", ["example.com.warc", "example.com.wacz", "test-crawl.wacz"]
+)
 def test_inspect(file_name, sample_inspect_json):
     runner = CliRunner()
     result = runner.invoke(

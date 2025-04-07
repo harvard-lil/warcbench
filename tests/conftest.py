@@ -161,7 +161,6 @@ def expected_summary():
                 "text/html; charset=UTF-8": 1,
             },
         },
-
         "example.com.wacz": {
             "record_count": 9,
             "record_types": {"request": 2, "response": 6, "warcinfo": 1},

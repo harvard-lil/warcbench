@@ -21,13 +21,12 @@ with open("example.com.warc", "rb") as warc_file:
 ---
 
 ## Summary
-- Preamble [#preamble]
-- About [#about]
-- Installation [#installation]
-- Major Features [#major-features]
-- Using WARCbench on the command line [#using-warcbench-on-the-command-line]
-- Using WARCbench as a python library [#using-warcbench-as-a-python-library]
-- Development [#development]
+- [Preamble](#preamble)
+- [About](#about)
+- [Installation](#installation)
+- [Using WARCbench on the command line](#using-warcbench-on-the-command-line)
+- [Using WARCbench as a python library](#using-warcbench-as-a-python-library)
+- [Development](#development)
 
 
 ## Preamble
@@ -107,12 +106,6 @@ If you are running WARCbench from the command line, make sure you have activated
 
 ---
 
-## Major Features
-
-[👆 Back to the summary](#summary)
-
----
-
 ## Using WARCbench on the command line
 
 [👆 Back to the summary](#summary)
@@ -135,7 +128,7 @@ with open('example.com.warc', 'rb') as warc_file:
         print(record.bytes)
 
     # or, parse the whole file, and get access to a list of all the records at once
-    parser.parse()
+    parser.parse(cache_records=True)
     print(len(parser.records))
     print(parser.records[3].header.bytes)
 

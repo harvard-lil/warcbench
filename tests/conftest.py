@@ -142,3 +142,35 @@ def sample_inspect_json(assets_path: Path):
     filepath = assets_path / "inspect.json"
     with filepath.open("r") as json_file:
         return json.loads(json_file.read())
+
+
+@pytest.fixture
+def expected_summary():
+    return {
+        "example.com.wacz": {
+            "record_count": 9,
+            "record_types": {"request": 2, "response": 6, "warcinfo": 1},
+            "domains": ["example.com"],
+            "content_types": {
+                "application/pdf": 1,
+                "image/png": 1,
+                "text/html": 3,
+                "text/html; charset=UTF-8": 1,
+            },
+        },
+        "test-crawl.wacz": {
+            "record_count": 23,
+            "record_types": {"request": 11, "response": 11, "warcinfo": 1},
+            "domains": ["www.iana.org", "dict.brave.com", "example.com"],
+            "content_types": {
+                "text/html": 2,
+                "text/html; charset=UTF-8": 1,
+                "text/javascript": 2,
+                "font/ttf": 1,
+                "application/octet-stream": 1,
+                "image/svg+xml": 2,
+                "image/vnd.microsoft.icon": 1,
+                "text/css": 1,
+            },
+        },
+    }

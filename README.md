@@ -128,7 +128,7 @@ with open('example.com.warc', 'rb') as warc_file:
         print(record.bytes)
 
     # or, parse the whole file, and get access to a list of all the records at once
-    parser.parse()
+    parser.parse(cache_records=True)
     print(len(parser.records))
     print(parser.records[3].header.bytes)
 

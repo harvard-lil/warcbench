@@ -1,5 +1,4 @@
 import click
-import json
 
 from warcbench.scripts.compare_parsers import compare_parsers
 from warcbench.scripts.extract import extract
@@ -37,20 +36,6 @@ def cli(ctx, out, verbose, decompression, gunzip):
     ctx.obj["VERBOSE"] = verbose
     ctx.obj["DECOMPRESSION"] = decompression
     ctx.obj["GUNZIP"] = gunzip
-
-
-@cli.command()
-@click.option("--world", default="World")
-@click.pass_context
-def hello(ctx, world):
-    """Hello!"""
-    msg = f"Hello {world}!"
-    if ctx.obj["OUT"] == "json":
-        click.echo(json.dumps({"message": msg}))
-    elif ctx.obj["OUT"] == "pprint":
-        click.echo(click.style(f"👋 {msg}", fg="green"))
-    else:
-        click.echo(msg)
 
 
 cli.add_command(summarize)

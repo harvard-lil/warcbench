@@ -21,13 +21,13 @@ with open("example.com.warc", "rb") as warc_file:
 ---
 
 ## Summary
-- Preamble [#preamble]
-- About [#about]
-- Installation [#installation]
-- Major Features [#major-features]
-- Using WARCbench on the command line [#using-warcbench-on-the-command-line]
-- Using WARCbench as a python library [#using-warcbench-as-a-python-library]
-- Development [#development]
+- [Preamble](#preamble])
+- [About](#about)
+- [Installation](#installation)
+- [Major Features](#major-features)
+- [Using WARCbench on the command line](#using-warcbench-on-the-command-line)
+- [Using WARCbench as a python library](#using-warcbench-as-a-python-library)
+- [Development](#development)
 
 
 ## Preamble

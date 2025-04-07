@@ -49,6 +49,8 @@ def open_and_parse(
                     record_filters=record_filters,
                     record_handlers=record_handlers,
                     parser_callbacks=parser_callbacks,
+                    cache_header_bytes=True,
+                    cache_content_block_bytes=True,
                 )
                 parse_kwargs = {"cache_records": cache_records_or_members}
             elif file_type == FileType.GZIPPED_WARC:
@@ -58,6 +60,8 @@ def open_and_parse(
                     member_handlers=member_handlers,
                     record_handlers=record_handlers,
                     parser_callbacks=parser_callbacks,
+                    cache_header_bytes=True,
+                    cache_content_block_bytes=True,
                 )
                 parse_kwargs = {"cache_members": cache_records_or_members}
             parser.parse(**parse_kwargs)

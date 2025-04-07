@@ -24,7 +24,6 @@ with open("example.com.warc", "rb") as warc_file:
 - [Preamble](#preamble])
 - [About](#about)
 - [Installation](#installation)
-- [Major Features](#major-features)
 - [Using WARCbench on the command line](#using-warcbench-on-the-command-line)
 - [Using WARCbench as a python library](#using-warcbench-as-a-python-library)
 - [Development](#development)
@@ -102,12 +101,6 @@ Then, use `pip install -r requirements.txt` and `pip install -r requirements.txt
 
 If you are running WARCbench from the command line, make sure you have activated your virtualenv first.
 
-
-[👆 Back to the summary](#summary)
-
----
-
-## Major Features
 
 [👆 Back to the summary](#summary)
 

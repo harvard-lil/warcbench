@@ -22,13 +22,14 @@ def test_summarize(wacz_file, expected_summary):
     assert summary_data["content_types"] == expected_summary[wacz_file]["content_types"]
 
 
-def test_inspect(sample_inspect_json):
+@pytest.mark.parametrize("wacz_file", ["example.com.wacz", "test-crawl.wacz"])
+def test_inspect(wacz_file, sample_inspect_json):
     runner = CliRunner()
     result = runner.invoke(
-        cli, ["--out", "json", "inspect", "tests/assets/example.com.wacz"]
+        cli, ["--out", "json", "inspect", f"tests/assets/{wacz_file}"]
     )
     assert result.exit_code == 0
-    assert json.loads(result.stdout) == sample_inspect_json
+    assert json.loads(result.stdout) == sample_inspect_json[wacz_file]
 
 
 def test_extract(tmp_path):

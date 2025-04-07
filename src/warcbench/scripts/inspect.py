@@ -165,7 +165,7 @@ def inspect(
         click.echo(json.dumps({"records": records}))
     else:
         for record in records:
-            if record["member_offsets"]:
+            if "member_offsets" in record and record["member_offsets"]:
                 click.echo(
                     f"Member bytes {record['member_offsets'][0]}-{record['member_offsets'][1]}\n"
                 )

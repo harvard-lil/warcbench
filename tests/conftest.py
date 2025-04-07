@@ -1,4 +1,3 @@
-import gzip
 from io import BufferedReader
 import json
 from pathlib import Path

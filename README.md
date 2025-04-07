@@ -21,7 +21,7 @@ with open("example.com.warc", "rb") as warc_file:
 ---
 
 ## Summary
-- [Preamble](#preamble])
+- [Preamble](#preamble)
 - [About](#about)
 - [Installation](#installation)
 - [Using WARCbench on the command line](#using-warcbench-on-the-command-line)

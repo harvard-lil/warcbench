@@ -1,6 +1,7 @@
 import click
 import json
 
+from warcbench.scripts.compare_parsers import compare_parsers
 from warcbench.scripts.extract import extract
 from warcbench.scripts.inspect import inspect
 from warcbench.scripts.summarize import summarize
@@ -55,6 +56,7 @@ def hello(ctx, world):
 cli.add_command(summarize)
 cli.add_command(inspect)
 cli.add_command(extract)
+cli.add_command(compare_parsers)
 
 
 @cli.command()
@@ -66,10 +68,4 @@ def extract_payload():
 @cli.command()
 def filter():
     """This could filter records to stdout, or write them into a file."""
-    raise click.ClickException("Not yet implemented")
-
-
-@cli.command()
-def compare_parsers():
-    """This could parse the same WARC with all parsing strategies, and report if/how the results differ."""
     raise click.ClickException("Not yet implemented")

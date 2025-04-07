@@ -1,37 +1,35 @@
 from click.testing import CliRunner
 import json
 from pathlib import Path
+import pytest
 
 from warcbench.scripts import cli
 
 
-def test_summarize():
+@pytest.mark.parametrize("wacz_file", ["example.com.wacz", "test-crawl.wacz"])
+def test_summarize(wacz_file, expected_summary):
     runner = CliRunner()
     result = runner.invoke(
-        cli, ["--out", "json", "summarize", "tests/assets/example.com.wacz"]
+        cli, ["--out", "json", "summarize", f"tests/assets/{wacz_file}"]
     )
     assert result.exit_code == 0
     summary_data = json.loads(result.stdout)
-    assert summary_data["record_count"] == 9
+    assert summary_data["record_count"] == expected_summary[wacz_file]["record_count"]
     assert not summary_data["warnings"]
     assert not summary_data["error"]
-    assert summary_data["record_types"] == {"request": 2, "response": 6, "warcinfo": 1}
-    assert summary_data["domains"] == ["example.com"]
-    assert summary_data["content_types"] == {
-        "application/pdf": 1,
-        "image/png": 1,
-        "text/html": 3,
-        "text/html; charset=UTF-8": 1,
-    }
+    assert summary_data["record_types"] == expected_summary[wacz_file]["record_types"]
+    assert summary_data["domains"] == expected_summary[wacz_file]["domains"]
+    assert summary_data["content_types"] == expected_summary[wacz_file]["content_types"]
 
 
-def test_inspect(sample_inspect_json):
+@pytest.mark.parametrize("wacz_file", ["example.com.wacz", "test-crawl.wacz"])
+def test_inspect(wacz_file, sample_inspect_json):
     runner = CliRunner()
     result = runner.invoke(
-        cli, ["--out", "json", "inspect", "tests/assets/example.com.wacz"]
+        cli, ["--out", "json", "inspect", f"tests/assets/{wacz_file}"]
     )
     assert result.exit_code == 0
-    assert json.loads(result.stdout) == sample_inspect_json
+    assert json.loads(result.stdout) == sample_inspect_json[wacz_file]
 
 
 def test_extract(tmp_path):

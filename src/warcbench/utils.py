@@ -4,6 +4,7 @@
 
 from contextlib import contextmanager
 from enum import Enum
+import json
 import logging
 import os
 import re
@@ -230,12 +231,30 @@ def yield_bytes_from_file(file_handle, start_offset, end_offset, chunk_size=1024
 
 
 @contextmanager
+def get_archive_filepath(wacz_file):
+    """This function extracts the path of the archive in a WACZ file, given its filehandle."""
+    with zipfile.Path(wacz_file, "datapackage.json").open("r") as datapackage:
+        yield archive_resource(datapackage)
+
+
+def archive_resource(datapackage):
+    """This function extracts the path of an archive from datapackage.json, given its filehandle."""
+    data = json.load(datapackage)
+    return [
+        resource["path"]
+        for resource in data["resources"]
+        if resource["path"].lower().endswith(".warc.gz")
+    ][0]
+
+
+@contextmanager
 def python_open_archive(filepath, gunzip=False):
     """This function uses native Python packages for decompression, It will eventually handle stdin."""
     if filepath.lower().endswith(".wacz"):
         with (
             open(filepath, "rb") as wacz_file,
-            zipfile.Path(wacz_file, "archive/data.warc.gz").open("rb") as warc_gz_file,
+            get_archive_filepath(wacz_file) as archive,
+            zipfile.Path(wacz_file, archive).open("rb") as warc_gz_file,
         ):
             if gunzip:
                 with patched_gzip.open(warc_gz_file, "rb") as warc_file:
@@ -274,12 +293,14 @@ def system_open_archive(filepath, gunzip=False):
     if filepath.lower().endswith(".wacz"):
         with tempfile.TemporaryDirectory() as tmpdirname:
             subprocess.run(["unzip", "-q", "-d", tmpdirname, filepath])
+            with open(f"{tmpdirname}/datapackage.json", "r") as datapackage:
+                archive = archive_resource(datapackage)
             if gunzip:
-                subprocess.run(["gunzip", f"{tmpdirname}/archive/data.warc.gz"])
-                with open(f"{tmpdirname}/archive/data.warc", "rb") as warc_file:
+                subprocess.run(["gunzip", f"{tmpdirname}/{archive}"])
+                with open(f"{tmpdirname}/{archive[:-3]}", "rb") as warc_file:
                     yield (warc_file, FileType.WARC)
             else:
-                with open(f"{tmpdirname}/archive/data.warc.gz", "rb") as warc_gz_file:
+                with open(f"{tmpdirname}/{archive}", "rb") as warc_gz_file:
                     yield (warc_gz_file, FileType.GZIPPED_WARC)
 
     elif filepath.lower().endswith(".warc.gz"):

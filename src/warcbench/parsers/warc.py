@@ -42,6 +42,7 @@ class BaseParser(ABC):
         cache_unparsable_lines,
         cache_record_bytes,
         cache_header_bytes,
+        cache_parsed_headers,
         cache_content_block_bytes,
         cache_unparsable_line_bytes,
         enable_lazy_loading_of_bytes,
@@ -68,6 +69,7 @@ class BaseParser(ABC):
         self.cache_unparsable_lines = cache_unparsable_lines
         self.cache_record_bytes = cache_record_bytes
         self.cache_header_bytes = cache_header_bytes
+        self.cache_parsed_headers = cache_parsed_headers
         self.cache_content_block_bytes = cache_content_block_bytes
         self.cache_unparsable_line_bytes = cache_unparsable_line_bytes
         self.enable_lazy_loading_of_bytes = enable_lazy_loading_of_bytes
@@ -244,6 +246,7 @@ class DelimiterWARCParser(BaseParser):
         cache_unparsable_lines,
         cache_record_bytes,
         cache_header_bytes,
+        cache_parsed_headers,
         cache_content_block_bytes,
         cache_unparsable_line_bytes,
         enable_lazy_loading_of_bytes,
@@ -268,10 +271,10 @@ class DelimiterWARCParser(BaseParser):
                     "both cache_header_bytes and cache_content_block_bytes."
                 )
 
-        if cache_header_bytes or cache_content_block_bytes:
+        if cache_header_bytes or cache_parsed_headers or cache_content_block_bytes:
             if not split_records:
                 raise ValueError(
-                    "To cache header or content block bytes, you must split records."
+                    "To cache or parse header or content block bytes, you must split records."
                 )
 
         #
@@ -288,6 +291,7 @@ class DelimiterWARCParser(BaseParser):
             cache_unparsable_lines,
             cache_record_bytes,
             cache_header_bytes,
+            cache_parsed_headers,
             cache_content_block_bytes,
             cache_unparsable_line_bytes,
             enable_lazy_loading_of_bytes,
@@ -330,8 +334,17 @@ class DelimiterWARCParser(BaseParser):
                 content_block_end = record.end
 
                 record.header = Header(start=header_start, end=header_end)
-                if self.cache_header_bytes:
-                    record.header._bytes = self.file_handle.read(record.header.length)
+                if self.cache_header_bytes or self.cache_parsed_headers:
+                    header_bytes = self.file_handle.read(record.header.length)
+
+                    if self.cache_header_bytes:
+                        record.header._bytes = header_bytes
+
+                    if self.cache_parsed_headers:
+                        record.header._parsed_fields = record.header.parse_bytes_into_fields(
+                            header_bytes
+                        )
+
                 if self.enable_lazy_loading_of_bytes:
                     record.header._file_handle = self.file_handle
 
@@ -440,6 +453,8 @@ class ContentLengthWARCParser(BaseParser):
                 header._bytes = header_bytes
             if self.enable_lazy_loading_of_bytes:
                 header._file_handle = self.file_handle
+            if self.cache_parsed_headers:
+                header._parsed_fields = header.parse_bytes_into_fields(header_bytes)
 
             content_block = ContentBlock(start=content_start, end=content_end)
             if self.cache_content_block_bytes:

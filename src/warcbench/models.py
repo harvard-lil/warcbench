@@ -5,10 +5,11 @@
 from __future__ import annotations
 
 from abc import ABC
+from collections import defaultdict
 from dataclasses import dataclass, field
 import io
 import logging
-from typing import Optional
+from typing import Optional, Dict, List
 
 from warcbench.patterns import CRLF, CONTENT_LENGTH_PATTERN
 from warcbench.utils import find_pattern_in_bytes, yield_bytes_from_file
@@ -132,7 +133,28 @@ class Header(ByteRange):
     http://iipc.github.io/warc-specifications/specifications/warc-format/warc-1.1/#warc-record-header
     """
 
-    pass
+    _parsed_fields: Optional[defaultdict[bytes, List[Optional[bytes]]]] = field(
+        repr=False, default=None
+    )
+
+    @classmethod
+    def parse_bytes_into_fields(cls, data):
+        # Line folding is not supported https://github.com/iipc/warc-specifications/issues/74
+        headers = defaultdict(list)
+        for line in data.split(CRLF):
+            if line:
+                split = line.split(b":", 1)
+                if len(split) == 1:
+                    headers[line].append(None)
+                else:
+                    headers[split[0]].append(split[1].strip())
+        return headers
+
+    @property
+    def parsed_fields(self):
+        if self._parsed_fields is None:
+            return self.parse_bytes_into_fields(self.bytes)
+        return self._parsed_fields
 
 
 @dataclass

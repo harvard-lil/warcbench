@@ -1,4 +1,3 @@
-import gzip
 from io import BufferedReader
 import json
 from pathlib import Path
@@ -26,10 +25,10 @@ def gzipped_warc_file(wacz_file: BufferedReader):
 
 
 @pytest.fixture
-def warc_file(wacz_file: BufferedReader):
-    with zipfile.Path(wacz_file, "archive/data.warc.gz").open("rb") as warc_gz_file:
-        with gzip.open(warc_gz_file, "rb") as warc_file:
-            yield warc_file
+def warc_file(assets_path: Path):
+    filepath = assets_path / "example.com.warc"
+    with filepath.open("rb") as warc:
+        yield warc
 
 
 @pytest.fixture
@@ -140,16 +139,27 @@ def check_records_start_and_end_bytes(expected_record_last_bytes):
 @pytest.fixture
 def sample_inspect_json(assets_path: Path):
     inspect_json = {}
-    for wacz_file in ["example.com.wacz", "test-crawl.wacz"]:
-        filepath = assets_path / f"{wacz_file}.inspect.json"
+    for file_name in ["example.com.warc", "example.com.wacz", "test-crawl.wacz"]:
+        filepath = assets_path / f"{file_name}.inspect.json"
         with filepath.open("r") as json_file:
-            inspect_json[wacz_file] = json.loads(json_file.read())
+            inspect_json[file_name] = json.loads(json_file.read())
     return inspect_json
 
 
 @pytest.fixture
 def expected_summary():
     return {
+        "example.com.warc": {
+            "record_count": 9,
+            "record_types": {"request": 2, "response": 6, "warcinfo": 1},
+            "domains": ["example.com"],
+            "content_types": {
+                "application/pdf": 1,
+                "image/png": 1,
+                "text/html": 3,
+                "text/html; charset=UTF-8": 1,
+            },
+        },
         "example.com.wacz": {
             "record_count": 9,
             "record_types": {"request": 2, "response": 6, "warcinfo": 1},

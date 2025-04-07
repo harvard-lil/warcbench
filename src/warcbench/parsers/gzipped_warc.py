@@ -38,14 +38,6 @@ STATES = {
 
 
 class BaseParser(ABC):
-    warnings = []
-    error = None
-    current_member = None
-    current_offsets = None
-
-    _offsets = None
-    _members = None
-
     def __init__(
         self,
         file_handle,
@@ -105,6 +97,14 @@ class BaseParser(ABC):
         self.member_handlers = member_handlers
         self.record_handlers = record_handlers
         self.parser_callbacks = parser_callbacks
+
+        self.warnings = []
+        self.error = None
+        self.current_member = None
+        self.current_offsets = None
+
+        self._offsets = None
+        self._members = None
 
     @property
     def members(self):

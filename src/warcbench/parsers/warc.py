@@ -33,11 +33,6 @@ STATES = {
 
 
 class BaseParser(ABC):
-    warnings = []
-    error = None
-    current_record = None
-    _records = None
-
     def __init__(
         self,
         file_handle,
@@ -80,6 +75,12 @@ class BaseParser(ABC):
         self.record_handlers = record_handlers
         self.unparsable_line_handlers = unparsable_line_handlers
         self.parser_callbacks = parser_callbacks
+
+        self.warnings = []
+        self.error = None
+        self.current_record = None
+
+        self._records = None
 
         if cache_unparsable_lines:
             self._unparsable_lines = []

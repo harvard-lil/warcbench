@@ -39,9 +39,9 @@ def open_and_parse(
     try:
         with open_archive(ctx.obj["FILEPATH"], ctx.obj["GUNZIP"]) as (file, file_type):
             if file_type == FileType.WARC:
-                if member_handlers:
+                if member_handlers and ctx.obj["VERBOSE"]:
                     click.echo(
-                        "WARNING: parsing as WARC file, member_handlers will be ignored.",
+                        "DEBUG: parsing as WARC file, member_handlers will be ignored.\n",
                         err=True,
                     )
                 parser = WARCParser(

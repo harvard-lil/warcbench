@@ -261,17 +261,30 @@ To set up a local development environment, follow these steps:
 - Clone this repository
 - From the project root, `uv sync` to set up a virtual environment and install dependencies
 
-### Linting
+### Linting/formatting
 
-Run the linting/formatting process like so:
+Run the linting process like so:
 
-- `uv run ruff check`
-- `uv run ruff format --check`, then `uv run ruff format` to execute formatting changes
+```sh
+uv run ruff check
+```
+
+Run the formatting process like so:
+
+```sh
+# Check formatting changes before applying
+uv run ruff format --check
+
+# Apply formatting changes
+uv run ruff format
+```
 
 ### Tests
 
 Run tests like so:
 
-`uv run pytest`
+```sh
+uv run pytest
+```
 
 [⇧ Back to top](#contents)

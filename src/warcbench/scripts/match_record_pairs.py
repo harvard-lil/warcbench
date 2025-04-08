@@ -97,7 +97,7 @@ def match_record_pairs(
         # Use latin-1 as a key for some readability, while still preventing collisions
         # if that's wrong and there are decoding errors.
         key = uri_strs["latin1"]
-        if not key in data["by_uri"]:
+        if key not in data["by_uri"]:
             data["by_uri"][uri_strs["latin1"]] = {
                 "uri-latin1": uri_strs["latin1"],
                 "uri-utf-8-replace": uri_strs["utf-8-replace"],
@@ -170,7 +170,7 @@ def match_record_pairs(
             for line in record["http_headers"]:
                 click.echo(f"{indent * 3}{line}")
 
-        click.echo(f"#\n# SUMMARY\n#\n")
+        click.echo("#\n# SUMMARY\n#\n")
 
         click.echo(f"Sets of matched requests/responses: {data['counts']['pairs']}")
         click.echo(f"Requests without responses: {data['counts']['lone_requests']}")
@@ -178,7 +178,7 @@ def match_record_pairs(
         click.echo()
 
         if ctx.obj["OUTPUT_SUMMARY_BY_URI"]:
-            click.echo(f"#\n# SUMMARY BY URI\n#\n")
+            click.echo("#\n# SUMMARY BY URI\n#\n")
 
             for uri in sorted(data["by_uri"]):
                 info = data["by_uri"][uri]
@@ -193,7 +193,7 @@ def match_record_pairs(
                 click.echo()
 
         if ctx.obj["OUTPUT_RECORD_METADATA"]:
-            click.echo(f"\n#\n# DETAILS BY URI\n#\n")
+            click.echo("\n#\n# DETAILS BY URI\n#\n")
 
             for uri in sorted(data["by_uri"]):
                 info = data["by_uri"][uri]

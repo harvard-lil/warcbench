@@ -169,8 +169,12 @@ class Header(ByteRange):
         else:
             return data
 
-    def get_field(self, field_name, return_multiple_values=False):
-        field = self.get_parsed_fields()[bytes(field_name, "utf-8")]
+    def get_field(self, field_name, decode=False, return_multiple_values=False):
+        if decode:
+            key = field_name
+        else:
+            key = bytes(field_name, "utf-8")
+        field = self.get_parsed_fields(decode=decode)[key]
         if return_multiple_values:
             return field
         return field[0]

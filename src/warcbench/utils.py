@@ -332,46 +332,55 @@ def decompress_and_get_gzip_file_member_offsets(file, outputfile=None, chunk_siz
 
 
 def find_matching_request_response_pairs(records, count_only=False):
-    requests_by_uri = defaultdict(deque)
-
+    unpaired_requests_by_uri = defaultdict(deque)
+    unpaired_responses_by_uri = defaultdict(deque)
     pairs_by_uri = defaultdict(list)
-    lone_requests = []
-    lone_responses = []
-
+    lone_requests_by_uri = defaultdict(list)
+    lone_responses_by_uri = defaultdict(list)
     counts = {"pairs": 0, "lone_requests": 0, "lone_responses": 0}
 
     for record in records:
         match record.header.get_field("WARC-Type").lower():
             case b"request":
-                requests_by_uri[record.header.get_field("WARC-Target-URI")].append(
-                    record
-                )
+                uri = record.header.get_field("WARC-Target-URI")
+                if len(unpaired_responses_by_uri[uri]) > 0:
+                    response = unpaired_responses_by_uri[uri].popleft()
+                    counts["pairs"] += 1
+                    if not count_only:
+                        pairs_by_uri[uri].append((record, response))
+                else:
+                    unpaired_requests_by_uri[uri].append(record)
 
             case b"response":
                 uri = record.header.get_field("WARC-Target-URI")
-                if len(requests_by_uri[uri]) > 0:
-                    request = requests_by_uri[uri].popleft()
+                if len(unpaired_requests_by_uri[uri]) > 0:
+                    request = unpaired_requests_by_uri[uri].popleft()
                     counts["pairs"] += 1
                     if not count_only:
                         pairs_by_uri[uri].append((request, record))
                 else:
-                    counts["lone_responses"] += 1
-                    if not count_only:
-                        lone_responses.append(record)
+                    unpaired_responses_by_uri[uri].append(record)
 
-    for request_list in requests_by_uri.values():
+    for uri, request_list in unpaired_requests_by_uri.items():
         length = len(request_list)
         if length > 0:
             counts["lone_requests"] += length
             if not count_only:
-                lone_requests.extend(request_list)
+                lone_requests_by_uri[uri].extend(request_list)
+
+    for uri, response_list in unpaired_responses_by_uri.items():
+        length = len(response_list)
+        if length > 0:
+            counts["lone_responses"] += length
+            if not count_only:
+                lone_responses_by_uri[uri].extend(response_list)
 
     if count_only:
-        return counts
+        return {"counts": counts}
 
     return {
-        "pairs_by_uri": pairs_by_uri,
-        "lone_requests": lone_requests,
-        "lone_responses": lone_responses,
+        "pairs_by_uri": dict(pairs_by_uri),
+        "lone_requests_by_uri": dict(lone_requests_by_uri),
+        "lone_responses_by_uri": dict(lone_responses_by_uri),
         "counts": counts,
     }

@@ -188,14 +188,14 @@ def compare_parsers(ctx, filepath, output_offsets):
 
             click.echo("ERRORS")
             if data["error"]["any"]:
-                click.echo(json.dumps(data["error"], indent=4))
+                click.echo(json.dumps(data["error"], indent=2))
             else:
                 click.echo("None")
             click.echo()
 
             click.echo("WARNINGS")
             if data["warnings"]["any"]:
-                click.echo(json.dumps(data["warnings"], indent=4))
+                click.echo(json.dumps(data["warnings"], indent=2))
             else:
                 click.echo("None")
             click.echo()

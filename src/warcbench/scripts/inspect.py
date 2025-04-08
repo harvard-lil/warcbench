@@ -88,7 +88,13 @@ def inspect(
     #
 
     open_and_parse(
-        ctx, member_handlers=member_handlers, record_handlers=record_handlers
+        ctx,
+        member_handlers=member_handlers,
+        record_handlers=record_handlers,
+        extra_parser_kwargs={
+            "cache_header_bytes": True,
+            "cache_content_block_bytes": True,
+        },
     )
 
     #

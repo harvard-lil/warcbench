@@ -102,6 +102,10 @@ def summarize(ctx, filepath):
             count_content_types(),
         ],
         parser_callbacks=[get_warnings_and_errors()],
+        extra_parser_kwargs={
+            "cache_header_bytes": True,
+            "cache_content_block_bytes": True,
+        },
     )
 
     if ctx.obj["OUT"] == "json":

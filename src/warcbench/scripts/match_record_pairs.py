@@ -43,7 +43,9 @@ def match_record_pairs(
     include_http_headers,
     include_pairs,
 ):
-    """"""
+    """
+    Attempt to match WARC requests records with response records.
+    """
     #
     # Handle options
     #

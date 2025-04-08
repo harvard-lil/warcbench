@@ -150,14 +150,27 @@ class Header(ByteRange):
                     headers[split[0]].append(split[1].strip())
         return headers
 
-    @property
-    def parsed_fields(self):
+    def get_parsed_fields(self, decode=False):
         if self._parsed_fields is None:
-            return self.parse_bytes_into_fields(self.bytes)
-        return self._parsed_fields
+            data = self.parse_bytes_into_fields(self.bytes)
+        else:
+            data = self._parsed_fields
+        if decode:
+            decoded_data = {}
+            for field, value_list in data.items():
+                decoded_values = []
+                for value in value_list:
+                    if value:
+                        decoded_values.append(value.decode("utf-8", errors="replace"))
+                    else:
+                        decoded_values.append(None)
+                decoded_data[field.decode("utf-8", errors="replace")] = decoded_values
+            return decoded_data
+        else:
+            return data
 
     def get_field(self, field_name, return_multiple_values=False):
-        field = self.parsed_fields[bytes(field_name, "utf-8")]
+        field = self.get_parsed_fields()[bytes(field_name, "utf-8")]
         if return_multiple_values:
             return field
         return field[0]

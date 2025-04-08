@@ -28,6 +28,8 @@ from warcbench.scripts.summarize import summarize
     show_default=True,
     help="Gunzip the input archive before parsing, if it is gzipped.",
 )
+@click.version_option(None, "-V", "--version")
+@click.help_option("-h", "--help")
 @click.pass_context
 def cli(ctx, out, verbose, decompression, gunzip):
     """warcbench command framework, work in progress"""

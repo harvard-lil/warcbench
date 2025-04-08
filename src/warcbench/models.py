@@ -9,7 +9,7 @@ from collections import defaultdict
 from dataclasses import dataclass, field
 import io
 import logging
-from typing import Optional, Dict, List
+from typing import Optional, List
 
 from warcbench.patterns import CRLF, CONTENT_LENGTH_PATTERN
 from warcbench.utils import find_pattern_in_bytes, yield_bytes_from_file
@@ -155,6 +155,12 @@ class Header(ByteRange):
         if self._parsed_fields is None:
             return self.parse_bytes_into_fields(self.bytes)
         return self._parsed_fields
+
+    def get_field(self, field_name, return_multiple_values=False):
+        field = self.parsed_fields[bytes(field_name, "utf-8")]
+        if return_multiple_values:
+            return field
+        return field[0]
 
 
 @dataclass

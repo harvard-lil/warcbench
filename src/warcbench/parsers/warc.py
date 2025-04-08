@@ -15,6 +15,7 @@ from warcbench.utils import (
     find_next_delimiter,
     find_next_header_end,
     find_content_length_in_bytes,
+    find_matching_request_response_pairs,
 )
 
 logger = logging.getLogger(__name__)
@@ -156,6 +157,13 @@ class BaseParser(ABC):
             ]
 
         return [(record.start, record.end) for record in records]
+
+    def get_approximate_request_response_pairs(self, count_only):
+        """
+        Recommended: use with cache_parsed_headers=True.
+        """
+        records = self._records if self._records else self.iterator()
+        return find_matching_request_response_pairs(records, count_only)
 
     #
     # Internal Methods
@@ -341,8 +349,8 @@ class DelimiterWARCParser(BaseParser):
                         record.header._bytes = header_bytes
 
                     if self.cache_parsed_headers:
-                        record.header._parsed_fields = record.header.parse_bytes_into_fields(
-                            header_bytes
+                        record.header._parsed_fields = (
+                            record.header.parse_bytes_into_fields(header_bytes)
                         )
 
                 if self.enable_lazy_loading_of_bytes:

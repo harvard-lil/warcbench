@@ -3,6 +3,7 @@
 """
 
 from contextlib import contextmanager
+from collections import defaultdict, deque
 from enum import Enum
 import json
 import logging
@@ -328,3 +329,49 @@ def system_open_archive(filepath, gunzip=False):
 def decompress_and_get_gzip_file_member_offsets(file, outputfile=None, chunk_size=1024):
     with patched_gzip.open(file, "rb") as file:
         return file.decompress_and_get_member_offsets(outputfile, chunk_size)
+
+
+def find_matching_request_response_pairs(records, count_only=False):
+    requests_by_uri = defaultdict(deque)
+
+    pairs_by_uri = defaultdict(list)
+    lone_requests = []
+    lone_responses = []
+
+    counts = {"pairs": 0, "lone_requests": 0, "lone_responses": 0}
+
+    for record in records:
+        match record.header.get_field("WARC-Type").lower():
+            case b"request":
+                requests_by_uri[record.header.get_field("WARC-Target-URI")].append(
+                    record
+                )
+
+            case b"response":
+                uri = record.header.get_field("WARC-Target-URI")
+                if len(requests_by_uri[uri]) > 0:
+                    request = requests_by_uri[uri].popleft()
+                    counts["pairs"] += 1
+                    if not count_only:
+                        pairs_by_uri[uri].append((request, record))
+                else:
+                    counts["lone_responses"] += 1
+                    if not count_only:
+                        lone_responses.append(record)
+
+    for request_list in requests_by_uri.values():
+        length = len(request_list)
+        if length > 0:
+            counts["lone_requests"] += length
+            if not count_only:
+                lone_requests.extend(request_list)
+
+    if count_only:
+        return counts
+
+    return {
+        "pairs_by_uri": pairs_by_uri,
+        "lone_requests": lone_requests,
+        "lone_responses": lone_responses,
+        "counts": counts,
+    }

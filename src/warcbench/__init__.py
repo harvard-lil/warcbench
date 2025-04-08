@@ -116,6 +116,9 @@ class WARCParser:
     def get_record_offsets(self, split=False):
         return self._parser.get_record_offsets(split)
 
+    def get_approximate_request_response_pairs(self, count_only=False):
+        return self._parser.get_approximate_request_response_pairs(count_only)
+
 
 class WARCGZParser:
     def __init__(
@@ -248,3 +251,6 @@ class WARCGZParser:
 
     def get_record_offsets(self, split=False):
         return self._parser.get_record_offsets(split)
+
+    def get_approximate_request_response_pairs(self, count_only=False):
+        return self._parser.get_approximate_request_response_pairs(count_only)

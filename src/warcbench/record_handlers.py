@@ -36,7 +36,7 @@ def get_record_headers(decode_utf8=True, append_to=None, print_each=True):
             data = record.header.bytes
             if append_to is not None:
                 if decode_utf8:
-                    header = data.decode()
+                    header = data.decode("utf-8", errors="replace")
                 else:
                     header = data
                 append_to.append(header)
@@ -44,7 +44,7 @@ def get_record_headers(decode_utf8=True, append_to=None, print_each=True):
             if print_each:
                 for header_line in data.split(b"\r\n"):
                     if decode_utf8:
-                        line = header_line.decode()
+                        line = header_line.decode("utf-8", errors="replace")
                     else:
                         line = header_line
                     if line:

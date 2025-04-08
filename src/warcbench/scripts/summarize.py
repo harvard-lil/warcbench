@@ -46,7 +46,7 @@ def summarize(ctx, filepath):
                     f"No WARC-Type detected for record at {record.start}-{record.end}."
                 )
             else:
-                summary_data["record_types"].update([match.group(1).decode()])
+                summary_data["record_types"].update([match.group(1).decode("utf-8", errors="replace")])
 
         return f
 
@@ -59,7 +59,7 @@ def summarize(ctx, filepath):
             )
             if match:
                 try:
-                    parsed_url = urlparse(match.group(1).decode())
+                    parsed_url = urlparse(match.group(1).decode("utf-8", errors="replace"))
                     if parsed_url.netloc:
                         summary_data["domains"].update([parsed_url.netloc])
                 except Exception:
@@ -78,7 +78,7 @@ def summarize(ctx, filepath):
                 )
                 if match:
                     try:
-                        summary_data["content_types"].update([match.group(1).decode()])
+                        summary_data["content_types"].update([match.group(1).decode("utf-8", errors="replace")])
                     except Exception:
                         summary_data["warnings"].append(
                             f"Unparsable HTTP content-type detected for record at {record.start}-{record.end}."

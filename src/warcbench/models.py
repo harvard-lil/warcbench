@@ -148,7 +148,7 @@ class Header(ByteRange):
                     headers[line].append(None)
                 else:
                     headers[split[0]].append(split[1].strip())
-        return headers
+        return dict(headers)
 
     def get_parsed_fields(self, decode=False):
         if self._parsed_fields is None:

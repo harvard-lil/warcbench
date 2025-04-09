@@ -34,6 +34,12 @@ from warcbench.scripts.utils import open_and_invoke
     show_default=True,
     help="Include metadata about matched request/response pairs in output.",
 )
+@click.option(
+    "--include-file-protocol-target-uri/--no-include-file-protocol-target-uri",
+    default=True,
+    show_default=True,
+    help="Include records with a Target-URI beginning file:/// in this report.",
+)
 @click.pass_context
 def match_record_pairs(
     ctx,
@@ -42,6 +48,7 @@ def match_record_pairs(
     output_record_details,
     include_http_headers,
     include_pairs,
+    include_file_protocol_target_uri,
 ):
     """
     Attempt to match WARC requests records with response records.
@@ -54,6 +61,7 @@ def match_record_pairs(
     ctx.obj["OUTPUT_RECORD_METADATA"] = output_record_details
     ctx.obj["INCLUDE_HTTP_HEADERS"] = include_http_headers
     ctx.obj["INCLUDE_PAIRS"] = include_pairs
+    ctx.obj["INCLUDE_FILE_PROTOCOL_TARGET_URI"] = include_file_protocol_target_uri
 
     if not ctx.obj["OUTPUT_RECORD_METADATA"] and ctx.obj["INCLUDE_HTTP_HEADERS"]:
         raise click.ClickException(
@@ -71,11 +79,20 @@ def match_record_pairs(
     count_only = (
         not ctx.obj["OUTPUT_SUMMARY_BY_URI"] and not ctx.obj["OUTPUT_RECORD_METADATA"]
     )
+    if not ctx.obj["INCLUDE_FILE_PROTOCOL_TARGET_URI"]:
+        record_filters = [
+            lambda record: not record.header.get_field(
+                "WARC-Target-URI", b""
+            ).startswith(b"file:///")
+        ]
+    else:
+        record_filters = None
 
     pair_data = open_and_invoke(
         ctx,
         "get_approximate_request_response_pairs",
         invoke_kwargs={"count_only": count_only},
+        record_filters=record_filters,
         extra_parser_kwargs={
             "cache_header_bytes": True,
             "cache_parsed_headers": True,
@@ -194,7 +211,11 @@ def match_record_pairs(
                     click.echo(f"  Lone responses: {info['count_lone_responses']}")
                 click.echo()
 
-        if ctx.obj["OUTPUT_RECORD_METADATA"]:
+        if ctx.obj["OUTPUT_RECORD_METADATA"] and (
+            data["counts"]["lone_requests"]
+            or data["counts"]["lone_responses"]
+            or (data["counts"]["pairs"] and ctx.obj["INCLUDE_PAIRS"])
+        ):
             click.echo("\n#\n# DETAILS BY URI\n#\n")
 
             for uri in sorted(data["by_uri"]):

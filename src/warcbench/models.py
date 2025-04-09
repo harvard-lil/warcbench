@@ -148,7 +148,7 @@ class Header(ByteRange):
                     headers[line].append(None)
                 else:
                     headers[split[0]].append(split[1].strip())
-        return headers
+        return dict(headers)
 
     def get_parsed_fields(self, decode=False):
         if self._parsed_fields is None:
@@ -169,12 +169,16 @@ class Header(ByteRange):
         else:
             return data
 
-    def get_field(self, field_name, decode=False, return_multiple_values=False):
+    def get_field(
+        self, field_name, fallback=None, decode=False, return_multiple_values=False
+    ):
         if decode:
             key = field_name
         else:
             key = bytes(field_name, "utf-8")
-        field = self.get_parsed_fields(decode=decode)[key]
+        field = self.get_parsed_fields(decode=decode).get(key)
+        if field is None:
+            return fallback
         if return_multiple_values:
             return field
         return field[0]

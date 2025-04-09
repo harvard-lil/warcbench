@@ -1,186 +1,216 @@
 # WARCbench 🛠️
 
-Utilities for exploring, analyzing, mungeing, recombining, and extracting data from WARC (Web ARChive) files.
+A tool for exploring, analyzing, transforming, recombining, and extracting data from WARC (Web ARChive) files.
 
-**Use it in the terminal...**
-```bash
-wb parse example.com.warc.gz
-```
-
-**... or in your python project**
-```python
-from warcbench import WARCParser
-
-with open("example.com.warc", "rb") as warc_file:
-    parser = WARCParser(warc_file)
-    parser.parse()
-```
+> [!WARNING]
+> WARCbench is currently under active development. Breaking changes are expected as the project moves toward an initial release.
 
 <a href="https://tools.perma.cc"><img src="https://github.com/harvard-lil/tools.perma.cc/blob/main/perma-tools.png?raw=1" alt="Perma Tools" width="150"></a>
 
 ---
 
-## Summary
-- [Preamble](#preamble)
+## Contents
+
+- [Quickstart](#quickstart)
 - [About](#about)
-- [Installation](#installation)
-- [Using WARCbench on the command line](#using-warcbench-on-the-command-line)
-- [Using WARCbench as a python library](#using-warcbench-as-a-python-library)
-- [Development](#development)
-
-
-## Preamble
-
-> ⚠️ Not ready for public release
-
-
-## About
-
-### Motivation
-
-- make it easy to explore the contents of a WARC without prior experience with the format
-- work with malformed or misbehaving WARCs without everything breaking
-- give developers total control: hooks and custom callbacks, everything is configurable
-- pick your poison: optimize for RAM usage, or speed, or convenience, or etc., depending on your circumstances
-- do as little as possible: e.g., don't decode bytes into strings or parse individual WARC headers into a dict until we have some reason to do so
-
-### Alternatives/Inspired By
-
-- https://github.com/nlnwa/warchaeology
-- https://github.com/chfoo/warcat
-- https://github.com/webrecorder/warcio
-- https://github.com/internetarchive/warctools
-- https://github.com/internetarchive/warc
-
-[👆 Back to the summary](#summary)
+- [Command line usage](#command-line-usage)
+- [Python usage](#python-usage)
+- [Configuration](#configuration)
+- [Development setup](#development-setup)
 
 ---
 
-## Installation
+## Quickstart
 
-While this is still unpublished, there are a few strategies.
-(These instructions may not be perfect.)
+To install WARCbench, use Pip:
 
-### With `uv` (recommended)
+```sh
+# Using HTTPS...
+pip install git+https://github.com/rebeccacremona/warcbench.git
 
-1) Clone the repo.
-2) Run `uv install`
-
-If you are running WARCbench from the command line, make sure you preface your commands with `uv run`.
-
-### With other package managers
-
-You can install without cloning by using your package manager's
-syntax for installing straight from the repo. For example:
-
-#### With vanilla pip and virtualenvs:
-
-```bash
-python3 -m venv wb-env
-. wb-env/bin/activate
+# ...or SSH:
 pip install git+ssh://git@github.com/rebeccacremona/warcbench.git
-
-# To force re-install a fresh copy:
-pip install --force-reinstall git+ssh://git@github.com/rebeccacremona/warcbench.git
 ```
 
-If you are running WARCbench from the command line, make sure you have activated your virtualenv first.
+Once WARCbench is installed, you may run it on the command line...
 
-#### In a requirements.txt file:
-
-```
-# Example other regular packages used by your project
-pytest>=6.2.4
-requests
-
-# This Git repository
-git+ssh://git@github.com/rebeccacremona/warcbench.git
+```sh
+wb summarize example.com.warc
 ```
 
-Then, use `pip install -r requirements.txt` and `pip install -r requirements.txt --force-reinstall` as needed.
-
-If you are running WARCbench from the command line, make sure you have activated your virtualenv first.
-
-
-[👆 Back to the summary](#summary)
-
----
-
-## Using WARCbench on the command line
-
-[👆 Back to the summary](#summary)
-
----
-
-## Using WARCbench as a python library
-
-Examples:
+...or import it in your Python project:
 
 ```python
 from warcbench import WARCParser
 
-# Instantiate a parser, passing in an open file handle, along with any other configuration.
+with open('example.com.warc', 'rb') as warc_file:
+    parser = WARCParser(warc_file)
+    parser.parse()
+```
+
+[⇧ Back to top](#contents)
+
+---
+
+## About
+
+WARCbench has been designed as a resilient, efficient, and highly configurable tool for working with WARC files in all their variety. Among our motivations for the project:
+
+- Enable users to explore a WARC without prior knowledge of the format
+- Support inspection of malformed or misbehaving WARCs
+- Everything is configurable: plenty of hooks and custom callbacks
+- Flexibility to optimize for memory, speed, or convenience as needed
+- As little magic as possible: e.g., don't decode bytes into strings or deserialize headers until you need to
+
+Many other useful open-source WARC packages can be found online. Among the inspirations for WARCbench are:
+
+- [Warchaeology](https://github.com/nlnwa/warchaeology)
+- [WARCAT](https://github.com/chfoo/warcat)
+- [WARCIO](https://github.com/webrecorder/warcio)
+- [Warctools](https://github.com/internetarchive/warctools)
+- [warc](https://github.com/internetarchive/warc)
+
+WARCbench is a project of the [Harvard Library Innovation Lab](https://lil.law.harvard.edu).
+
+[⇧ Back to top](#contents)
+
+---
+
+## Command line usage
+
+After installing WARCbench, you may use `wb` to interact with WARC files on the command line:
+
+```console
+user@host~$ wb inspect example.com.warc
+
+Record bytes 0-280
+
+WARC/1.1
+WARC-Filename: archive.warc
+WARC-Date: 2024-11-04T19:10:55.900Z
+WARC-Type: warcinfo
+...
+```
+
+To view a complete summary of WARCbench commands and options, invoke the `--help` flag:
+
+```console
+user@host~$ wb --help
+
+Usage: wb [OPTIONS] COMMAND [ARGS]...
+...
+```
+
+[⇧ Back to top](#contents)
+
+---
+
+## Python usage
+
+### Parsing a WARC file
+
+The `WARCParser` class is typically the best way to start interacting with a WARC file in Python:
+
+```python
+from warcbench import WARCParser
+
+# Instantiate a parser, passing in a file handle along with any other config
 with open('example.com.warc', 'rb') as warc_file:
     parser = WARCParser(warc_file)
 
-    # iterate through each record in the WARC
+    # Iterate lazily over each record in the WARC...
     for record in parser.iterator():
         print(record.bytes)
 
-    # or, parse the whole file, and get access to a list of all the records at once
+    # ...or parse the entire file and produce a list of all records
     parser.parse(cache_records=True)
     print(len(parser.records))
     print(parser.records[3].header.bytes)
+```
 
+### Utility functions
 
-# Optionally, use our utilities to open your file: it will handle getting a WARC out of a WACZ and gunzipping it for you, either natively in python (slow performance) or using system executables.
+For other use cases, such as extracting WARCs from a gzipped WACZ file, you may wish to use WARCbench's utility functions:
 
+```python
+from warcbench import WARCParser
 from warcbench.utils import python_open_archive, system_open_archive
 
-with system_open_archive('example.com.wacz') as warc_file:
+# Slower: uses Python zip/gzip to decompress
+with python_open_archive('example.com.wacz') as warc_file:
     parser = WARCParser(warc_file)
 
-# Hook up any filters, handlers, or callbacks you want:
-#
-# - Filters are functions that cause a record to be skipped. See warcbench.filters
-#   to see a list of built in filters, but, you can also pass in any function that
-#   takes a warcbench.models.Record as an argument and returns True or False.
-#
-# - Record handlers do worth on a warcbench.models.Record after it is parsed, after
-#   filters, before the next record is parsed. For example, you could use a record handler
-#   to print(record.bytes) as the parser goes along, for debugging purposes. Or,
-#   for writing a record to disk. Handlers are any function that takes a
-#   warcbench.models.Record as an argument. Its return value is ignored. We only
-#   have a sampler handler for now, in warcbench.record_handlers, but are planning
-#   to add more!
-#
-# -  Unparsable line handlers do the same thing as record handlers, except operate
-#    on warcbench.models.UnparsableLine objects: anything the parser trips over,
-#    while parsing the file. You could use these handlers to log information about
-#    unparsable lines, or even, together with more custom code, repair them. We
-#    don't have any examples yet.
-#
-# - Parser callbacks run after the parser is finished parsing the file. Callbacks
-#   are any function that takes a warcbench.WARCParser object. You could use a
-#   callback to print the number of records parsed, pipe the full set of records
-#   to other code, write the full set of records to disk, etc. We don't have any
-#   examples yet.
+# Faster: uses system zip/gzip to decompress
+with system_open_archive('example.com.wacz') as warc_file:
+    parser = WARCParser(warc_file)
+```
 
-from warcbench.filters import (warc_named_field_filter, http_verb_filter, http_status_filter,
-    http_response_content_type_filter)
+### Filters, handlers, and callbacks
+
+WARCbench includes several additional mechanisms for wrangling WARC records: filters, handlers, and callbacks.
+
+#### Filters
+
+**Filters** are functions that include or exclude a WARC record based on a given condition. You can pass in any function that accepts a `warcbench.models.Record` as its sole argument and returns a Boolean value. (A number of built-in filters are included in the `warcbench.filters` module.) Example:
+
+```python
+from warcbench import WARCParser
+from warcbench.filters import warc_named_field_filter
+from warcbench.utils import system_open_archive
 
 with system_open_archive('example.com.wacz') as warc_file:
     parser = WARCParser(
         warc_file,
-        filters = [
-            warc_named_field_filter('type', 'request')
+        record_filters=[
+            warc_named_field_filter('type', 'request'),
         ]
     )
+```
 
-#
-# Filters, handlers, and callbacks are additive, but you can combine them together
-# to into functions of arbitrary complexity.
-#
+#### Handlers
+
+**Record handlers** are functions that process a record once it is parsed. For example, you could use a record handler to print each record's content in bytes for debugging purposes, or write each record to disk as a separate file. As with filters, you may pass in an arbitrary handler function that accepts a `warcbench.models.Record` as its sole argument; a handler's return value is ignored. Example:
+
+```python
+from warcbench import WARCParser
+from warcbench.record_handlers import get_record_offsets
+from warcbench.utils import system_open_archive
+
+with system_open_archive('example.com.wacz') as warc_file:
+    parser = WARCParser(
+        warc_file,
+        record_handlers=[
+            get_record_offsets(),
+        ]
+    )
+```
+
+To support inspection of WARC files that contain invalid records, WARCbench also includes a way to specify handlers for unparsable lines. **Unparsable line handlers** behave just like record handlers, except that they accept `warcbench.models.UnparsableLine` objects instead of `Record`s. You could use these handlers to print information about unparsable lines, or even repair them. Example:
+
+```python
+from warcbench.record_handlers import get_record_offsets
+from warcbench.utils import system_open_archive
+
+with system_open_archive('example.com.wacz') as warc_file:
+    parser = WARCParser(
+        warc_file,
+        unparsable_line_handlers=[
+            lambda line: print(line),
+        ]
+    )
+```
+
+#### Callbacks
+
+**Callbacks** are functions that run after the WARCbench parser finishes parsing a WARC file. A callback can be any function that accepts a `warcbench.WARCParser` object as its sole argument. You could use a callback to print the number of records parsed, write the records out to disk, pass the full set of records over to another function, and so on.
+
+#### Combining filters, handlers, and callbacks
+
+Filters, handlers, and callbacks are additive, but you can combine them together to produce output of arbitrary complexity. Example:
+
+```python
+from warcbench.filters import warc_named_field_filter
+from warcbench.utils import system_open_archive
 
 def combo_filter(record):
     is_warc_info = lambda r: warc_named_field_filter('type', 'warcinfo')(r)
@@ -200,46 +230,61 @@ def combo_filter(record):
 with system_open_archive('example.com.wacz') as warc_file:
     parser = WARCParser(
         warc_file,
-        filters = [
+        record_filters=[
             combo_filter,
             record_content_length_filter('2056', 'le'),
         ]
     )
-
-# Depending on what you want to do with the output, there are lots
-# of configuration options.
-#
-# - You can parse the WARC by reading the WARC record headers' "content-length"
-#   fields (faster), or by scanning and splitting on the delimiter expected
-#   between WARC records (slower; may rarely detect false positives; more
-#   robust against mangled or broken WARCs)
-#
-# - You can chose whether or not to attempt to split WARC records into
-#   headers and content blocks.
-#
-# - You can chose whether to cache certain things, for instance, the bytes
-#   of headers or content blocks, in RAM on the parser object as it goes along,
-#   or whether to read those bytes lazily on access.
-#
-# - Etc. More docs coming here, once I learn how to make automatic docs from
-#   docstrings. But in the meantime, there's not that much code to read, if
-#   you want to learn what an option does (feedback on clarity is welcome!)
 ```
 
-[👆 Back to the summary](#summary)
+### Configuration
+
+WARCbench supports a number of configuration options:
+
+- You can parse a WARC file by reading the WARC record headers' `Content-Length` fields (faster), or by scanning and splitting on the delimiter expected between WARC records (slower; may rarely detect false positives; more robust against mangled or broken WARCs).
+
+- You can choose whether or not to attempt to split WARC records into headers and content blocks.
+
+- You can choose whether to cache record properties, such as the bytes of headers or content blocks, on the parser object as it proceeds, or to instead consume those bytes lazily on access.
+
+[⇧ Back to top](#contents)
 
 ---
 
-## Development
+## Development setup
 
-### Linting
+We use [uv](https://docs.astral.sh/uv/) for package dependency management, [Ruff](https://docs.astral.sh/ruff/) for code linting/formatting, and [pytest](https://docs.pytest.org/en/stable/) for testing.
 
-- `uv run ruff check`
-- `uv run ruff format --check`, then `uv run ruff format` to make the changes
+To set up a local development environment, follow these steps:
+
+- [Install uv](https://docs.astral.sh/uv/getting-started/installation/) if it is not already installed
+- Clone this repository
+- From the project root, `uv sync` to set up a virtual environment and install dependencies
+
+### Linting/formatting
+
+Run the linting process like so:
+
+```sh
+uv run ruff check
+```
+
+Run the formatting process like so:
+
+```sh
+# Check formatting changes before applying
+uv run ruff format --check
+
+# Apply formatting changes
+uv run ruff format
+```
 
 ### Tests
 
-`uv run pytest`
+Run tests like so:
 
-[👆 Back to the summary](#summary)
+```sh
+uv run pytest
+```
 
+[⇧ Back to top](#contents)

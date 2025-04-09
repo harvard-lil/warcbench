@@ -1,6 +1,6 @@
 # WARCbench 🛠️
 
-A tool for exploring, analyzing, munging, recombining, and extracting data from WARC (Web ARChive) files.
+A tool for exploring, analyzing, transforming, recombining, and extracting data from WARC (Web ARChive) files.
 
 > [!WARNING]
 > WARCbench is currently under active development. Breaking changes are expected as the project moves toward an initial release.
@@ -161,7 +161,7 @@ from warcbench.utils import system_open_archive
 with system_open_archive('example.com.wacz') as warc_file:
     parser = WARCParser(
         warc_file,
-        filters=[
+        record_filters=[
             warc_named_field_filter('type', 'request'),
         ]
     )
@@ -230,7 +230,7 @@ def combo_filter(record):
 with system_open_archive('example.com.wacz') as warc_file:
     parser = WARCParser(
         warc_file,
-        filters=[
+        record_filters=[
             combo_filter,
             record_content_length_filter('2056', 'le'),
         ]

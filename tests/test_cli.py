@@ -99,3 +99,25 @@ def test_compare_parsers_warc():
 
     assert comparison_data["warnings"]["any"] is False
     assert comparison_data["error"]["any"] is False
+
+
+@pytest.mark.parametrize(
+    "file_name", ["example.com.warc", "example.com.wacz", "test-crawl.wacz"]
+)
+def test_match_record_pairs(file_name, sample_match_pairs_json):
+    runner = CliRunner()
+    result = runner.invoke(
+        cli,
+        [
+            "--out",
+            "json",
+            "match-record-pairs",
+            "--output-summary-by-uri",
+            "--output-record-details",
+            "--include-pairs",
+            "--include-http-headers",
+            f"tests/assets/{file_name}",
+        ],
+    )
+    assert result.exit_code == 0, result.output
+    assert json.loads(result.stdout) == sample_match_pairs_json[file_name]

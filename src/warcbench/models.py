@@ -5,10 +5,11 @@
 from __future__ import annotations
 
 from abc import ABC
+from collections import defaultdict
 from dataclasses import dataclass, field
 import io
 import logging
-from typing import Optional
+from typing import Optional, List
 
 from warcbench.patterns import CRLF, CONTENT_LENGTH_PATTERN
 from warcbench.utils import find_pattern_in_bytes, yield_bytes_from_file
@@ -132,7 +133,51 @@ class Header(ByteRange):
     http://iipc.github.io/warc-specifications/specifications/warc-format/warc-1.1/#warc-record-header
     """
 
-    pass
+    _parsed_fields: Optional[defaultdict[bytes, List[Optional[bytes]]]] = field(
+        repr=False, default=None
+    )
+
+    @classmethod
+    def parse_bytes_into_fields(cls, data):
+        # Line folding is not supported https://github.com/iipc/warc-specifications/issues/74
+        headers = defaultdict(list)
+        for line in data.split(CRLF):
+            if line:
+                split = line.split(b":", 1)
+                if len(split) == 1:
+                    headers[line].append(None)
+                else:
+                    headers[split[0]].append(split[1].strip())
+        return headers
+
+    def get_parsed_fields(self, decode=False):
+        if self._parsed_fields is None:
+            data = self.parse_bytes_into_fields(self.bytes)
+        else:
+            data = self._parsed_fields
+        if decode:
+            decoded_data = {}
+            for field, value_list in data.items():
+                decoded_values = []
+                for value in value_list:
+                    if value:
+                        decoded_values.append(value.decode("utf-8", errors="replace"))
+                    else:
+                        decoded_values.append(None)
+                decoded_data[field.decode("utf-8", errors="replace")] = decoded_values
+            return decoded_data
+        else:
+            return data
+
+    def get_field(self, field_name, decode=False, return_multiple_values=False):
+        if decode:
+            key = field_name
+        else:
+            key = bytes(field_name, "utf-8")
+        field = self.get_parsed_fields(decode=decode)[key]
+        if return_multiple_values:
+            return field
+        return field[0]
 
 
 @dataclass

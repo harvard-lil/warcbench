@@ -20,6 +20,7 @@ from warcbench.utils import (
     find_next_header_end,
     find_content_length_in_bytes,
     decompress_and_get_gzip_file_member_offsets,
+    find_matching_request_response_pairs,
 )
 
 logger = logging.getLogger(__name__)
@@ -48,6 +49,7 @@ class BaseParser(ABC):
         cache_member_uncompressed_bytes,
         cache_record_bytes,
         cache_header_bytes,
+        cache_parsed_headers,
         cache_content_block_bytes,
         cache_non_warc_member_bytes,
         member_filters,
@@ -60,10 +62,10 @@ class BaseParser(ABC):
         # Validate Options
         #
 
-        if cache_header_bytes or cache_content_block_bytes:
+        if cache_header_bytes or cache_parsed_headers or cache_content_block_bytes:
             if not split_records:
                 raise ValueError(
-                    "To cache header or content block bytes, you must split records."
+                    "To cache or parse header or content block bytes, you must split records."
                 )
 
         #
@@ -90,6 +92,7 @@ class BaseParser(ABC):
         self.cache_member_uncompressed_bytes = cache_member_uncompressed_bytes
         self.cache_record_bytes = cache_record_bytes
         self.cache_header_bytes = cache_header_bytes
+        self.cache_parsed_headers = cache_parsed_headers
         self.cache_content_block_bytes = cache_content_block_bytes
         self.cache_non_warc_member_bytes = cache_non_warc_member_bytes
         self.member_filters = member_filters
@@ -198,6 +201,15 @@ class BaseParser(ABC):
 
         return [(record.start, record.end) for record in records]
 
+    def get_approximate_request_response_pairs(self, count_only):
+        """
+        Recommended: use with cache_parsed_headers=True.
+        """
+        records = (
+            self.records() if self._members else self.iterator(yield_type="records")
+        )
+        return find_matching_request_response_pairs(records, count_only)
+
     #
     # Internal methods
     #
@@ -278,6 +290,7 @@ class GzippedWARCMemberParser(BaseParser):
         cache_member_uncompressed_bytes,
         cache_record_bytes,
         cache_header_bytes,
+        cache_parsed_headers,
         cache_content_block_bytes,
         cache_non_warc_member_bytes,
         member_filters,
@@ -294,6 +307,7 @@ class GzippedWARCMemberParser(BaseParser):
             split_records
             or cache_record_bytes
             or cache_header_bytes
+            or cache_parsed_headers
             or cache_content_block_bytes
             or cache_non_warc_member_bytes
             or cache_member_uncompressed_bytes
@@ -316,6 +330,7 @@ class GzippedWARCMemberParser(BaseParser):
             cache_member_uncompressed_bytes,
             cache_record_bytes,
             cache_header_bytes,
+            cache_parsed_headers,
             cache_content_block_bytes,
             cache_non_warc_member_bytes,
             member_filters,
@@ -447,6 +462,11 @@ class GzippedWARCMemberParser(BaseParser):
                         if self.cache_header_bytes:
                             header._bytes = header_bytes
 
+                        if self.cache_parsed_headers:
+                            header._parsed_fields = header.parse_bytes_into_fields(
+                                header_bytes
+                            )
+
                         content_block = ContentBlock(
                             start=content_start, end=content_end
                         )
@@ -504,6 +524,7 @@ class GzippedWARCDecompressingParser(BaseParser):
         cache_member_uncompressed_bytes,
         cache_record_bytes,
         cache_header_bytes,
+        cache_parsed_headers,
         cache_content_block_bytes,
         cache_non_warc_member_bytes,
         enable_lazy_loading_of_bytes,
@@ -522,6 +543,7 @@ class GzippedWARCDecompressingParser(BaseParser):
             cache_member_uncompressed_bytes,
             cache_record_bytes,
             cache_header_bytes,
+            cache_parsed_headers,
             cache_content_block_bytes,
             cache_non_warc_member_bytes,
             member_filters,
@@ -650,6 +672,8 @@ class GzippedWARCDecompressingParser(BaseParser):
                     header._bytes = header_bytes
                 if self.enable_lazy_loading_of_bytes:
                     header._file_handle = self.uncompressed_file_handle
+                if self.cache_parsed_headers:
+                    header._parsed_fields = header.parse_bytes_into_fields(header_bytes)
 
                 content_block = ContentBlock(start=content_start, end=content_end)
                 if self.cache_content_block_bytes:

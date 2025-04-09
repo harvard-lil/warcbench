@@ -18,6 +18,7 @@ class WARCParser:
         cache_unparsable_lines=False,
         cache_record_bytes=False,
         cache_header_bytes=False,
+        cache_parsed_headers=False,
         cache_content_block_bytes=False,
         cache_unparsable_line_bytes=False,
         enable_lazy_loading_of_bytes=True,
@@ -50,6 +51,7 @@ class WARCParser:
                     cache_unparsable_lines=cache_unparsable_lines,
                     cache_record_bytes=cache_record_bytes,
                     cache_header_bytes=cache_header_bytes,
+                    cache_parsed_headers=cache_parsed_headers,
                     cache_content_block_bytes=cache_content_block_bytes,
                     cache_unparsable_line_bytes=cache_unparsable_line_bytes,
                     enable_lazy_loading_of_bytes=enable_lazy_loading_of_bytes,
@@ -67,6 +69,7 @@ class WARCParser:
                     cache_unparsable_lines=cache_unparsable_lines,
                     cache_record_bytes=cache_record_bytes,
                     cache_header_bytes=cache_header_bytes,
+                    cache_parsed_headers=cache_parsed_headers,
                     cache_content_block_bytes=cache_content_block_bytes,
                     cache_unparsable_line_bytes=cache_unparsable_line_bytes,
                     enable_lazy_loading_of_bytes=enable_lazy_loading_of_bytes,
@@ -113,6 +116,9 @@ class WARCParser:
     def get_record_offsets(self, split=False):
         return self._parser.get_record_offsets(split)
 
+    def get_approximate_request_response_pairs(self, count_only=False):
+        return self._parser.get_approximate_request_response_pairs(count_only)
+
 
 class WARCGZParser:
     def __init__(
@@ -128,6 +134,7 @@ class WARCGZParser:
         cache_member_uncompressed_bytes=False,
         cache_record_bytes=False,
         cache_header_bytes=False,
+        cache_parsed_headers=False,
         cache_content_block_bytes=False,
         cache_non_warc_member_bytes=False,
         enable_lazy_loading_of_bytes=True,
@@ -168,6 +175,7 @@ class WARCGZParser:
                         cache_member_uncompressed_bytes=cache_member_uncompressed_bytes,
                         cache_record_bytes=cache_record_bytes,
                         cache_header_bytes=cache_header_bytes,
+                        cache_parsed_headers=cache_parsed_headers,
                         cache_content_block_bytes=cache_content_block_bytes,
                         cache_non_warc_member_bytes=cache_non_warc_member_bytes,
                         member_filters=member_filters,
@@ -186,6 +194,7 @@ class WARCGZParser:
                         cache_member_uncompressed_bytes=cache_member_uncompressed_bytes,
                         cache_record_bytes=cache_record_bytes,
                         cache_header_bytes=cache_header_bytes,
+                        cache_parsed_headers=cache_parsed_headers,
                         cache_content_block_bytes=cache_content_block_bytes,
                         cache_non_warc_member_bytes=cache_non_warc_member_bytes,
                         enable_lazy_loading_of_bytes=enable_lazy_loading_of_bytes,
@@ -242,3 +251,6 @@ class WARCGZParser:
 
     def get_record_offsets(self, split=False):
         return self._parser.get_record_offsets(split)
+
+    def get_approximate_request_response_pairs(self, count_only=False):
+        return self._parser.get_approximate_request_response_pairs(count_only)

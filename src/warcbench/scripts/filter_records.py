@@ -11,7 +11,7 @@ from warcbench.filters import (
     warc_header_regex_filter,
     warc_named_field_filter,
 )
-from warcbench.scripts.utils import open_and_parse
+from warcbench.scripts.utils import open_and_parse, dynamically_import
 
 
 @click.command()
@@ -67,6 +67,12 @@ from warcbench.scripts.utils import open_and_parse
     nargs=2,
     help="Find records with the header WARC-[field_name]: [value].",
 )
+@click.option(
+    "--custom-filter-path",
+    nargs=1,
+    type=click.Path(exists=True, readable=True, allow_dash=True, dir_okay=False),
+    help="Path to a python file with custom filter functions exposed in __all__. Filter functions should take a warcbench.models.Record and return True/False.",
+)
 @click.pass_context
 def filter_records(
     ctx,
@@ -80,6 +86,7 @@ def filter_records(
     filter_by_record_content_type,
     filter_warc_header_with_regex,
     filter_by_warc_named_field,
+    custom_filter_path,
 ):
     """"""
     ctx.obj["FILEPATH"] = filepath
@@ -89,7 +96,7 @@ def filter_records(
     # Collect filters
     #
 
-    supported_filters = {
+    built_in_filters = {
         "filter_by_http_header": http_header_filter,
         "filter_by_http_verb": http_verb_filter,
         "filter_by_http_status_code": http_status_filter,
@@ -102,11 +109,18 @@ def filter_records(
 
     filters = []
     for flag_name, value in ctx.params.items():
-        if flag_name in supported_filters and value:
+        if flag_name in built_in_filters and value:
             if isinstance(value, tuple):
-                filters.append((supported_filters[flag_name], [*value]))
+                filters.append((built_in_filters[flag_name], [*value]))
             else:
-                filters.append((supported_filters[flag_name], [value]))
+                filters.append((built_in_filters[flag_name], [value]))
+
+        if flag_name == "custom_filter_path" and value:
+            custom_filters = dynamically_import("custom_filters", value)
+            if not hasattr(custom_filters, "__all__"):
+                raise click.ClickException(print("{value} does not define __all__."))
+            for f in custom_filters.__all__:
+                filters.append((lambda: (getattr(custom_filters, f)), []))
 
     #
     # Parse and extract
@@ -115,5 +129,10 @@ def filter_records(
     open_and_parse(
         ctx,
         record_filters=[f(*args) for f, args in filters],
-        record_handlers=[lambda record: record],
+        record_handlers=[lambda record: print(record.header.bytes)],
+        extra_parser_kwargs={
+            "cache_header_bytes": True,
+            "cache_parsed_headers": True,
+            "cache_content_block_bytes": True,
+        },
     )

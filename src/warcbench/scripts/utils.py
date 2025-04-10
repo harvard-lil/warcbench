@@ -1,5 +1,8 @@
 import click
+import importlib.util
+from mimetypes import guess_extension
 from pathlib import Path
+
 from warcbench import WARCParser, WARCGZParser
 from warcbench.exceptions import DecodingException
 from warcbench.utils import (
@@ -7,6 +10,16 @@ from warcbench.utils import (
     python_open_archive,
     system_open_archive,
 )
+
+
+def dynamically_import(module_name, module_path):
+    # Create a module specification
+    spec = importlib.util.spec_from_file_location(module_name, module_path)
+    # Create a new module based on the specification
+    module = importlib.util.module_from_spec(spec)
+    # Execute the module in its own namespace
+    spec.loader.exec_module(module)
+    return module
 
 
 def extract_file(mimetype, basename, extension, decode, verbose):

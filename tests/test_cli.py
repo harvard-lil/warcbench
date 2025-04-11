@@ -290,20 +290,60 @@ def test_filter_records_extract_warc():
     """Extracting all records should result in an identical WARC."""
     filter_into = NamedTemporaryFile("w+b", delete=False)
 
-    runner = CliRunner()
-    result = runner.invoke(
-        cli,
-        [
-            "filter-records",
-            "--extract",
-            filter_into.name,
-            False,
-            "tests/assets/example.com.wacz",
-        ],
-    )
-    assert result.exit_code == 0, result.output
-    assert filecmp.cmp(filter_into.name, "tests/assets/example.com.warc", shallow=False)
-    os.remove(filter_into.name)
+    try:
+        runner = CliRunner()
+        result = runner.invoke(
+            cli,
+            [
+                "filter-records",
+                "--extract",
+                filter_into.name,
+                False,
+                False,
+                "tests/assets/example.com.wacz",
+            ],
+        )
+        assert result.exit_code == 0, result.output
+        assert filecmp.cmp(
+            filter_into.name, "tests/assets/example.com.warc", shallow=False
+        )
+    except:
+        raise
+    finally:
+        os.remove(filter_into.name)
+
+
+def test_filter_records_extract_force_include_warcinfo():
+    filter_into = NamedTemporaryFile("w+b", delete=False)
+
+    try:
+        runner = CliRunner()
+        result = runner.invoke(
+            cli,
+            [
+                "--out",
+                "json",
+                "filter-records",
+                "--filter-by-warc-named-field",
+                "Target-URI",
+                "http://example.com",
+                "--output-count",
+                "--output-warc-headers",
+                "--extract",
+                filter_into.name,
+                False,
+                True,
+                "tests/assets/example.com.wacz",
+            ],
+        )
+        assert result.exit_code == 0, result.output
+        results = json.loads(result.stdout)
+        assert results["count"] == 5
+        assert "warcinfo" in r"\n".join(results["records"][0]["record_headers"])
+    except:
+        raise
+    finally:
+        os.remove(filter_into.name)
 
 
 def test_filter_records_extract_warc_gz():
@@ -311,29 +351,35 @@ def test_filter_records_extract_warc_gz():
     filter_into = NamedTemporaryFile("w+b", delete=False)
     gunzip_into = NamedTemporaryFile("w+b", delete=False)
 
-    runner = CliRunner()
-    result = runner.invoke(
-        cli,
-        [
-            "filter-records",
-            "--extract",
-            filter_into.name,
-            True,
-            "tests/assets/example.com.wacz",
-        ],
-    )
-    assert result.exit_code == 0, result.output
+    try:
+        runner = CliRunner()
+        result = runner.invoke(
+            cli,
+            [
+                "filter-records",
+                "--extract",
+                filter_into.name,
+                True,
+                False,
+                "tests/assets/example.com.wacz",
+            ],
+        )
+        assert result.exit_code == 0, result.output
 
-    with (
-        open(filter_into.name, "rb") as output_file,
-        open(gunzip_into.name, "wb") as gunzipped_file,
-    ):
-        decompress_and_get_gzip_file_member_offsets(output_file, gunzipped_file)
+        with (
+            open(filter_into.name, "rb") as output_file,
+            open(gunzip_into.name, "wb") as gunzipped_file,
+        ):
+            decompress_and_get_gzip_file_member_offsets(output_file, gunzipped_file)
 
-    assert filecmp.cmp(gunzip_into.name, "tests/assets/example.com.warc", shallow=False)
-
-    os.remove(filter_into.name)
-    os.remove(gunzip_into.name)
+        assert filecmp.cmp(
+            gunzip_into.name, "tests/assets/example.com.warc", shallow=False
+        )
+    except:
+        raise
+    finally:
+        os.remove(filter_into.name)
+        os.remove(gunzip_into.name)
 
 
 def test_filter_records_basic_output(sample_filter_json):

@@ -120,9 +120,9 @@ class PathOrStdout(click.Path):
 )
 @click.option(
     "--extract",
-    nargs=2,
-    type=(PathOrStdout(), bool),
-    help="Extract records. First arg: FILEPATH or - for stdout. Second arg: GZIP each record individually, outputting a canonical warc.gz file, or, output an uncompressed warc.",
+    nargs=3,
+    type=(PathOrStdout(), bool, bool),
+    help="Extract records. First arg: FILEPATH or - for stdout. Second arg: GZIP each record individually, outputting a canonical warc.gz file, or, output an uncompressed warc. Third arg: whether to force include warcinfo records, if present.",
 )
 @click.option(
     "--custom-record-handler-path",
@@ -171,6 +171,7 @@ def filter_records(
     }
 
     filters = []
+    force_include_warcinfo = False
     member_handlers = []
     record_handlers = []
 
@@ -192,6 +193,8 @@ def filter_records(
                 )
 
             record_handlers.append(output_record(value[0], value[1]))
+            if value[2]:
+                force_include_warcinfo = True
 
         elif flag_name in built_in_filters and value:
             if isinstance(value, tuple):
@@ -258,13 +261,24 @@ def filter_records(
             )
         )
 
+    # Post process filters
+    if force_include_warcinfo:
+        record_filters = [
+            lambda record: (
+                (record.header.get_field("WARC-Type", decode=True) == "warcinfo")
+                or all(f(record) for f in [fltr(*args) for fltr, args in filters])
+            )
+        ]
+    else:
+        record_filters = [fltr(*args) for fltr, args in filters]
+
     #
     # Parse
     #
 
     open_and_parse(
         ctx,
-        record_filters=[f(*args) for f, args in filters],
+        record_filters=record_filters,
         member_handlers=member_handlers,
         record_handlers=record_handlers,
         extra_parser_kwargs={
@@ -287,7 +301,7 @@ def filter_records(
         formatted_data["records"] = format_record_data_for_output(data["record_info"])
 
     if data:
-        if ctx.obj["OUT"] == "json":
+        if ctx.obj["OUT"] == "json" and formatted_data:
             click.echo(json.dumps(formatted_data))
         else:
             if formatted_data.get("count"):

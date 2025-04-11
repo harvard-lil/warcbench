@@ -89,7 +89,7 @@ class PathOrStdout(click.Path):
     help="Path to a python file with custom filter functions exposed in __all__. Filter functions should take a warcbench.models.Record and return True/False.",
 )
 @click.option(
-    "--count/--no-count",
+    "--output-count/--no-output-count",
     default=True,
     help="Output the number of records matching the filters.",
 )
@@ -143,7 +143,7 @@ def filter_records(
     filter_warc_header_with_regex,
     filter_by_warc_named_field,
     custom_filter_path,
-    count,
+    output_count,
     output_member_offsets,
     output_record_offsets,
     output_warc_headers,
@@ -180,7 +180,7 @@ def filter_records(
     for flag_name, value in ctx.params.items():
         if flag_name == "extract" and value:
             if value[0] is sys.stdout and (
-                count
+                output_count
                 or output_member_offsets
                 or output_record_offsets
                 or output_warc_headers
@@ -222,7 +222,7 @@ def filter_records(
             )
         )
 
-    if count:
+    if output_count:
         data["count"] = 0
 
         def increment_record_count(_):

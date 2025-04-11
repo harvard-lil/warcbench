@@ -186,10 +186,9 @@ def filter_records(
                 or output_warc_headers
                 or output_http_headers
                 or output_http_body
-                or custom_record_handler_path
             ):
                 raise click.ClickException(
-                    "Incompatible options: if extracting to stdout, no other handlers are allowed."
+                    "Incompatible options: if extracting to stdout, no other output is allowed."
                 )
 
             record_handlers.append(output_record(value[0], value[1]))

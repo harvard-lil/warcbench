@@ -54,6 +54,158 @@ def test_extract(tmp_path):
     assert Path(f"{tmp_path}/example-5176.png").exists()
 
 
+def test_extract_gzip_decode(tmp_path):
+    runner = CliRunner()
+    result = runner.invoke(
+        cli,
+        [
+            "--verbose",
+            "extract",
+            "--basename",
+            f"{tmp_path}/example",
+            "tests/assets/example.com.warc",
+            "text/html",
+        ],
+    )
+    assert result.exit_code == 0, result.output
+    position = 1241
+    output_file = Path(f"{tmp_path}/example-{position}.html")
+    assert f"Found a response of type text/html at position {position}" in result.output
+    assert output_file.exists()
+    with open(output_file) as f:
+        assert (
+            "This domain is for use in illustrative examples in documents." in f.read()
+        )
+
+
+def test_extract_gzip_no_decode(tmp_path):
+    runner = CliRunner()
+    result = runner.invoke(
+        cli,
+        [
+            "--verbose",
+            "extract",
+            "--no-decode",
+            "--basename",
+            f"{tmp_path}/example",
+            "tests/assets/example.com.warc",
+            "text/html",
+        ],
+    )
+    assert result.exit_code == 0, result.output
+    position = 1241
+    output_file = Path(f"{tmp_path}/example-{position}.html")
+    assert f"Found a response of type text/html at position {position}" in result.output
+    assert output_file.exists()
+    with open(output_file, "rb") as f:
+        # check the magic number
+        assert f.read(2) == b"\x1f\x8b"
+
+
+def test_extract_brotli_decode(tmp_path):
+    runner = CliRunner()
+    result = runner.invoke(
+        cli,
+        [
+            "--verbose",
+            "extract",
+            "--basename",
+            f"{tmp_path}/test-crawl",
+            "tests/assets/test-crawl.wacz",
+            "text/javascript",
+        ],
+    )
+    assert result.exit_code == 0, result.output
+    position = 334
+    output_file = Path(f"{tmp_path}/test-crawl-{position}.js")
+    assert (
+        f"Found a response of type text/javascript at position {position}"
+        in result.output
+    )
+    assert output_file.exists()
+    with open(output_file) as f:
+        assert "jQuery" in f.read()
+    assert output_file.stat().st_size == 87533
+
+
+def test_extract_brotli_no_decode(tmp_path):
+    runner = CliRunner()
+    result = runner.invoke(
+        cli,
+        [
+            "--verbose",
+            "extract",
+            "--no-decode",
+            "--basename",
+            f"{tmp_path}/test-crawl",
+            "tests/assets/test-crawl.wacz",
+            "text/javascript",
+        ],
+    )
+    assert result.exit_code == 0, result.output
+    position = 334
+    output_file = Path(f"{tmp_path}/test-crawl-{position}.js")
+    assert (
+        f"Found a response of type text/javascript at position {position}"
+        in result.output
+    )
+    assert output_file.exists()
+
+    # there's no magic number for Brotli, as there is for gzip
+    with pytest.raises(UnicodeDecodeError):
+        with open(output_file) as f:
+            assert "jQuery" not in f.read()  # no-op
+    assert output_file.stat().st_size == 27918
+
+
+def test_extract_zstd_decode(tmp_path):
+    runner = CliRunner()
+    result = runner.invoke(
+        cli,
+        [
+            "--verbose",
+            "extract",
+            "--basename",
+            f"{tmp_path}/fb-warc",
+            "tests/assets/fb.warc.gz",
+            "text/html",
+        ],
+    )
+    assert result.exit_code == 0, result.output
+    position = 2698
+    output_file = Path(f"{tmp_path}/fb-warc-{position}.html")
+    assert f"Found a response of type text/html at position {position}" in result.output
+    assert output_file.exists()
+    with open(output_file) as f:
+        assert "html" in f.read()
+    assert output_file.stat().st_size == 60071
+
+
+def test_extract_zstd_no_decode(tmp_path):
+    runner = CliRunner()
+    result = runner.invoke(
+        cli,
+        [
+            "--verbose",
+            "extract",
+            "--no-decode",
+            "--basename",
+            f"{tmp_path}/fb-warc",
+            "tests/assets/fb.warc.gz",
+            "text/html",
+        ],
+    )
+    assert result.exit_code == 0, result.output
+    position = 2698
+    output_file = Path(f"{tmp_path}/fb-warc-{position}.html")
+    assert f"Found a response of type text/html at position {position}" in result.output
+    assert output_file.exists()
+    with pytest.raises(UnicodeDecodeError):
+        with open(output_file) as f:
+            assert "html" not in f.read()  # no-op
+    assert output_file.stat().st_size == 23341
+
+
 def test_compare_parsers_gzipped_warc():
     runner = CliRunner()
     result = runner.invoke(

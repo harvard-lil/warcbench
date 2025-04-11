@@ -121,9 +121,28 @@ class Record(ByteRange):
         if record_content_type_filter("http")(self) and self.content_block.bytes.find(
             CRLF * 2
         ):
-            parts = self.content_block.bytes.split(CRLF * 2)
+            parts = self.content_block.bytes.split(CRLF * 2, 1)
             if len(parts) == 2:
-                return parts[1]
+                if parts[1]:
+                    # zstd decompression can't handle chunked encoding,
+                    # as brotli (and gzip?) does, so dechunk as needed.
+                    chunk_match = find_pattern_in_bytes(
+                        rb"Transfer-Encoding:\s*chunked((\r\n)|$)",
+                        self.get_http_header_block(),
+                        case_insensitive=True,
+                    )
+                    zstd_match = find_pattern_in_bytes(
+                        rb"Content-Encoding:\s*zstd((\r\n)|$)",
+                        self.get_http_header_block(),
+                        case_insensitive=True,
+                    )
+                    if chunk_match and zstd_match:
+                        # reassemble chunks
+                        return b"".join(parts[1].split(CRLF)[1::2])
+                    else:
+                        return parts[1]
+                else:
+                    return None
 
 
 @dataclass

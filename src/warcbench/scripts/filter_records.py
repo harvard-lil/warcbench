@@ -1,5 +1,7 @@
 import click
-from pathlib import Path
+from collections import defaultdict
+import json
+import sys
 
 from warcbench.filters import (
     http_header_filter,
@@ -11,19 +13,32 @@ from warcbench.filters import (
     warc_header_regex_filter,
     warc_named_field_filter,
 )
-from warcbench.scripts.utils import open_and_parse, dynamically_import
+from warcbench.member_handlers import get_member_offsets
+from warcbench.record_handlers import (
+    get_record_offsets,
+    get_record_headers,
+    get_record_http_headers,
+    get_record_http_body,
+)
+from warcbench.scripts.utils import (
+    open_and_parse,
+    dynamically_import,
+    output_record,
+    format_record_data_for_output,
+)
+
+
+class PathOrStdout(click.Path):
+    def convert(self, value, param, ctx):
+        if value == "-":
+            return sys.stdout  # Return stdout if the value is '-'
+        return super().convert(value, param, ctx)  # Otherwise, use the default behavior
 
 
 @click.command()
 @click.argument(
     "filepath",
     type=click.Path(exists=True, readable=True, allow_dash=True, dir_okay=False),
-)
-@click.option(
-    "--gzip/--no-gzip",
-    default=False,
-    show_default=True,
-    help="Individually gzip each WARC record, outputting a canonical warc.gz file.",
 )
 @click.option(
     "--filter-by-http-header",
@@ -73,11 +88,52 @@ from warcbench.scripts.utils import open_and_parse, dynamically_import
     type=click.Path(exists=True, readable=True, allow_dash=True, dir_okay=False),
     help="Path to a python file with custom filter functions exposed in __all__. Filter functions should take a warcbench.models.Record and return True/False.",
 )
+@click.option(
+    "--count/--no-count",
+    default=True,
+    help="Output the number of records matching the filters.",
+)
+@click.option(
+    "--output-member-offsets/--no-output-member-offsets",
+    default=False,
+    help="Output the offsets of each gzipped member.",
+)
+@click.option(
+    "--output-record-offsets/--no-output-record-offsets",
+    default=False,
+    help="Output the offsets of each record in the file (uncompressed).",
+)
+@click.option(
+    "--output-warc-headers/--no-output-warc-headers",
+    default=False,
+    help="Output the WARC headers of each record.",
+)
+@click.option(
+    "--output-http-headers/--no-output-http-headers",
+    default=False,
+    help="Output the HTTP headers of any record whose content is an HTTP request or response.",
+)
+@click.option(
+    "--output-http-body/--no-output-http-body",
+    default=False,
+    help="Include the HTTP body of any record whose content is an HTTP request or response.",
+)
+@click.option(
+    "--extract",
+    nargs=2,
+    type=(PathOrStdout(), bool),
+    help="Extract records. First arg: FILEPATH or - for stdout. Second arg: GZIP each record individually, outputting a canonical warc.gz file, or, output an uncompressed warc.",
+)
+@click.option(
+    "--custom-record-handler-path",
+    nargs=1,
+    type=click.Path(exists=True, readable=True, allow_dash=True, dir_okay=False),
+    help="Path to a python file with custom record handler functions exposed in __all__. Hand;er functions should take a warcbench.models.Record.",
+)
 @click.pass_context
 def filter_records(
     ctx,
     filepath,
-    gzip,
     filter_by_http_header,
     filter_by_http_response_content_type,
     filter_by_http_status_code,
@@ -87,13 +143,20 @@ def filter_records(
     filter_warc_header_with_regex,
     filter_by_warc_named_field,
     custom_filter_path,
+    count,
+    output_member_offsets,
+    output_record_offsets,
+    output_warc_headers,
+    output_http_headers,
+    output_http_body,
+    extract,
+    custom_record_handler_path,
 ):
     """"""
     ctx.obj["FILEPATH"] = filepath
-    ctx.obj["GZIP"] = gzip
 
     #
-    # Collect filters
+    # Collect filters and handlers
     #
 
     built_in_filters = {
@@ -108,31 +171,147 @@ def filter_records(
     }
 
     filters = []
+    member_handlers = []
+    record_handlers = []
+
+    data = {"count": None, "record_info": defaultdict(list)}
+
+    # Handle options that take arguments
     for flag_name, value in ctx.params.items():
-        if flag_name in built_in_filters and value:
+        if flag_name == "extract" and value:
+            if value[0] is sys.stdout and (
+                count
+                or output_member_offsets
+                or output_record_offsets
+                or output_warc_headers
+                or output_http_headers
+                or output_http_body
+                or custom_record_handler_path
+            ):
+                raise click.ClickException(
+                    "Incompatible options: if extracting to stdout, no other handlers are allowed."
+                )
+
+            record_handlers.append(output_record(value[0], value[1]))
+
+        elif flag_name in built_in_filters and value:
             if isinstance(value, tuple):
                 filters.append((built_in_filters[flag_name], [*value]))
             else:
                 filters.append((built_in_filters[flag_name], [value]))
 
-        if flag_name == "custom_filter_path" and value:
+        elif flag_name == "custom_filter_path" and value:
             custom_filters = dynamically_import("custom_filters", value)
             if not hasattr(custom_filters, "__all__"):
                 raise click.ClickException(print("{value} does not define __all__."))
             for f in custom_filters.__all__:
                 filters.append((lambda: (getattr(custom_filters, f)), []))
 
+        elif flag_name == "custom_record_handler_path" and value:
+            custom_record_handlers = dynamically_import("custom_record_handlers", value)
+            if not hasattr(custom_record_handlers, "__all__"):
+                raise click.ClickException(print("{value} does not define __all__."))
+            for f in custom_record_handlers.__all__:
+                record_handlers.append(getattr(custom_record_handlers, f))
+
+    # Handle options that don't take arguments
+
+    if output_member_offsets:
+        member_handlers.append(
+            get_member_offsets(
+                append_to=data["record_info"]["member_offsets"], print_each=False
+            )
+        )
+
+    if count:
+        data["count"] = 0
+
+        def increment_record_count(_):
+            data["count"] += 1
+
+        record_handlers.append(increment_record_count)
+
+    if output_record_offsets:
+        record_handlers.append(
+            get_record_offsets(
+                append_to=data["record_info"]["record_offsets"], print_each=False
+            )
+        )
+
+    if output_warc_headers:
+        record_handlers.append(
+            get_record_headers(
+                append_to=data["record_info"]["record_headers"], print_each=False
+            )
+        )
+
+    if output_http_headers:
+        record_handlers.append(
+            get_record_http_headers(
+                append_to=data["record_info"]["record_http_headers"], print_each=False
+            )
+        )
+
+    if output_http_body:
+        record_handlers.append(
+            get_record_http_body(
+                append_to=data["record_info"]["record_http_body"], print_each=False
+            )
+        )
+
     #
-    # Parse and extract
+    # Parse
     #
 
     open_and_parse(
         ctx,
         record_filters=[f(*args) for f, args in filters],
-        record_handlers=[lambda record: print(record.header.bytes)],
+        member_handlers=member_handlers,
+        record_handlers=record_handlers,
         extra_parser_kwargs={
             "cache_header_bytes": True,
             "cache_parsed_headers": True,
             "cache_content_block_bytes": True,
         },
     )
+
+    #
+    # Handle output
+    #
+
+    formatted_data = {}
+
+    if data["count"] is not None:
+        formatted_data["count"] = data["count"]
+
+    if data["record_info"]:
+        formatted_data["records"] = format_record_data_for_output(data["record_info"])
+
+    if data:
+        if ctx.obj["OUT"] == "json":
+            click.echo(json.dumps(formatted_data))
+        else:
+            if formatted_data.get("count"):
+                click.echo(f"Found {formatted_data['count']} records.")
+
+            for record in formatted_data.get("records", []):
+                if record.get("member_offsets"):
+                    click.echo(
+                        f"Member bytes {record['member_offsets'][0]}-{record['member_offsets'][1]}\n"
+                    )
+                if record.get("record_offsets"):
+                    click.echo(
+                        f"Record bytes {record['record_offsets'][0]}-{record['record_offsets'][1]}\n"
+                    )
+                if record.get("record_headers"):
+                    for header in record["record_headers"]:
+                        click.echo(header)
+                    click.echo()
+                if record.get("record_http_headers"):
+                    for header in record["record_http_headers"]:
+                        click.echo(header)
+                    click.echo()
+                if record.get("record_http_body"):
+                    click.echo(record["record_http_body"])
+                    click.echo()
+                click.echo("-" * 40)

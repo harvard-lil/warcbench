@@ -8,7 +8,7 @@ from warcbench.record_handlers import (
     get_record_headers,
     get_record_http_headers,
 )
-from warcbench.scripts.utils import open_and_parse
+from warcbench.scripts.utils import open_and_parse, format_record_data_for_output
 
 
 @click.command()
@@ -98,92 +98,28 @@ def inspect(
     )
 
     #
-    # Format data for output
-    #
-
-    records = []
-
-    if "member_offsets" in data:
-        if not records:
-            for offsets in data["member_offsets"]:
-                records.append({"member_offsets": offsets})
-        else:
-            for index, offsets in enumerate(data["member_offsets"]):
-                records[index]["member_offsets"] = offsets
-
-    if "record_offsets" in data:
-        if not records:
-            for offsets in data["record_offsets"]:
-                records.append({"record_offsets": offsets})
-        else:
-            for index, offsets in enumerate(data["record_offsets"]):
-                records[index]["record_offsets"] = offsets
-
-    if "record_headers" in data:
-        if not records:
-            for header_set in data["record_headers"]:
-                if header_set:
-                    records.append(
-                        {
-                            "record_headers": [
-                                line for line in header_set.split("\r\n") if line
-                            ]
-                        }
-                    )
-                else:
-                    records.append({"record_headers": None})
-        else:
-            for index, header_set in enumerate(data["record_headers"]):
-                if header_set:
-                    records[index]["record_headers"] = [
-                        line for line in header_set.split("\r\n") if line
-                    ]
-                else:
-                    records[index]["record_headers"] = None
-
-    if "record_http_headers" in data:
-        if not records:
-            for header_set in data["record_http_headers"]:
-                if header_set:
-                    records.append(
-                        {
-                            "record_http_headers": [
-                                line for line in header_set.split("\r\n") if line
-                            ]
-                        }
-                    )
-                else:
-                    records.append({"record_http_headers": None})
-        else:
-            for index, header_set in enumerate(data["record_http_headers"]):
-                if header_set:
-                    records[index]["record_http_headers"] = [
-                        line for line in header_set.split("\r\n") if line
-                    ]
-                else:
-                    records[index]["record_http_headers"] = None
-
-    #
     # Output
     #
+
+    records = format_record_data_for_output(data)
 
     if ctx.obj["OUT"] == "json":
         click.echo(json.dumps({"records": records}))
     else:
         for record in records:
-            if "member_offsets" in record and record["member_offsets"]:
+            if record.get("member_offsets"):
                 click.echo(
                     f"Member bytes {record['member_offsets'][0]}-{record['member_offsets'][1]}\n"
                 )
-            if record["record_offsets"]:
+            if record.get("record_offsets"):
                 click.echo(
                     f"Record bytes {record['record_offsets'][0]}-{record['record_offsets'][1]}\n"
                 )
-            if record["record_headers"]:
+            if record.get("record_headers"):
                 for header in record["record_headers"]:
                     click.echo(header)
                 click.echo()
-            if record["record_http_headers"]:
+            if record.get("record_http_headers"):
                 for header in record["record_http_headers"]:
                     click.echo(header)
                 click.echo()

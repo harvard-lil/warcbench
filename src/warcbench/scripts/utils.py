@@ -1,10 +1,12 @@
 import click
 import importlib.util
-from mimetypes import guess_extension
 from pathlib import Path
+import sys
 
 from warcbench import WARCParser, WARCGZParser
 from warcbench.exceptions import DecodingException
+from warcbench.patches import patched_gzip
+from warcbench.patterns import CRLF
 from warcbench.utils import (
     FileType,
     python_open_archive,
@@ -49,6 +51,95 @@ def extract_file(mimetype, basename, extension, decode, verbose):
             fh.write(http_body_block)
 
     return f
+
+
+def output_record(output_to, gzip):
+    """
+    A record-handler for outputting WARC records
+    """
+
+    def f(record):
+        if gzip:
+            if output_to is sys.stdout:
+                with patched_gzip.open(sys.stdout.buffer, "wb") as stdout:
+                    stdout.write(record.bytes + CRLF * 2)
+            else:
+                with patched_gzip.open(output_to, "ab") as file:
+                    file.write(record.bytes + CRLF * 2)
+        else:
+            if output_to is sys.stdout:
+                sys.stdout.buffer.write(record.bytes + CRLF * 2)
+            else:
+                with open(output_to, "ab") as file:
+                    file.write(record.bytes + CRLF * 2)
+
+    return f
+
+
+def format_record_data_for_output(data):
+    records = []
+
+    if "member_offsets" in data:
+        if not records:
+            for offsets in data["member_offsets"]:
+                records.append({"member_offsets": offsets})
+        else:
+            for index, offsets in enumerate(data["member_offsets"]):
+                records[index]["member_offsets"] = offsets
+
+    if "record_offsets" in data:
+        if not records:
+            for offsets in data["record_offsets"]:
+                records.append({"record_offsets": offsets})
+        else:
+            for index, offsets in enumerate(data["record_offsets"]):
+                records[index]["record_offsets"] = offsets
+
+    if "record_headers" in data:
+        if not records:
+            for header_set in data["record_headers"]:
+                if header_set:
+                    records.append(
+                        {
+                            "record_headers": [
+                                line for line in header_set.split("\r\n") if line
+                            ]
+                        }
+                    )
+                else:
+                    records.append({"record_headers": None})
+        else:
+            for index, header_set in enumerate(data["record_headers"]):
+                if header_set:
+                    records[index]["record_headers"] = [
+                        line for line in header_set.split("\r\n") if line
+                    ]
+                else:
+                    records[index]["record_headers"] = None
+
+    if "record_http_headers" in data:
+        if not records:
+            for header_set in data["record_http_headers"]:
+                if header_set:
+                    records.append(
+                        {
+                            "record_http_headers": [
+                                line for line in header_set.split("\r\n") if line
+                            ]
+                        }
+                    )
+                else:
+                    records.append({"record_http_headers": None})
+        else:
+            for index, header_set in enumerate(data["record_http_headers"]):
+                if header_set:
+                    records[index]["record_http_headers"] = [
+                        line for line in header_set.split("\r\n") if line
+                    ]
+                else:
+                    records[index]["record_http_headers"] = None
+
+    return records
 
 
 def open_and_invoke(

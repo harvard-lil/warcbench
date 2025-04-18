@@ -1,6 +1,5 @@
 import brotli
 import click
-from mimetypes import guess_extension
 from pathlib import Path
 from pyzstd import decompress as pyzstd_decompress
 from warcbench import WARCParser, WARCGZParser
@@ -13,7 +12,7 @@ from warcbench.utils import (
 import zlib
 
 
-def extract_file(mimetype, basename, decode, verbose):
+def extract_file(mimetype, basename, extension, decode, verbose):
     """A record-handler for file extraction."""
 
     def f(record):
@@ -44,7 +43,7 @@ def extract_file(mimetype, basename, decode, verbose):
                     f"Failed to decode record starting at {record.start}, passing through encoded: {e}"
                 )
 
-        filename = f"{basename}-{record.start}{guess_extension(mimetype)}"
+        filename = f"{basename}-{record.start}.{extension}"
         Path(filename).parent.mkdir(exist_ok=True, parents=True)
         with open(filename, "wb") as fh:
             fh.write(http_body_block)

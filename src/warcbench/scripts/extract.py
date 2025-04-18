@@ -11,6 +11,7 @@ from warcbench.scripts.utils import extract_file, open_and_parse
     type=click.Path(exists=True, readable=True, allow_dash=True, dir_okay=False),
 )
 @click.argument("mimetype")
+@click.argument("extension")
 @click.option(
     "--basename", help="Base name for output file; defaults to FILEPATH base name."
 )
@@ -21,8 +22,8 @@ from warcbench.scripts.utils import extract_file, open_and_parse
     show_default=True,
 )
 @click.pass_context
-def extract(ctx, filepath, mimetype, basename, decode):
-    """This extracts files of the given MIMETYPE from the archive at FILEPATH, writing them to {basename}-{recordstart}.{extension}."""
+def extract(ctx, filepath, mimetype, extension, basename, decode):
+    """This extracts files of the given MIMETYPE from the archive at FILEPATH, writing them to {basename}-{recordstart}.{EXTENSION}."""
     ctx.obj["FILEPATH"] = filepath
 
     open_and_parse(
@@ -34,6 +35,7 @@ def extract(ctx, filepath, mimetype, basename, decode):
             extract_file(
                 mimetype,
                 basename if basename else Path(filepath).name,
+                extension,
                 decode,
                 ctx.obj["VERBOSE"],
             )

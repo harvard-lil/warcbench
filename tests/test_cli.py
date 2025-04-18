@@ -47,6 +47,7 @@ def test_extract(tmp_path):
             f"{tmp_path}/example",
             "tests/assets/example.com.wacz",
             "image/png",
+            "png",
         ],
     )
     assert result.exit_code == 0, result.output
@@ -65,6 +66,7 @@ def test_extract_gzip_decode(tmp_path):
             f"{tmp_path}/example",
             "tests/assets/example.com.warc",
             "text/html",
+            "html",
         ],
     )
     assert result.exit_code == 0, result.output
@@ -90,6 +92,7 @@ def test_extract_gzip_no_decode(tmp_path):
             f"{tmp_path}/example",
             "tests/assets/example.com.warc",
             "text/html",
+            "html",
         ],
     )
     assert result.exit_code == 0, result.output
@@ -113,6 +116,7 @@ def test_extract_brotli_decode(tmp_path):
             f"{tmp_path}/test-crawl",
             "tests/assets/test-crawl.wacz",
             "text/javascript",
+            "js",
         ],
     )
     assert result.exit_code == 0, result.output
@@ -140,6 +144,7 @@ def test_extract_brotli_no_decode(tmp_path):
             f"{tmp_path}/test-crawl",
             "tests/assets/test-crawl.wacz",
             "text/javascript",
+            "js",
         ],
     )
     assert result.exit_code == 0, result.output
@@ -169,6 +174,7 @@ def test_extract_zstd_decode(tmp_path):
             f"{tmp_path}/fb-warc",
             "tests/assets/fb.warc.gz",
             "text/html",
+            "html",
         ],
     )
     assert result.exit_code == 0, result.output
@@ -193,6 +199,7 @@ def test_extract_zstd_no_decode(tmp_path):
             f"{tmp_path}/fb-warc",
             "tests/assets/fb.warc.gz",
             "text/html",
+            "html",
         ],
     )
     assert result.exit_code == 0, result.output

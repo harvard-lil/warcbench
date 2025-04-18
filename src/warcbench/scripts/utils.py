@@ -30,18 +30,19 @@ def extract_file(mimetype, basename, extension, decode, verbose):
                 case_insensitive=True,
             )
             if match:
+                encodings = None
                 try:
                     encodings = (
                         match.group(1).decode("utf-8", errors="replace").split(" ")
                     )
                 except Exception:
                     pass
-            try:
-                http_body_block = content_decode(http_body_block, encodings)
-            except Exception as e:
-                click.echo(
-                    f"Failed to decode record starting at {record.start}, passing through encoded: {e}"
-                )
+                if encodings:
+                    http_body_block = content_decode(http_body_block, encodings)
+                else:
+                    click.echo(
+                        f"Failed to decode record starting at {record.start}, passing through encoded"
+                    )
 
         filename = f"{basename}-{record.start}.{extension}"
         Path(filename).parent.mkdir(exist_ok=True, parents=True)

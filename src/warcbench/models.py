@@ -12,7 +12,13 @@ import logging
 from typing import Optional, List
 
 from warcbench.patterns import CRLF, CONTENT_LENGTH_PATTERN
-from warcbench.utils import find_pattern_in_bytes, yield_bytes_from_file
+from warcbench.utils import (
+    find_pattern_in_bytes,
+    yield_bytes_from_file,
+    get_encodings_from_http_headers,
+    concatenate_chunked_http_response,
+    decompress,
+)
 from warcbench.filters import record_content_type_filter
 
 logger = logging.getLogger(__name__)
@@ -123,26 +129,23 @@ class Record(ByteRange):
         ):
             parts = self.content_block.bytes.split(CRLF * 2, 1)
             if len(parts) == 2:
-                if parts[1]:
-                    # zstd decompression can't handle chunked encoding,
-                    # as brotli (and gzip?) does, so dechunk as needed.
-                    chunk_match = find_pattern_in_bytes(
-                        rb"Transfer-Encoding:\s*chunked((\r\n)|$)",
-                        self.get_http_header_block(),
-                        case_insensitive=True,
-                    )
-                    zstd_match = find_pattern_in_bytes(
-                        rb"Content-Encoding:\s*zstd((\r\n)|$)",
-                        self.get_http_header_block(),
-                        case_insensitive=True,
-                    )
-                    if chunk_match and zstd_match:
-                        # reassemble chunks
-                        return b"".join(parts[1].split(CRLF)[1::2])
+                return parts[1]
+
+    def get_decompressed_http_body(self):
+        if record_content_type_filter("http")(self) and self.content_block.bytes.find(
+            CRLF * 2
+        ):
+            parts = self.content_block.bytes.split(CRLF * 2, 1)
+            if len(parts) == 2 and parts[1]:
+                encodings, chunked = get_encodings_from_http_headers(parts[0])
+                if encodings:
+                    if "zstd" in encodings and chunked:
+                        compressed_data = concatenate_chunked_http_response(parts[1])
                     else:
-                        return parts[1]
+                        compressed_data = parts[1]
+                    return decompress(compressed_data, encodings)
                 else:
-                    return None
+                    return parts[1]
 
 
 @dataclass

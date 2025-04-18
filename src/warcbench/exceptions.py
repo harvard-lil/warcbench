@@ -13,3 +13,9 @@ class DecompressionError(Exception):
     """Custom exception raised when trying to decompress a compressed WARC file."""
 
     pass
+
+
+class DecodingException(Exception):
+    """Custom exception raised when trying to decode an HTTP body block with Content-Encoding set in the header."""
+
+    pass

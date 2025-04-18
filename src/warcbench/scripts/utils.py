@@ -1,48 +1,34 @@
-import brotli
 import click
 from pathlib import Path
-from pyzstd import decompress as pyzstd_decompress
 from warcbench import WARCParser, WARCGZParser
+from warcbench.exceptions import DecodingException
 from warcbench.utils import (
     FileType,
     python_open_archive,
     system_open_archive,
-    find_pattern_in_bytes,
 )
-import zlib
 
 
 def extract_file(mimetype, basename, extension, decode, verbose):
     """A record-handler for file extraction."""
 
     def f(record):
-        if not (http_body_block := record.get_http_body_block()):
+        if decode:
+            try:
+                http_body_block = record.get_decompressed_http_body()
+            except DecodingException as e:
+                click.echo(f"Failed to decode block: {e}")
+                http_body_block = record.get_http_body_block()
+        else:
+            http_body_block = record.get_http_body_block()
+        if not http_body_block:
             return
+
         if verbose:
             click.echo(
                 f"Found a response of type {mimetype} at position {record.start}",
                 err=True,
             )
-        if decode:
-            match = find_pattern_in_bytes(
-                rb"Content-Encoding:\s*(.*)((\r\n)|$)",
-                record.get_http_header_block(),
-                case_insensitive=True,
-            )
-            if match:
-                encodings = None
-                try:
-                    encodings = (
-                        match.group(1).decode("utf-8", errors="replace").split(" ")
-                    )
-                except Exception:
-                    pass
-                if encodings:
-                    http_body_block = content_decode(http_body_block, encodings)
-                else:
-                    click.echo(
-                        f"Failed to decode record starting at {record.start}, passing through encoded"
-                    )
 
         filename = f"{basename}-{record.start}.{extension}"
         Path(filename).parent.mkdir(exist_ok=True, parents=True)
@@ -50,35 +36,6 @@ def extract_file(mimetype, basename, extension, decode, verbose):
             fh.write(http_body_block)
 
     return f
-
-
-def content_decode(http_body_block, encodings):
-    """This function recursively decodes an HTTP body block, given a list of encodings."""
-    if not encodings:
-        return http_body_block
-    else:
-        return content_decode(
-            _content_decode(http_body_block, encodings[-1]), encodings[:-1]
-        )
-
-
-def _content_decode(http_body_block, encoding):
-    """This function decodes an HTTP body block with a given encoding."""
-    # see https://developer.mozilla.org/en-US/docs/Web/HTTP/Reference/Headers/Content-Encoding
-    if encoding == "gzip":
-        return zlib.decompress(http_body_block, 16 + zlib.MAX_WBITS)
-    elif encoding == "deflate":
-        return zlib.decompress(http_body_block, -15)
-    elif encoding == "br":
-        return brotli.decompress(http_body_block)
-    elif encoding == "zstd":
-        return pyzstd_decompress(http_body_block)
-    elif encoding == "dcb":
-        click.echo("Passing dcb-encoded body block as is")
-    elif encoding == "dcz":
-        click.echo("Passing dcz-encoded body block as is")
-
-    return http_body_block
 
 
 def open_and_invoke(

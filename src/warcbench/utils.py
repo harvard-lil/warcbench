@@ -2,18 +2,22 @@
 `utils` module: Every project has one.
 """
 
+import brotli
 from contextlib import contextmanager
 from collections import defaultdict, deque
 from enum import Enum
 import json
 import logging
 import os
+from pyzstd import decompress as pyzstd_decompress
 import re
 import shutil
 import subprocess
 import tempfile
 import zipfile
+import zlib
 
+from warcbench.exceptions import DecodingException
 from warcbench.patterns import CRLF, CONTENT_LENGTH_PATTERN, WARC_VERSIONS
 from warcbench.patches import patched_gzip
 
@@ -384,3 +388,60 @@ def find_matching_request_response_pairs(records, count_only=False):
         "lone_responses_by_uri": dict(lone_responses_by_uri),
         "counts": counts,
     }
+
+
+def get_encodings_from_http_headers(header_block):
+    """Find content encodings and whether a record is chunked."""
+    encodings = None
+    match = find_pattern_in_bytes(
+        rb"Content-Encoding:\s*(.*)((\r\n)|$)",
+        header_block,
+        case_insensitive=True,
+    )
+    if match:
+        try:
+            encodings = match.group(1).decode("utf-8", errors="replace").split(" ")
+        except Exception:
+            pass
+
+    chunked = find_pattern_in_bytes(
+        rb"Transfer-Encoding:\s*chunked((\r\n)|$)",
+        header_block,
+        case_insensitive=True,
+    )
+    return encodings, chunked
+
+
+def concatenate_chunked_http_response(body_block):
+    """Reassemble chunks of a chunked HTTP response."""
+    return b"".join(body_block.split(CRLF)[1::2])
+
+
+def decompress(http_body_block, encodings):
+    """This function recursively decodes an HTTP body block, given a list of encodings."""
+    if not encodings:
+        return http_body_block
+    else:
+        return decompress(_decompress(http_body_block, encodings[-1]), encodings[:-1])
+
+
+def _decompress(http_body_block, encoding):
+    """This function decodes an HTTP body block, given an encoding."""
+    # see https://developer.mozilla.org/en-US/docs/Web/HTTP/Reference/Headers/Content-Encoding
+    if encoding == "gzip":
+        return zlib.decompress(http_body_block, 16 + zlib.MAX_WBITS)
+    elif encoding == "deflate":
+        return zlib.decompress(http_body_block, -15)
+    elif encoding == "br":
+        return brotli.decompress(http_body_block)
+    elif encoding == "zstd":
+        return pyzstd_decompress(http_body_block)
+    elif encoding == "dcb":
+        raise DecodingException("dcb decoding not yet implemented")
+    elif encoding == "dcz":
+        raise DecodingException("dcz decoding not yet implemented")
+
+    if not encoding:
+        return http_body_block
+    else:
+        raise DecodingException(f"Unable to recognize encoding {encoding}")

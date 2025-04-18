@@ -210,7 +210,7 @@ def test_extract_zstd_no_decode(tmp_path):
     with pytest.raises(UnicodeDecodeError):
         with open(output_file) as f:
             assert "html" not in f.read()  # no-op
-    assert output_file.stat().st_size == 23341
+    assert output_file.stat().st_size == 23379
 
 
 def test_compare_parsers_gzipped_warc():

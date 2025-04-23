@@ -40,4 +40,8 @@ def extract(ctx, filepath, mimetype, extension, basename, decode):
                 ctx.obj["VERBOSE"],
             )
         ],
+        extra_parser_kwargs={
+            "cache_header_bytes": True,
+            "cache_content_block_bytes": True,
+        },
     )

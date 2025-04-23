@@ -1,23 +1,39 @@
 import click
-from mimetypes import guess_extension
 from pathlib import Path
 from warcbench import WARCParser, WARCGZParser
-from warcbench.utils import FileType, python_open_archive, system_open_archive
+from warcbench.exceptions import DecodingException
+from warcbench.utils import (
+    FileType,
+    python_open_archive,
+    system_open_archive,
+)
 
 
-def extract_file(mimetype, basename, verbose):
+def extract_file(mimetype, basename, extension, decode, verbose):
     """A record-handler for file extraction."""
 
     def f(record):
+        if decode:
+            try:
+                http_body_block = record.get_decompressed_http_body()
+            except DecodingException as e:
+                click.echo(f"Failed to decode block: {e}")
+                http_body_block = record.get_http_body_block()
+        else:
+            http_body_block = record.get_http_body_block()
+        if not http_body_block:
+            return
+
         if verbose:
             click.echo(
                 f"Found a response of type {mimetype} at position {record.start}",
                 err=True,
             )
-        filename = f"{basename}-{record.start}{guess_extension(mimetype)}"
+
+        filename = f"{basename}-{record.start}.{extension}"
         Path(filename).parent.mkdir(exist_ok=True, parents=True)
-        with open(filename, "wb") as f:
-            f.write(record.get_http_body_block())
+        with open(filename, "wb") as fh:
+            fh.write(http_body_block)
 
     return f
 

@@ -12,7 +12,13 @@ import logging
 from typing import Optional, List
 
 from warcbench.patterns import CRLF, CONTENT_LENGTH_PATTERN
-from warcbench.utils import find_pattern_in_bytes, yield_bytes_from_file
+from warcbench.utils import (
+    find_pattern_in_bytes,
+    yield_bytes_from_file,
+    get_encodings_from_http_headers,
+    concatenate_chunked_http_response,
+    decompress,
+)
 from warcbench.filters import record_content_type_filter
 
 logger = logging.getLogger(__name__)
@@ -121,9 +127,25 @@ class Record(ByteRange):
         if record_content_type_filter("http")(self) and self.content_block.bytes.find(
             CRLF * 2
         ):
-            parts = self.content_block.bytes.split(CRLF * 2)
+            parts = self.content_block.bytes.split(CRLF * 2, 1)
             if len(parts) == 2:
                 return parts[1]
+
+    def get_decompressed_http_body(self):
+        if record_content_type_filter("http")(self) and self.content_block.bytes.find(
+            CRLF * 2
+        ):
+            parts = self.content_block.bytes.split(CRLF * 2, 1)
+            if len(parts) == 2 and parts[1]:
+                encodings, chunked = get_encodings_from_http_headers(parts[0])
+                if encodings:
+                    if "zstd" in encodings and chunked:
+                        compressed_data = concatenate_chunked_http_response(parts[1])
+                    else:
+                        compressed_data = parts[1]
+                    return decompress(compressed_data, encodings)
+                else:
+                    return parts[1]
 
 
 @dataclass

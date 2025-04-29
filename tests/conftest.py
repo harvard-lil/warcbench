@@ -1,3 +1,4 @@
+from collections import defaultdict
 from io import BufferedReader
 import json
 from pathlib import Path
@@ -148,12 +149,25 @@ def sample_inspect_json(assets_path: Path):
 
 @pytest.fixture
 def sample_match_pairs_json(assets_path: Path):
-    inspect_json = {}
+    pairs_json = {}
     for file_name in ["example.com.warc", "example.com.wacz", "test-crawl.wacz"]:
         filepath = assets_path / f"{file_name}.pairs.json"
         with filepath.open("r") as json_file:
-            inspect_json[file_name] = json.loads(json_file.read())
-    return inspect_json
+            pairs_json[file_name] = json.loads(json_file.read())
+    return pairs_json
+
+
+@pytest.fixture
+def sample_filter_json(assets_path: Path):
+    filter_json = defaultdict(dict)
+    for file_name in ["example.com.wacz"]:
+        filepath = assets_path / f"{file_name}.filter.json"
+        verbose_filepath = assets_path / f"{file_name}.filter-verbose.json"
+        with filepath.open("r") as json_file:
+            filter_json[file_name]["basic"] = json.loads(json_file.read())
+        with verbose_filepath.open("r") as json_file:
+            filter_json[file_name]["verbose"] = json.loads(json_file.read())
+    return dict(filter_json)
 
 
 @pytest.fixture
@@ -196,4 +210,52 @@ def expected_summary():
                 "text/css": 1,
             },
         },
+    }
+
+
+@pytest.fixture
+def expected_custom_filter_results():
+    return {
+        "count": 3,
+        "records": [
+            {
+                "record_headers": [
+                    "WARC/1.1",
+                    "WARC-Filename: archive.warc",
+                    "WARC-Date: 2024-11-04T19:10:55.900Z",
+                    "WARC-Type: warcinfo",
+                    "WARC-Record-ID: <urn:uuid:a6fd8346-f170-497b-9e26-47a5bde6d86c>",
+                    "Content-Type: application/warc-fields",
+                    "Content-Length: 57",
+                ]
+            },
+            {
+                "record_headers": [
+                    "WARC/1.1",
+                    "Scoop-Exchange-ID: 5733be1f-60ea-47c8-99be-abc4f8b31846",
+                    "WARC-Target-URI: http://example.com/",
+                    "WARC-Date: 2024-11-04T19:10:51.248Z",
+                    "WARC-Type: request",
+                    "WARC-Record-ID: <urn:uuid:ab3ef7b3-0c7e-4a12-9097-96352b6c9e3a>",
+                    "Content-Type: application/http; msgtype=request",
+                    "WARC-Payload-Digest: sha256:e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+                    "WARC-Block-Digest: sha256:ee4938cc9bc0d0cd340a97536ec32cebc937815e52bb40b5e3bc37753c5c87d2",
+                    "Content-Length: 468",
+                ]
+            },
+            {
+                "record_headers": [
+                    "WARC/1.1",
+                    "Scoop-Exchange-ID: 5733be1f-60ea-47c8-99be-abc4f8b31846",
+                    "WARC-Target-URI: http://example.com/",
+                    "WARC-Date: 2024-11-04T19:10:51.248Z",
+                    "WARC-Type: response",
+                    "WARC-Record-ID: <urn:uuid:c4a6a946-252c-48cc-8e7b-85d3aa8ee81b>",
+                    "Content-Type: application/http; msgtype=response",
+                    "WARC-Payload-Digest: sha256:2682a32f5b99c7d0c9395ccba0464a38856b36472926eaf53fd4f11d5d3364a0",
+                    "WARC-Block-Digest: sha256:d6e9fe3f079a51a37a4ecaf6ba5483a2bcc7865e5395dea42c136b9f8e74f3fb",
+                    "Content-Length: 1007",
+                ]
+            },
+        ],
     }

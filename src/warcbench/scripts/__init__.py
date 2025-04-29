@@ -2,6 +2,7 @@ import click
 
 from warcbench.scripts.compare_parsers import compare_parsers
 from warcbench.scripts.extract import extract
+from warcbench.scripts.filter_records import filter_records
 from warcbench.scripts.inspect import inspect
 from warcbench.scripts.match_record_pairs import match_record_pairs
 from warcbench.scripts.summarize import summarize
@@ -43,6 +44,7 @@ def cli(ctx, out, verbose, decompression, gunzip):
 
 cli.add_command(summarize)
 cli.add_command(inspect)
+cli.add_command(filter_records)
 cli.add_command(extract)
 cli.add_command(compare_parsers)
 cli.add_command(match_record_pairs)

@@ -1,9 +1,13 @@
 from click.testing import CliRunner
+import filecmp
 import json
+import os
 from pathlib import Path
 import pytest
+from tempfile import NamedTemporaryFile
 
 from warcbench.scripts import cli
+from warcbench.utils import decompress_and_get_gzip_file_member_offsets
 
 
 @pytest.mark.parametrize(
@@ -280,3 +284,212 @@ def test_match_record_pairs(file_name, sample_match_pairs_json):
     )
     assert result.exit_code == 0, result.output
     assert json.loads(result.stdout) == sample_match_pairs_json[file_name]
+
+
+def test_filter_records_extract_warc():
+    """Extracting all records should result in an identical WARC."""
+    filter_into = NamedTemporaryFile("w+b", delete=False)
+
+    try:
+        runner = CliRunner()
+        result = runner.invoke(
+            cli,
+            [
+                "filter-records",
+                "--extract-to-warc",
+                filter_into.name,
+                "tests/assets/example.com.wacz",
+            ],
+        )
+        assert result.exit_code == 0, result.output
+        assert filecmp.cmp(
+            filter_into.name, "tests/assets/example.com.warc", shallow=False
+        )
+    except:
+        raise
+    finally:
+        os.remove(filter_into.name)
+
+
+def test_filter_records_extract_force_include_warcinfo():
+    filter_into = NamedTemporaryFile("w+b", delete=False)
+
+    try:
+        runner = CliRunner()
+        result = runner.invoke(
+            cli,
+            [
+                "--out",
+                "json",
+                "filter-records",
+                "--filter-by-warc-named-field",
+                "Target-URI",
+                "http://example.com",
+                "--output-count",
+                "--output-warc-headers",
+                "--extract-to-warc",
+                filter_into.name,
+                "--extract-summary-to",
+                "-",
+                "--force-include-warcinfo",
+                "tests/assets/example.com.wacz",
+            ],
+        )
+        assert result.exit_code == 0, result.output
+        results = json.loads(result.stdout)
+        assert results["count"] == 5
+        assert "warcinfo" in r"\n".join(results["records"][0]["record_headers"])
+    except:
+        raise
+    finally:
+        os.remove(filter_into.name)
+
+
+def test_filter_records_extract_warc_gz():
+    """Extracting all records should result in an identical WARC."""
+    filter_into = NamedTemporaryFile("w+b", delete=False)
+    gunzip_into = NamedTemporaryFile("w+b", delete=False)
+
+    try:
+        runner = CliRunner()
+        result = runner.invoke(
+            cli,
+            [
+                "filter-records",
+                "--extract-to-gzipped-warc",
+                filter_into.name,
+                "tests/assets/example.com.wacz",
+            ],
+        )
+        assert result.exit_code == 0, result.output
+
+        with (
+            open(filter_into.name, "rb") as output_file,
+            open(gunzip_into.name, "wb") as gunzipped_file,
+        ):
+            decompress_and_get_gzip_file_member_offsets(output_file, gunzipped_file)
+
+        assert filecmp.cmp(
+            gunzip_into.name, "tests/assets/example.com.warc", shallow=False
+        )
+    except:
+        raise
+    finally:
+        os.remove(filter_into.name)
+        os.remove(gunzip_into.name)
+
+
+def test_filter_records_basic_output(sample_filter_json):
+    runner = CliRunner()
+    result = runner.invoke(
+        cli,
+        [
+            "--out",
+            "json",
+            "filter-records",
+            "tests/assets/example.com.wacz",
+        ],
+    )
+    assert result.exit_code == 0, result.output
+    assert json.loads(result.stdout) == sample_filter_json["example.com.wacz"]["basic"]
+
+
+def test_filter_records_custom_filters(expected_custom_filter_results):
+    runner = CliRunner()
+    result = runner.invoke(
+        cli,
+        [
+            "--out",
+            "json",
+            "filter-records",
+            "--custom-filter-path",
+            "tests/assets/custom-filters.py",
+            "--output-warc-headers",
+            "tests/assets/example.com.wacz",
+        ],
+    )
+    assert result.exit_code == 0, result.output
+    assert json.loads(result.stdout) == expected_custom_filter_results
+
+
+def test_filter_records_custom_handlers(expected_custom_filter_results):
+    path = "/tmp/custom-handler-report.txt"
+
+    assert not os.path.exists(path)
+
+    try:
+        runner = CliRunner()
+        result = runner.invoke(
+            cli,
+            [
+                "filter-records",
+                "--custom-record-handler-path",
+                "tests/assets/custom-handlers.py",
+                "tests/assets/example.com.wacz",
+            ],
+        )
+        assert result.exit_code == 0, result.output
+        assert os.path.exists(path)
+        assert filecmp.cmp(
+            path, "tests/assets/custom-handler-report.txt", shallow=False
+        )
+    except:
+        raise
+    finally:
+        if os.path.exists(path):
+            os.remove(path)
+
+
+@pytest.mark.parametrize(
+    "flag,args,record_count",
+    [
+        ("--filter-by-http-header", ["referer", "example.com/"], 1),
+        ("--filter-by-http-header", ["proxy-connection", "keep-alive"], 2),
+        ("--filter-by-http-response-content-type", ["png"], 1),
+        ("--filter-by-http-response-content-type", ["html"], 4),
+        ("--filter-by-http-status-code", [200], 5),
+        ("--filter-by-http-status-code", [404], 1),
+        ("--filter-by-http-verb", ["get"], 2),
+        ("--filter-by-http-verb", ["post"], 0),
+        ("--filter-by-record-content-length", [38979, "eq"], 1),
+        ("--filter-by-record-content-length", [38979, "gt"], 0),
+        ("--filter-by-record-content-length", [38979, "lt"], 8),
+        ("--filter-by-record-content-type", ["warc-fields"], 1),
+        ("--filter-by-record-content-type", ["http"], 8),
+        ("--filter-by-record-content-type", ["application/http; msgtype=request"], 2),
+        ("--filter-by-record-content-type", ["application/http; msgtype=response"], 6),
+        (
+            "--filter-warc-header-with-regex",
+            ["Scoop-Exchange-Description: Provenance Summary"],
+            1,
+        ),
+        ("--filter-warc-header-with-regex", ["WARC/1.[01]"], 9),
+        (
+            "--filter-warc-header-with-regex",
+            [r"WARC-Refers-To-Target-URI:\shttp://example.com/"],
+            4,
+        ),
+        ("--filter-by-warc-named-field", ["type", "warcinfo"], 1),
+        ("--filter-by-warc-named-field", ["type", "request"], 2),
+        (
+            "--filter-by-warc-named-field",
+            ["record-id", "<urn:uuid:9831f6b7-247d-45d2-a6a8-21708a194b23>"],
+            1,
+        ),
+    ],
+)
+def test_filter_records_filters(flag, args, record_count):
+    runner = CliRunner()
+    result = runner.invoke(
+        cli,
+        [
+            "--out",
+            "json",
+            "filter-records",
+            flag,
+            *args,
+            "tests/assets/example.com.wacz",
+        ],
+    )
+    assert result.exit_code == 0, result.output
+    assert json.loads(result.stdout)["count"] == record_count

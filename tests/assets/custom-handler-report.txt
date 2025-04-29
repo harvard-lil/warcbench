@@ -1,0 +1,6 @@
+Offset: 1241 Length: 1495 URI: http://example.com/
+Offset: 3648 Length: 1524 URI: http://example.com/favicon.ico
+Offset: 5176 Length: 29359 URI: file:///screenshot.png
+Offset: 34539 Length: 1945 URI: file:///dom-snapshot.html
+Offset: 36488 Length: 39599 URI: file:///pdf-snapshot.pdf
+Offset: 76091 Length: 6852 URI: file:///provenance-summary.html

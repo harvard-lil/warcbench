@@ -296,10 +296,8 @@ def test_filter_records_extract_warc():
             cli,
             [
                 "filter-records",
-                "--extract",
+                "--extract-to-warc",
                 filter_into.name,
-                False,
-                False,
                 "tests/assets/example.com.wacz",
             ],
         )
@@ -329,10 +327,11 @@ def test_filter_records_extract_force_include_warcinfo():
                 "http://example.com",
                 "--output-count",
                 "--output-warc-headers",
-                "--extract",
+                "--extract-to-warc",
                 filter_into.name,
-                False,
-                True,
+                "--extract-summary-to",
+                "-",
+                "--force-include-warcinfo",
                 "tests/assets/example.com.wacz",
             ],
         )
@@ -357,10 +356,8 @@ def test_filter_records_extract_warc_gz():
             cli,
             [
                 "filter-records",
-                "--extract",
+                "--extract-to-gzipped-warc",
                 filter_into.name,
-                True,
-                False,
                 "tests/assets/example.com.wacz",
             ],
         )

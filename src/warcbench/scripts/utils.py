@@ -1,5 +1,6 @@
 import click
 import importlib.util
+import io
 from pathlib import Path
 import sys
 
@@ -53,7 +54,21 @@ def extract_file(mimetype, basename, extension, decode, verbose):
     return f
 
 
-def output_record(output_to, gzip):
+def output(destination, data_string):
+    if not destination:
+        return
+    elif destination is sys.stdout:
+        click.echo(data_string)
+    elif destination is sys.stderr:
+        click.echo(data_string, err=True)
+    elif isinstance(destination, io.IOBase):
+        destination.write(data_string)
+    else:
+        with open(destination, "a") as file:
+            file.write(data_string)
+
+
+def output_record(output_to, gzip=False):
     """
     A record-handler for outputting WARC records
     """
@@ -63,12 +78,17 @@ def output_record(output_to, gzip):
             if output_to is sys.stdout:
                 with patched_gzip.open(sys.stdout.buffer, "wb") as stdout:
                     stdout.write(record.bytes + CRLF * 2)
+            elif output_to is sys.stderr:
+                with patched_gzip.open(sys.stderr.buffer, "wb") as stderr:
+                    stderr.write(record.bytes + CRLF * 2)
             else:
                 with patched_gzip.open(output_to, "ab") as file:
                     file.write(record.bytes + CRLF * 2)
         else:
             if output_to is sys.stdout:
                 sys.stdout.buffer.write(record.bytes + CRLF * 2)
+            elif output_to is sys.stderr:
+                sys.stderr.buffer.write(record.bytes + CRLF * 2)
             else:
                 with open(output_to, "ab") as file:
                     file.write(record.bytes + CRLF * 2)

@@ -128,20 +128,54 @@ with open('example.com.warc', 'rb') as warc_file:
     print(parser.records[3].header.bytes)
 ```
 
+### Parsing a Gzipped WARC file
+
+You can parse and interact with a gzipped WARC file without gunzipping it using the `WARCGZParser` class.
+
+This is not only for convenience, but for utility: by convention, WARCs are frequently gzipped [one record at a time](http://iipc.github.io/warc-specifications/specifications/warc-format/warc-1.1/#record-at-time-compression), such that a complete `warc.gz` file is in fact a series of concatenated, individually valid gzip files, or "members". This makes it possible to extract individual WARC records, if the byte offsets of their members are known in advance, without needing to gunzip the entire file, which in certain applications can be a significant performance improvement.
+
+```python
+from warcbench import WARCGZParser
+
+# Instantiate a parser, passing in a file handle along with any other config
+with open('example.com.warc.gz', 'rb') as warcgz_file:
+    parser = `WARCGZParser(warcgz_file)
+
+    # Iterate lazily over each record in the WARC...
+    for record in parser.iterator(yield_type="records"):
+        print(record.start, record.length)
+
+    # ... or over each gzipped member...
+    for member in parser.iterator():
+        print(member.start, member.length, member.record.bytes)
+
+    # ...or parse the entire file and produce a list of all members and records
+    parser.parse(cache_members=True)
+    print(len(parser.members))
+    print(len(parser.records))
+    print(parser.records[3].header.bytes)
+```
+
 ### Utility functions
 
-For other use cases, such as extracting WARCs from a gzipped WACZ file, you may wish to use WARCbench's utility functions:
+For other use cases, such as extracting and working with WARCs in WACZ file, you may wish to use WARCbench's utility functions:
 
 ```python
 from warcbench import WARCParser
 from warcbench.utils import python_open_archive, system_open_archive
 
 # Slower: uses Python zip/gzip to decompress
-with python_open_archive('example.com.wacz') as warc_file:
+with python_open_archive('example.com.wacz') as warcgz_file:
+    parser = WARCGZParser(warcgz_file)
+
+with python_open_archive('example.com.wacz', gunzip=True) as warc_file:
     parser = WARCParser(warc_file)
 
-# Faster: uses system zip/gzip to decompress
-with system_open_archive('example.com.wacz') as warc_file:
+# Faster: uses system zip/gzip to decompress where possible
+with system_open_archive('example.com.wacz') as warcgz_file:
+    parser = WARCGZParser(warcgz_file)
+
+with system_open_archive('example.com.wacz', gunzip=True) as warc_file:
     parser = WARCParser(warc_file)
 ```
 
@@ -151,18 +185,34 @@ WARCbench includes several additional mechanisms for wrangling WARC records: fil
 
 #### Filters
 
-**Filters** are functions that include or exclude a WARC record based on a given condition. You can pass in any function that accepts a `warcbench.models.Record` as its sole argument and returns a Boolean value. (A number of built-in filters are included in the `warcbench.filters` module.) Example:
+**Record Filters** are functions that include or exclude a WARC record based on a given condition. You can pass in any function that accepts a `warcbench.models.Record` as its sole argument and returns a Boolean value. (A number of built-in filters are included in the `warcbench.filters` module.) Example:
 
 ```python
-from warcbench import WARCParser
+from warcbench import WARCGZParser
 from warcbench.filters import warc_named_field_filter
 from warcbench.utils import system_open_archive
 
-with system_open_archive('example.com.wacz') as warc_file:
-    parser = WARCParser(
-        warc_file,
+with system_open_archive('example.com.wacz') as warcgz_file:
+    parser = WARCGZParser(
+        warcgz_file,
         record_filters=[
             warc_named_field_filter('type', 'request'),
+        ]
+    )
+```
+
+**Member Filters** (only supported when using the WARCGZParser) behave just like record filters, except they work with `warcbench.models.GzippedMember` objects instead of `Record`s. Example:
+
+```python
+from warcbench import WARCGZParser
+from warcbench.utils import system_open_archive
+
+with system_open_archive('example.com.wacz') as warcgz_file:
+    parser = WARCGZParser(
+        warcgz_file,
+        member_filters=[
+            # only yield malformed members
+            lambda member: bool(member.uncompressed_non_warc_data),
         ]
     )
 ```
@@ -176,7 +226,7 @@ from warcbench import WARCParser
 from warcbench.record_handlers import get_record_offsets
 from warcbench.utils import system_open_archive
 
-with system_open_archive('example.com.wacz') as warc_file:
+with system_open_archive('example.com.warc') as warc_file:
     parser = WARCParser(
         warc_file,
         record_handlers=[
@@ -202,7 +252,7 @@ with system_open_archive('example.com.wacz') as warc_file:
 
 #### Callbacks
 
-**Callbacks** are functions that run after the WARCbench parser finishes parsing a WARC file. A callback can be any function that accepts a `warcbench.WARCParser` object as its sole argument. You could use a callback to print the number of records parsed, write the records out to disk, pass the full set of records over to another function, and so on.
+**Callbacks** are functions that run after the WARCbench parser finishes parsing a WARC file. A callback can be any function that accepts a `warcbench.WARCParser` or `warcbench.WARCGZParser` object as its sole argument. You could use a callback to print the number of records parsed, write the records out to disk, pass the full set of records over to another function, and so on.
 
 #### Combining filters, handlers, and callbacks
 
@@ -227,9 +277,9 @@ def combo_filter(record):
         http_status_filter(200)(record)
     )
 
-with system_open_archive('example.com.wacz') as warc_file:
-    parser = WARCParser(
-        warc_file,
+with system_open_archive('example.com.wacz') as warcgz_file:
+    parser = WARCGZParser(
+        warcgz_file,
         record_filters=[
             combo_filter,
             record_content_length_filter('2056', 'le'),
@@ -242,6 +292,8 @@ with system_open_archive('example.com.wacz') as warc_file:
 WARCbench supports a number of configuration options:
 
 - You can parse a WARC file by reading the WARC record headers' `Content-Length` fields (faster), or by scanning and splitting on the delimiter expected between WARC records (slower; may rarely detect false positives; more robust against mangled or broken WARCs).
+
+- You can parse a gzipped WARC file by reading and parsing the file member by member (much slower; simpler), or by gunzipping the entire file while making note of member/record boundaries, and then further processing the bytes of the decompressed records (much faster; may use more disk space).
 
 - You can choose whether or not to attempt to split WARC records into headers and content blocks.
 

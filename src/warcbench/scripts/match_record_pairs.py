@@ -5,7 +5,7 @@ import json
 from warcbench.scripts.utils import open_and_invoke
 
 
-@click.command()
+@click.command(short_help="Match requests/responses into pairs.")
 @click.argument(
     "filepath",
     type=click.Path(exists=True, readable=True, allow_dash=True, dir_okay=False),
@@ -51,7 +51,7 @@ def match_record_pairs(
     include_file_protocol_target_uri,
 ):
     """
-    Attempt to match WARC requests records with response records.
+    Attempt to match WARC request records with response records.
     """
     #
     # Handle options

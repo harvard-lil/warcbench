@@ -9,14 +9,14 @@ from warcbench.scripts.utils import open_and_parse
 from warcbench.utils import find_pattern_in_bytes
 
 
-@click.command()
+@click.command(short_help="Summarize the contents of an archive.")
 @click.argument(
     "filepath",
     type=click.Path(exists=True, readable=True, allow_dash=True, dir_okay=False),
 )
 @click.pass_context
 def summarize(ctx, filepath):
-    """Summarizes the contents of an archive, and reports warning and error messages."""
+    """Summarize the contents of an archive, and reports warning and error messages."""
     ctx.obj["FILEPATH"] = filepath
 
     summary_data = {

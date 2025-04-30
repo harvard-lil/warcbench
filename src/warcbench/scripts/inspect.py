@@ -11,7 +11,7 @@ from warcbench.record_handlers import (
 from warcbench.scripts.utils import open_and_parse, format_record_data_for_output
 
 
-@click.command()
+@click.command(short_help="Get detailed record metadata.")
 @click.argument(
     "filepath",
     type=click.Path(exists=True, readable=True, allow_dash=True, dir_okay=False),
@@ -49,7 +49,7 @@ def inspect(
     record_headers,
     record_http_headers,
 ):
-    """Get metadata describing an archive's records."""
+    """Get detailed metadata describing an archive's records."""
     #
     # Handle options
     #

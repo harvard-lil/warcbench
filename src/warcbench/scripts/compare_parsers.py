@@ -6,7 +6,7 @@ from warcbench import WARCParser, WARCGZParser
 from warcbench.utils import FileType, python_open_archive, system_open_archive
 
 
-@click.command()
+@click.command(short_help='Compare all available parsing strategies.')
 @click.argument(
     "filepath",
     type=click.Path(exists=True, readable=True, allow_dash=True, dir_okay=False),

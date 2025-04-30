@@ -36,7 +36,7 @@ class PathOrStdout(click.Path):
         return super().convert(value, param, ctx)  # Otherwise, use the default behavior
 
 
-@click.command()
+@click.command(short_help='Filter records; optionally extract to a new archive.')
 @click.argument(
     "filepath",
     type=click.Path(exists=True, readable=True, allow_dash=True, dir_okay=False),
@@ -171,7 +171,9 @@ def filter_records(
     extract_summary_to,
     custom_record_handler_path,
 ):
-    """"""
+    """
+
+    """
     ctx.obj["FILEPATH"] = filepath
 
     #

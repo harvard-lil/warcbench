@@ -26,10 +26,10 @@ To install WARCbench, use Pip:
 
 ```sh
 # Using HTTPS...
-pip install git+https://github.com/rebeccacremona/warcbench.git
+pip install git+https://github.com/harvard-lil/warcbench.git
 
 # ...or SSH:
-pip install git+ssh://git@github.com/rebeccacremona/warcbench.git
+pip install git+ssh://git@github.com/harvard-lil/warcbench.git
 ```
 
 Once WARCbench is installed, you may run it on the command line...

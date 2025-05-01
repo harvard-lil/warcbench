@@ -14,8 +14,9 @@ from warcbench.scripts.summarize import summarize
     "--out",
     type=click.Choice(["raw", "json"], case_sensitive=False),
     default="raw",
+    help="Format subcommand output as a human-readable report (raw) or as JSON."
 )
-@click.option("-v", "--verbose", count=True, help="Verbosity; repeatable")
+@click.option("-v", "--verbose", count=True, help="Logging verbosity; repeatable.")
 @click.option(
     "-d",
     "--decompression",

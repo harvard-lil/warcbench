@@ -98,6 +98,91 @@ To view a complete summary of WARCbench commands and options, invoke the `--help
 user@host~$ wb --help
 
 Usage: wb [OPTIONS] COMMAND [ARGS]...
+
+  WARCbench command framework
+
+Options:
+  -o, --out [raw|json]            Format subcommand output as a human-readable
+                                  report (raw) or as JSON.
+  -v, --verbose                   Logging verbosity; repeatable.
+  -d, --decompression [python|system]
+                                  Use native Python or system tools for
+                                  extracting archives.  [default: python]
+  --gunzip / --no-gunzip          Gunzip the input archive before parsing, if
+                                  it is gzipped.  [default: no-gunzip]
+  -V, --version                   Show the version and exit.
+  -h, --help                      Show this message and exit.
+
+Commands:
+  compare-parsers     Compare all available parsing strategies.
+  extract             Extract files of MIMETYPE to disk.
+  filter-records      Filter records; optionally extract to a new archive.
+  inspect             Get detailed record metadata.
+  match-record-pairs  Match requests/responses into pairs.
+  summarize           Summarize the contents of an archive.
+...
+```
+
+Each subcommand has its own, more-detailed `--help` text. For example, `filter-records`:
+
+```console
+
+user@host~$ wb filter-records --help
+
+Usage: wb filter-records [OPTIONS] FILEPATH
+
+  Applies the specified filters (if any) to the archive's records. If no
+  filters are specified, all WARC records are considered to match.
+
+  By default, outputs the number of matching records. Use the `--output-*`
+  options to include more detailed information about matching records, or
+  `--no-output-count` to suppress the count.
+
+  Can also extract the matching records to a new WARC file (`--extract-to-
+  warc`, `--extract-to-gzipped-warc`). To ensure the new WARC includes a
+  `WARC-Type: warcinfo` record (if present in the original), even if it would
+  otherwise be filtered out by any applied filters, run with `--force-include-
+  warcinfo`.
+
+  If extracting records to a new WARC file, by default, no other output is
+  produced. To produce a summary report as well, run with `--extract-summary-
+  to`.
+
+  To apply your own, custom filters, use `--custom-filter-path` to specify the
+  path to a python file where the custom filter functions are listed, in
+  desired order of application, in `__all__`. See `tests/assets/custom-
+  filters.py` for an example. See the "Filters" section of the README for more
+  information on constructing filters.
+
+  This command also supports custom record handlers, which can be used to do
+  arbitrary work on records that pass through the supplied filters. For
+  example, you could use record handlers to construct a custom report, or
+  export records one-at-a-time to an upstream service. Use `--custom-record-
+  handler-path` to specify the path to a python file where the custom handler
+  functions are listed, in desired order of application, in `__all__`. See
+  `tests/assets/custom-handlers.py` for an example. See the "Handlers" section
+  of the README for more information on constructing handlers.
+
+  ---
+
+  Example:
+
+      $ wb filter-records --filter-by-warc-named-field Type response tests/assets/example.com.warc
+      Found 6 records.
+
+Options:
+  --filter-by-http-header TEXT...
+                                  Find records with WARC-Type: {request,
+                                  response} and look for the supplied HTTP
+                                  header name and value.
+  --filter-by-http-response-content-type TEXT
+                                  Find records with WARC-Type: response, and
+                                  then filters by Content-Type.
+  --filter-by-http-status-code INTEGER
+                                  Find records with WARC-Type: response, and
+                                  then filters by HTTP status code.
+  --filter-by-http-verb TEXT      Find records with WARC-Type: request, and
+                                  then filter by HTTP verb.
 ...
 ```
 

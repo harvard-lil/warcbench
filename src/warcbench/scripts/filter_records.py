@@ -36,7 +36,7 @@ class PathOrStdout(click.Path):
         return super().convert(value, param, ctx)  # Otherwise, use the default behavior
 
 
-@click.command(short_help='Filter records; optionally extract to a new archive.')
+@click.command(short_help="Filter records; optionally extract to a new archive.")
 @click.argument(
     "filepath",
     type=click.Path(exists=True, readable=True, allow_dash=True, dir_okay=False),
@@ -172,7 +172,44 @@ def filter_records(
     custom_record_handler_path,
 ):
     """
+    Applies the specified filters (if any) to the archive's records. If no filters
+    are specified, all WARC records are considered to match.
 
+    By default, outputs the number of matching records. Use the `--output-*`
+    options to include more detailed information about matching records, or
+    `--no-output-count` to suppress the count.
+
+    Can also extract the matching records to a new WARC file
+    (`--extract-to-warc`, `--extract-to-gzipped-warc`). To ensure the new
+    WARC includes a `WARC-Type: warcinfo` record (if present in the original),
+    even if it would otherwise be filtered out by any applied filters, run
+    with `--force-include-warcinfo`.
+
+    If extracting records to a new WARC file, by default, no other output
+    is produced. To produce a summary report as well, run with `--extract-summary-to`.
+
+    To apply your own, custom filters, use `--custom-filter-path` to specify the
+    path to a python file where the custom filter functions are listed, in desired
+    order of application, in `__all__`.
+    See `tests/assets/custom-filters.py` for an example.
+    See the "Filters" section of the README for more information on constructing filters.
+
+    This command also supports custom record handlers, which can be used to do arbitrary
+    work on records that pass through the supplied filters. For example, you could use
+    record handlers to construct a custom report, or export records one-at-a-time
+    to an upstream service.
+    Use `--custom-record-handler-path` to specify the path to a python file where the
+    custom handler functions are listed, in desired order of application, in `__all__`.
+    See `tests/assets/custom-handlers.py` for an example.
+    See the "Handlers" section of the README for more information on constructing handlers.
+
+    ---
+
+    Example:
+
+      \b
+      $ wb filter-records --filter-by-warc-named-field Type response tests/assets/example.com.warc
+      Found 6 records.
     """
     ctx.obj["FILEPATH"] = filepath
 

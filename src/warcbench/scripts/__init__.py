@@ -34,7 +34,7 @@ from warcbench.scripts.summarize import summarize
 @click.help_option("-h", "--help")
 @click.pass_context
 def cli(ctx, out, verbose, decompression, gunzip):
-    """WARCbench command framework, work in progress"""
+    """WARCbench command framework"""
     ctx.ensure_object(dict)
     ctx.obj["OUT"] = out
     ctx.obj["VERBOSE"] = verbose

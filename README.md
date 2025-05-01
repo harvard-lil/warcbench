@@ -158,7 +158,7 @@ with open('example.com.warc.gz', 'rb') as warcgz_file:
 
 ### Utility functions
 
-For other use cases, such as extracting and working with WARCs in WACZ file, you may wish to use WARCbench's utility functions:
+For other use cases, such as extracting and working with WARCs in a WACZ file, you may wish to use WARCbench's utility functions:
 
 ```python
 from warcbench import WARCParser

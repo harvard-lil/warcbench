@@ -92,6 +92,8 @@ WARC-Type: warcinfo
 ...
 ```
 
+All commands support `.warc`, `.warc.gz`, and `.wacz` file formats.
+
 To view a complete summary of WARCbench commands and options, invoke the `--help` flag:
 
 ```console

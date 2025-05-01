@@ -6,7 +6,7 @@ from warcbench import WARCParser, WARCGZParser
 from warcbench.utils import FileType, python_open_archive, system_open_archive
 
 
-@click.command(short_help='Compare all available parsing strategies.')
+@click.command(short_help="Compare all available parsing strategies.")
 @click.argument(
     "filepath",
     type=click.Path(exists=True, readable=True, allow_dash=True, dir_okay=False),
@@ -19,7 +19,12 @@ from warcbench.utils import FileType, python_open_archive, system_open_archive
 )
 @click.pass_context
 def compare_parsers(ctx, filepath, output_offsets):
-    """This parses a single WARC with all parsing strategies, and reports whether/how the results differ."""
+    """
+    This parses a single WARC with all parsing strategies, and reports whether
+    the results differ.
+
+    Run with `--output-offsets` to get more detail.
+    """
     ctx.obj["FILEPATH"] = filepath
     ctx.obj["OUTPUT_OFFSETS"] = output_offsets
 

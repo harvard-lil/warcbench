@@ -49,7 +49,43 @@ def inspect(
     record_headers,
     record_http_headers,
 ):
-    """Get detailed metadata describing an archive's records."""
+    """
+    Get detailed metadata describing an archive's records.
+    (Use `wb summarize` for a high-level summary.)
+
+    Output can be quite verbose and should be adapted to suit your purposes.
+    The default report includes all available metadata; use the options to
+    suppress unwanted information.
+
+    ---
+
+    Example:
+
+      \b
+      $ wb inspect example.com.warc.gz
+
+      \b
+      Member bytes 0-237
+
+      \b
+      Record bytes 0-280
+
+      \b
+      WARC/1.1
+      WARC-Filename: archive.warc
+      WARC-Date: 2024-11-04T19:10:55.900Z
+      WARC-Type: warcinfo
+      WARC-Record-ID: <urn:uuid:a6fd8346-f170-497b-9e26-47a5bde6d86c>
+      Content-Type: application/warc-fields
+      Content-Length: 57
+
+      \b
+      ----------------------------------------
+      Member bytes 237-876
+
+      \b
+      (etc.)
+    """
     #
     # Handle options
     #

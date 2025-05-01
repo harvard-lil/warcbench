@@ -14,7 +14,7 @@ from warcbench.scripts.utils import open_and_invoke
     "--output-summary-by-uri/--no-output-summary-by-uri",
     default=True,
     show_default=True,
-    help="Include detailed metadata about records in output.",
+    help="Include a summary of how many pairs and lone records were found for each URI.",
 )
 @click.option(
     "--output-record-details/--no-output-record-details",
@@ -23,16 +23,16 @@ from warcbench.scripts.utils import open_and_invoke
     help="Include detailed metadata about records in output.",
 )
 @click.option(
-    "--include-http-headers/--no-include-http-headers",
+    "--output-http-headers/--no-output-http-headers",
     default=False,
     show_default=True,
     help="Include http headers with record metadata in output.",
 )
 @click.option(
-    "--include-pairs/--exclude-pairs",
+    "--include-pair-details/--exclude-pair-details",
     default=False,
     show_default=True,
-    help="Include metadata about matched request/response pairs in output.",
+    help="Include information about matched request/response pairs in output, if output includes record details or http headers.",
 )
 @click.option(
     "--include-file-protocol-target-uri/--no-include-file-protocol-target-uri",
@@ -46,12 +46,66 @@ def match_record_pairs(
     filepath,
     output_summary_by_uri,
     output_record_details,
-    include_http_headers,
-    include_pairs,
+    output_http_headers,
+    include_pair_details,
     include_file_protocol_target_uri,
 ):
     """
-    Attempt to match WARC request records with response records.
+    Attempts to match WARC request records with response records and generates
+    a report on the results.
+
+    Requests and responses are paired by WARC-Target-URI; records with the nearest
+    proximity in the WARC file are grouped together, which is not guaranteed to
+    be correct.
+
+    Output can be quite verbose and should be adapted to suit your purposes.
+
+    For the highest-level, least-detailed report, run with `--no-output-summary-by-uri`.
+
+    To ignore records whose WARC-Target-URI specifies the `file:///` protocol
+    (which are often not expected to belong to a matched request/response pair),
+    run with `--no-include-file-protocol-target-uri`.
+
+    To include more metadata about the records, run with `--output-record-details`
+    (WARC headers, offsets, etc.) and/or `--output-http-headers`.
+
+    To included information on pairs, not just lone records, when outputting record
+    details or http headers, run with `--include-pair-details`.
+
+    So, for the most-detailed report, run:
+    `wb match-record-pairs --output-record-details --output-http-headers --include-pair-details`.
+
+    ---
+
+    Example:
+
+      \b
+      $ wb match-record-pairs cnn.com.wacz
+
+      \b
+      #
+      # SUMMARY
+      #
+
+      \b
+      Sets of matched requests/responses: 1043
+      Requests without responses: 0
+      Responses without requests: 0
+
+      \b
+      #
+      # SUMMARY BY URI
+      #
+
+      \b
+      http://cnn.com/
+      Pairs: 1
+
+      \b
+      https://189a226af4173e3b4dabb12e12e5d250.safeframe.googlesyndication.com/safeframe/1-0-41/html/container.html
+      Pairs: 2
+
+      (etc.)
     """
     #
     # Handle options
@@ -59,16 +113,16 @@ def match_record_pairs(
     ctx.obj["FILEPATH"] = filepath
     ctx.obj["OUTPUT_SUMMARY_BY_URI"] = output_summary_by_uri
     ctx.obj["OUTPUT_RECORD_METADATA"] = output_record_details
-    ctx.obj["INCLUDE_HTTP_HEADERS"] = include_http_headers
-    ctx.obj["INCLUDE_PAIRS"] = include_pairs
+    ctx.obj["OUTPUT_HTTP_HEADERS"] = output_http_headers
+    ctx.obj["INCLUDE_PAIR_DETAILS"] = include_pair_details
     ctx.obj["INCLUDE_FILE_PROTOCOL_TARGET_URI"] = include_file_protocol_target_uri
 
-    if not ctx.obj["OUTPUT_RECORD_METADATA"] and ctx.obj["INCLUDE_HTTP_HEADERS"]:
+    if not ctx.obj["OUTPUT_RECORD_METADATA"] and ctx.obj["OUTPUT_HTTP_HEADERS"]:
         raise click.ClickException(
             "Please pass --output-record-metadata together with --include-http-headers."
         )
 
-    if not ctx.obj["OUTPUT_RECORD_METADATA"] and ctx.obj["INCLUDE_PAIRS"]:
+    if not ctx.obj["OUTPUT_RECORD_METADATA"] and ctx.obj["INCLUDE_PAIR_DETAILS"]:
         raise click.ClickException(
             "Please pass --output-record-metadata together with --include-pairs."
         )
@@ -96,7 +150,7 @@ def match_record_pairs(
         extra_parser_kwargs={
             "cache_header_bytes": True,
             "cache_parsed_headers": True,
-            "cache_content_block_bytes": ctx.obj["INCLUDE_HTTP_HEADERS"],
+            "cache_content_block_bytes": ctx.obj["OUTPUT_HTTP_HEADERS"],
         },
     )
 
@@ -132,7 +186,7 @@ def match_record_pairs(
             "offsets": [record.start, record.end],
             "warc_record_headers": record.header.get_parsed_fields(decode=True),
         }
-        if ctx.obj["INCLUDE_HTTP_HEADERS"]:
+        if ctx.obj["OUTPUT_HTTP_HEADERS"]:
             header_bytes = record.get_http_header_block()
             header_str = header_bytes.decode("utf-8", errors="replace")
             formatted_record["http_headers"] = [
@@ -148,7 +202,7 @@ def match_record_pairs(
             uri_strs = decode_uri_bytes(uri_bytes)
             key = add_uri_to_output(uri_strs)
             pairs = [format_record_pair(pair) for pair in record_pair_list]
-            if ctx.obj["INCLUDE_PAIRS"]:
+            if ctx.obj["INCLUDE_PAIR_DETAILS"]:
                 data["by_uri"][key]["record_pairs"] = pairs
             data["by_uri"][key]["count_pairs"] = len(pairs)
 
@@ -214,7 +268,7 @@ def match_record_pairs(
         if ctx.obj["OUTPUT_RECORD_METADATA"] and (
             data["counts"]["lone_requests"]
             or data["counts"]["lone_responses"]
-            or (data["counts"]["pairs"] and ctx.obj["INCLUDE_PAIRS"])
+            or (data["counts"]["pairs"] and ctx.obj["INCLUDE_PAIR_DETAILS"])
         ):
             click.echo("\n#\n# DETAILS BY URI\n#\n")
 
@@ -223,7 +277,7 @@ def match_record_pairs(
                 indent = "  "
 
                 if (
-                    not (ctx.obj["INCLUDE_PAIRS"] and info["count_pairs"])
+                    not (ctx.obj["INCLUDE_PAIR_DETAILS"] and info["count_pairs"])
                     and not info["count_lone_requests"]
                     and not info["count_lone_responses"]
                 ):
@@ -233,7 +287,7 @@ def match_record_pairs(
                 click.echo(f"{uri}")
                 click.echo(f"{'-' * 40}\n")
 
-                if info["count_pairs"] and ctx.obj["INCLUDE_PAIRS"]:
+                if info["count_pairs"] and ctx.obj["INCLUDE_PAIR_DETAILS"]:
                     for pair in info["record_pairs"]:
                         click.echo(f"{indent}PAIR:")
                         for record in pair:
@@ -246,7 +300,7 @@ def match_record_pairs(
                             output_record_headers(record)
                             click.echo()
 
-                            if ctx.obj["INCLUDE_HTTP_HEADERS"]:
+                            if ctx.obj["OUTPUT_HTTP_HEADERS"]:
                                 output_record_http_headers(record)
                                 click.echo()
 
@@ -262,7 +316,7 @@ def match_record_pairs(
                         output_record_headers(record)
                         click.echo()
 
-                        if ctx.obj["INCLUDE_HTTP_HEADERS"]:
+                        if ctx.obj["OUTPUT_HTTP_HEADERS"]:
                             output_record_http_headers(record)
                             click.echo()
 
@@ -278,7 +332,7 @@ def match_record_pairs(
                         output_record_headers(record)
                         click.echo()
 
-                        if ctx.obj["INCLUDE_HTTP_HEADERS"]:
+                        if ctx.obj["OUTPUT_HTTP_HEADERS"]:
                             output_record_http_headers(record)
                             click.echo()
 

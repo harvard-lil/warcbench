@@ -11,7 +11,7 @@ from warcbench.record_handlers import (
 from warcbench.scripts.utils import open_and_parse, format_record_data_for_output
 
 
-@click.command()
+@click.command(short_help="Get detailed record metadata.")
 @click.argument(
     "filepath",
     type=click.Path(exists=True, readable=True, allow_dash=True, dir_okay=False),
@@ -49,7 +49,43 @@ def inspect(
     record_headers,
     record_http_headers,
 ):
-    """Get metadata describing an archive's records."""
+    """
+    Get detailed metadata describing an archive's records.
+    (Use `wb summarize` for a high-level summary.)
+
+    Output can be quite verbose and should be adapted to suit your purposes.
+    The default report includes all available metadata; use the options to
+    suppress unwanted information.
+
+    ---
+
+    Example:
+
+      \b
+      $ wb inspect example.com.warc.gz
+
+      \b
+      Member bytes 0-237
+
+      \b
+      Record bytes 0-280
+
+      \b
+      WARC/1.1
+      WARC-Filename: archive.warc
+      WARC-Date: 2024-11-04T19:10:55.900Z
+      WARC-Type: warcinfo
+      WARC-Record-ID: <urn:uuid:a6fd8346-f170-497b-9e26-47a5bde6d86c>
+      Content-Type: application/warc-fields
+      Content-Length: 57
+
+      \b
+      ----------------------------------------
+      Member bytes 237-876
+
+      \b
+      (etc.)
+    """
     #
     # Handle options
     #

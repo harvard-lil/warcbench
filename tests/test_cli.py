@@ -277,8 +277,8 @@ def test_match_record_pairs(file_name, sample_match_pairs_json):
             "match-record-pairs",
             "--output-summary-by-uri",
             "--output-record-details",
-            "--include-pairs",
-            "--include-http-headers",
+            "--output-http-headers",
+            "--include-pair-details",
             f"tests/assets/{file_name}",
         ],
     )

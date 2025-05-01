@@ -12,10 +12,11 @@ from warcbench.scripts.summarize import summarize
 @click.option(
     "-o",
     "--out",
-    type=click.Choice(["raw", "json", "pprint"], case_sensitive=False),
+    type=click.Choice(["raw", "json"], case_sensitive=False),
     default="raw",
+    help="Format subcommand output as a human-readable report (raw) or as JSON.",
 )
-@click.option("-v", "--verbose", count=True, help="Verbosity; repeatable")
+@click.option("-v", "--verbose", count=True, help="Logging verbosity; repeatable.")
 @click.option(
     "-d",
     "--decompression",
@@ -34,7 +35,7 @@ from warcbench.scripts.summarize import summarize
 @click.help_option("-h", "--help")
 @click.pass_context
 def cli(ctx, out, verbose, decompression, gunzip):
-    """warcbench command framework, work in progress"""
+    """WARCbench command framework"""
     ctx.ensure_object(dict)
     ctx.obj["OUT"] = out
     ctx.obj["VERBOSE"] = verbose
@@ -50,13 +51,7 @@ cli.add_command(compare_parsers)
 cli.add_command(match_record_pairs)
 
 
-@cli.command()
-def extract_payload():
-    """Similar to `extract`, but accepts generic filtering options."""
-    raise click.ClickException("Not yet implemented")
-
-
-@cli.command()
-def filter():
-    """This could filter records to stdout, or write them into a file."""
-    raise click.ClickException("Not yet implemented")
+# @cli.command()
+# def compare():
+#     """Compare the contents of two archives."""
+#     raise click.ClickException("Not yet implemented")

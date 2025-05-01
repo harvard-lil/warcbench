@@ -5,7 +5,7 @@ from warcbench.filters import http_response_content_type_filter
 from warcbench.scripts.utils import extract_file, open_and_parse
 
 
-@click.command()
+@click.command(short_help="Extract files of MIMETYPE to disk.")
 @click.argument(
     "filepath",
     type=click.Path(exists=True, readable=True, allow_dash=True, dir_okay=False),

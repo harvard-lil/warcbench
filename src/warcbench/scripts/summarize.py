@@ -9,14 +9,40 @@ from warcbench.scripts.utils import open_and_parse
 from warcbench.utils import find_pattern_in_bytes
 
 
-@click.command()
+@click.command(short_help="Summarize the contents of an archive.")
 @click.argument(
     "filepath",
     type=click.Path(exists=True, readable=True, allow_dash=True, dir_okay=False),
 )
 @click.pass_context
 def summarize(ctx, filepath):
-    """Summarizes the contents of an archive, and reports warning and error messages."""
+    """
+    Summarizes the contents of an archive, and reports warning and error messages.
+    (Use `wb inspect` for more details.)
+
+    ---
+
+    Example:
+
+      \b
+      $ wb summarize example.com.warc
+
+      \b
+      Found 9 records.
+      WARC-Type: 1 warcinfo, 2 request, 6 response
+
+      \b
+      Found target URLs from 1 domain.
+      example.com
+
+      \b
+      Found 4 response content-types.
+      1 text/html; charset=UTF-8, 3 text/html, 1 image/png, 1 application/pdf
+
+      \b
+      Warnings: []
+      Error: None
+    """
     ctx.obj["FILEPATH"] = filepath
 
     summary_data = {

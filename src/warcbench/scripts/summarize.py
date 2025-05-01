@@ -18,6 +18,7 @@ from warcbench.utils import find_pattern_in_bytes
 def summarize(ctx, filepath):
     """
     Summarizes the contents of an archive, and reports warning and error messages.
+    (Use `wb inspect` for more details.)
 
     ---
 

@@ -16,7 +16,32 @@ from warcbench.utils import find_pattern_in_bytes
 )
 @click.pass_context
 def summarize(ctx, filepath):
-    """Summarize the contents of an archive, and reports warning and error messages."""
+    """
+    Summarizes the contents of an archive, and reports warning and error messages.
+
+    ---
+
+    Example:
+
+      \b
+      $ wb summarize example.com.warc
+
+      \b
+      Found 9 records.
+      WARC-Type: 1 warcinfo, 2 request, 6 response
+
+      \b
+      Found target URLs from 1 domain.
+      example.com
+
+      \b
+      Found 4 response content-types.
+      1 text/html; charset=UTF-8, 3 text/html, 1 image/png, 1 application/pdf
+
+      \b
+      Warnings: []
+      Error: None
+    """
     ctx.obj["FILEPATH"] = filepath
 
     summary_data = {

@@ -50,7 +50,7 @@ cli.add_command(compare_parsers)
 cli.add_command(match_record_pairs)
 
 
-@cli.command()
-def compare():
-    """Compare the contents of two archives."""
-    raise click.ClickException("Not yet implemented")
+# @cli.command()
+# def compare():
+#     """Compare the contents of two archives."""
+#     raise click.ClickException("Not yet implemented")

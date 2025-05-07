@@ -116,6 +116,7 @@ Options:
   -h, --help                      Show this message and exit.
 
 Commands:
+  compare-headers     Compare the record headers of two archives.
   compare-parsers     Compare all available parsing strategies.
   extract             Extract files of MIMETYPE to disk.
   filter-records      Filter records; optionally extract to a new archive.
@@ -233,7 +234,7 @@ with open('example.com.warc.gz', 'rb') as warcgz_file:
         print(record.start, record.length)
 
     # ... or over each gzipped member...
-    for member in parser.iterator():
+    for member in parser.iterator(yield_type="members"):
         print(member.start, member.length, member.record.bytes)
 
     # ...or parse the entire file and produce a list of all members and records

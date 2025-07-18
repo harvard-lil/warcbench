@@ -9,7 +9,6 @@ import requests
 from tempfile import NamedTemporaryFile
 import threading
 import time
-from unittest.mock import patch, MagicMock
 
 from warcbench.scripts import cli
 from warcbench.utils import decompress_and_get_gzip_file_member_offsets
@@ -712,4 +711,6 @@ def test_compare_headers_serve():
         stop_event.set()
         server_thread.join(timeout=3)
         if server_thread.is_alive():
-            warnings.warn(f"The server thread in test_compare_headers_serve did not stop.")
+            warnings.warn(
+                "The server thread in test_compare_headers_serve did not stop."
+            )

@@ -172,7 +172,9 @@ class BaseParser(ABC):
                 self.state = transition_func()
 
     def get_member_offsets(self, compressed):
-        members = self._members if self._members else self.iterator(yield_type="members")
+        members = (
+            self._members if self._members else self.iterator(yield_type="members")
+        )
         if compressed:
             return [(member.start, member.end) for member in members]
         return [

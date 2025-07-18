@@ -263,6 +263,6 @@ def expected_custom_filter_results():
 
 @pytest.fixture
 def complete_compare_headers_json(assets_path: Path):
-    filepath = assets_path / f"compare-headers.json"
+    filepath = assets_path / "compare-headers.json"
     with filepath.open("r") as json_file:
         return json.loads(json_file.read())

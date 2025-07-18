@@ -161,6 +161,15 @@ def format_record_data_for_output(data):
 
 
 def get_warc_response_handler(pairs, file1, file2):
+    """
+    Creates an HTTP request handler for initializing an instance of http.server.HTTPServer.
+
+    The server will serve:
+    - an index page, listing all the nearly-matching record pairs
+    - each record's contents (HTTP headers and body) re-assembled into a complete HTTP response
+    - a side-by-side comparison page for each pair, showing the record headers
+      and contents in iframes
+    """
     def get_warc_record_fields_as_html(record):
         data = bytearray()
         data.extend(b"<p>")
@@ -179,6 +188,9 @@ def get_warc_response_handler(pairs, file1, file2):
     class WARCResponseHandler(BaseHTTPRequestHandler):
         def do_GET(self):
             if self.path == "/":
+                #
+                # The index page
+                #
                 self.send_response(200)
                 self.send_header("Content-type", "text/html")
                 self.end_headers()
@@ -218,6 +230,7 @@ def get_warc_response_handler(pairs, file1, file2):
                 self.send_response(200)
                 self.send_header("Content-type", "image/png")
                 self.end_headers()
+
                 # This is a PNG of 🛠️
                 self.wfile.write(
                     base64.b64decode(
@@ -274,6 +287,9 @@ def get_warc_response_handler(pairs, file1, file2):
                 return
 
             elif self.path in self.pairs:
+                #
+                # The side-by-side comparison pages
+                #
                 _, record1, record2 = self.pairs[self.path]
 
                 self.send_response(200)
@@ -341,28 +357,41 @@ def get_warc_response_handler(pairs, file1, file2):
                 return
 
             elif self.path[:-2] in self.pairs:
+                #
+                # The WARC record's HTTP headers and body, re-assembled into an HTTP response
+                #
                 pair = self.pairs[self.path[:-2]]
                 record = pair[int(self.path[-2:-1])]
+
+                # The HTTP Headers
+
+                status = 200  # Default to 200, in case no HTTP status is successfully parsed in the record
+
                 header_lines = (
                     record.get_http_header_block()
                     .decode("utf-8", errors="replace")
                     .splitlines()
                 )
+
                 headers = []
-                status = 200
                 for line in header_lines:
                     split = line.split(":", 1)
                     if len(split) == 1:
+                        # Try to extract correct HTTP status from the record
                         if line.startswith("HTTP/1.1"):
                             match = re.search(r"HTTP/1.1\s*(\d*)", line)
                             if match:
                                 status = int(match.group(1))
                     else:
+                        # Add normal headers
                         headers.append((split[0], split[1].strip()))
+
                 self.send_response(status)
                 for header, value in headers:
                     self.send_header(header, value)
                 self.end_headers()
+
+                # The HTTP body
                 self.wfile.write(record.get_http_body_block())
                 return
 

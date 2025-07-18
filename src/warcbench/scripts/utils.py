@@ -170,6 +170,7 @@ def get_warc_response_handler(pairs, file1, file2):
     - a side-by-side comparison page for each pair, showing the record headers
       and contents in iframes
     """
+
     def get_warc_record_fields_as_html(record):
         data = bytearray()
         data.extend(b"<p>")

@@ -1,0 +1,746 @@
+{
+  "summary": {
+    "matching": 5,
+    "near_matching": 3,
+    "unique": {
+      "tests/assets/before.wacz": 0,
+      "tests/assets/after.wacz": 0
+    }
+  },
+  "matching": [
+    {
+      "tests/assets/before.wacz": {
+        "start": 2243,
+        "end": 3182,
+        "headers": {
+          "WARC/1.1": [
+            null
+          ],
+          "Scoop-Exchange-ID": [
+            "3c4927ad-f95e-4413-b1d9-21b4028a197c"
+          ],
+          "WARC-Target-URI": [
+            "http://perma.test:8999/favicon_meta.ico"
+          ],
+          "WARC-Date": [
+            "2025-04-23T20:26:19.030Z"
+          ],
+          "WARC-Type": [
+            "request"
+          ],
+          "WARC-Record-ID": [
+            "<urn:uuid:d12ca23d-22d7-4ce5-a2f1-afb04a20900f>"
+          ],
+          "Content-Type": [
+            "application/http; msgtype=request"
+          ],
+          "WARC-Payload-Digest": [
+            "sha256:e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+          ],
+          "WARC-Block-Digest": [
+            "sha256:83c99b0d083d1c6acf26b6c2961617d05597119a85b0721b10a58b8d4d139e54"
+          ],
+          "Content-Length": [
+            "434"
+          ]
+        }
+      },
+      "tests/assets/after.wacz": {
+        "start": 2243,
+        "end": 3182,
+        "headers": {
+          "WARC/1.1": [
+            null
+          ],
+          "Scoop-Exchange-ID": [
+            "05d74e38-1767-416a-b599-a5ddd7069d1c"
+          ],
+          "WARC-Target-URI": [
+            "http://perma.test:8999/favicon_meta.ico"
+          ],
+          "WARC-Date": [
+            "2025-04-23T19:18:09.883Z"
+          ],
+          "WARC-Type": [
+            "request"
+          ],
+          "WARC-Record-ID": [
+            "<urn:uuid:ddbcf0b6-57b0-45de-83e3-66253409da56>"
+          ],
+          "Content-Type": [
+            "application/http; msgtype=request"
+          ],
+          "WARC-Payload-Digest": [
+            "sha256:e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+          ],
+          "WARC-Block-Digest": [
+            "sha256:845dd45d6dee5b729514f3616a04d6f86a8563cb3b62ca3f0c66f08cbb447628"
+          ],
+          "Content-Length": [
+            "434"
+          ]
+        }
+      }
+    },
+    {
+      "tests/assets/before.wacz": {
+        "start": 284,
+        "end": 1267,
+        "headers": {
+          "WARC/1.1": [
+            null
+          ],
+          "Scoop-Exchange-ID": [
+            "a3aa8bfd-6acd-47c5-a233-b8ba0e8e9910"
+          ],
+          "WARC-Target-URI": [
+            "http://perma.test:8999/test.html"
+          ],
+          "WARC-Date": [
+            "2025-04-23T20:26:19.003Z"
+          ],
+          "WARC-Type": [
+            "request"
+          ],
+          "WARC-Record-ID": [
+            "<urn:uuid:43bc476e-43fa-40cb-b173-9964ce552cb4>"
+          ],
+          "Content-Type": [
+            "application/http; msgtype=request"
+          ],
+          "WARC-Payload-Digest": [
+            "sha256:e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+          ],
+          "WARC-Block-Digest": [
+            "sha256:49ab79f6c626e0568f52a4877e69a88ea575a51f8ddc9217945d1d343d71740e"
+          ],
+          "Content-Length": [
+            "485"
+          ]
+        }
+      },
+      "tests/assets/after.wacz": {
+        "start": 284,
+        "end": 1267,
+        "headers": {
+          "WARC/1.1": [
+            null
+          ],
+          "Scoop-Exchange-ID": [
+            "322ff3a6-7420-43d1-831d-787017e0b8ab"
+          ],
+          "WARC-Target-URI": [
+            "http://perma.test:8999/test.html"
+          ],
+          "WARC-Date": [
+            "2025-04-23T19:18:09.861Z"
+          ],
+          "WARC-Type": [
+            "request"
+          ],
+          "WARC-Record-ID": [
+            "<urn:uuid:0f699908-b393-4176-9ec6-70d916c3ed50>"
+          ],
+          "Content-Type": [
+            "application/http; msgtype=request"
+          ],
+          "WARC-Payload-Digest": [
+            "sha256:e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+          ],
+          "WARC-Block-Digest": [
+            "sha256:5f34d1611400fabf45840e95e786c33b7797b4017763722075ad4347b4a91f80"
+          ],
+          "Content-Length": [
+            "485"
+          ]
+        }
+      }
+    },
+    {
+      "tests/assets/before.wacz": {
+        "start": 13564,
+        "end": 14565,
+        "headers": {
+          "WARC/1.1": [
+            null
+          ],
+          "Scoop-Exchange-ID": [
+            "24d9971c-3af1-44b3-b3ed-dc0146cc827c"
+          ],
+          "WARC-Refers-To-Target-URI": [
+            "http://perma.test:8999/test.html"
+          ],
+          "Scoop-Exchange-Description": [
+            "Capture Time DOM Snapshot of http://perma.test:8999/test.html"
+          ],
+          "WARC-Target-URI": [
+            "file:///dom-snapshot.html"
+          ],
+          "WARC-Date": [
+            "2025-04-23T20:26:19.644Z"
+          ],
+          "WARC-Type": [
+            "response"
+          ],
+          "WARC-Record-ID": [
+            "<urn:uuid:f9e91bd0-8798-4a9a-a9a7-cd3827d007a4>"
+          ],
+          "Content-Type": [
+            "application/http; msgtype=response"
+          ],
+          "WARC-Payload-Digest": [
+            "sha256:f6e2a577eb95fb2d020517a79bbb8467875f884825cb8a5b67991788af2834f7"
+          ],
+          "WARC-Block-Digest": [
+            "sha256:5158821407c4ed426d5a7398bdce38cdd269886fc8558768bf7d80aa1a5d00ba"
+          ],
+          "Content-Length": [
+            "356"
+          ]
+        }
+      },
+      "tests/assets/after.wacz": {
+        "start": 13586,
+        "end": 14587,
+        "headers": {
+          "WARC/1.1": [
+            null
+          ],
+          "Scoop-Exchange-ID": [
+            "f7d666cb-6e5b-4a33-9f7e-762e597c5a7e"
+          ],
+          "WARC-Refers-To-Target-URI": [
+            "http://perma.test:8999/test.html"
+          ],
+          "Scoop-Exchange-Description": [
+            "Capture Time DOM Snapshot of http://perma.test:8999/test.html"
+          ],
+          "WARC-Target-URI": [
+            "file:///dom-snapshot.html"
+          ],
+          "WARC-Date": [
+            "2025-04-23T19:18:10.500Z"
+          ],
+          "WARC-Type": [
+            "response"
+          ],
+          "WARC-Record-ID": [
+            "<urn:uuid:554fe14a-05eb-4f70-a36b-4a933efd7419>"
+          ],
+          "Content-Type": [
+            "application/http; msgtype=response"
+          ],
+          "WARC-Payload-Digest": [
+            "sha256:f6e2a577eb95fb2d020517a79bbb8467875f884825cb8a5b67991788af2834f7"
+          ],
+          "WARC-Block-Digest": [
+            "sha256:5158821407c4ed426d5a7398bdce38cdd269886fc8558768bf7d80aa1a5d00ba"
+          ],
+          "Content-Length": [
+            "356"
+          ]
+        }
+      }
+    },
+    {
+      "tests/assets/before.wacz": {
+        "start": 3186,
+        "end": 5046,
+        "headers": {
+          "WARC/1.1": [
+            null
+          ],
+          "Scoop-Exchange-ID": [
+            "3c4927ad-f95e-4413-b1d9-21b4028a197c"
+          ],
+          "WARC-Target-URI": [
+            "http://perma.test:8999/favicon_meta.ico"
+          ],
+          "WARC-Date": [
+            "2025-04-23T20:26:19.030Z"
+          ],
+          "WARC-Type": [
+            "response"
+          ],
+          "WARC-Record-ID": [
+            "<urn:uuid:593dd565-a377-4840-95b1-390745e84267>"
+          ],
+          "Content-Type": [
+            "application/http; msgtype=response"
+          ],
+          "WARC-Payload-Digest": [
+            "sha256:1824e2a9cc9f7430cd37c5efd2486ae440c33fc0bbfba8bd6a7dfa35d799bc37"
+          ],
+          "WARC-Block-Digest": [
+            "sha256:94c048de7a0112f02d7dce0102edee2d03d9e1f949622ec80071ce53b48be1de"
+          ],
+          "Content-Length": [
+            "1352"
+          ]
+        }
+      },
+      "tests/assets/after.wacz": {
+        "start": 3186,
+        "end": 5046,
+        "headers": {
+          "WARC/1.1": [
+            null
+          ],
+          "Scoop-Exchange-ID": [
+            "05d74e38-1767-416a-b599-a5ddd7069d1c"
+          ],
+          "WARC-Target-URI": [
+            "http://perma.test:8999/favicon_meta.ico"
+          ],
+          "WARC-Date": [
+            "2025-04-23T19:18:09.883Z"
+          ],
+          "WARC-Type": [
+            "response"
+          ],
+          "WARC-Record-ID": [
+            "<urn:uuid:3b6d43df-0f18-4469-b355-b26657d7ece7>"
+          ],
+          "Content-Type": [
+            "application/http; msgtype=response"
+          ],
+          "WARC-Payload-Digest": [
+            "sha256:1824e2a9cc9f7430cd37c5efd2486ae440c33fc0bbfba8bd6a7dfa35d799bc37"
+          ],
+          "WARC-Block-Digest": [
+            "sha256:24d92241d07a9b5847a548d9f87097159d4e3658ceeb9d747d836a2d6f46cb76"
+          ],
+          "Content-Length": [
+            "1352"
+          ]
+        }
+      }
+    },
+    {
+      "tests/assets/before.wacz": {
+        "start": 1271,
+        "end": 2239,
+        "headers": {
+          "WARC/1.1": [
+            null
+          ],
+          "Scoop-Exchange-ID": [
+            "a3aa8bfd-6acd-47c5-a233-b8ba0e8e9910"
+          ],
+          "WARC-Target-URI": [
+            "http://perma.test:8999/test.html"
+          ],
+          "WARC-Date": [
+            "2025-04-23T20:26:19.003Z"
+          ],
+          "WARC-Type": [
+            "response"
+          ],
+          "WARC-Record-ID": [
+            "<urn:uuid:0cb15005-57f4-45ea-82fc-8a0e3e6f304c>"
+          ],
+          "Content-Type": [
+            "application/http; msgtype=response"
+          ],
+          "WARC-Payload-Digest": [
+            "sha256:a61fa038e9609718445a26929d2cc8309571be8892c78725079724dd5b65f4b0"
+          ],
+          "WARC-Block-Digest": [
+            "sha256:a94d921829103713e0b56b7ff7646bce51e1b8faab6d77fa8c71ca526840d1cb"
+          ],
+          "Content-Length": [
+            "468"
+          ]
+        }
+      },
+      "tests/assets/after.wacz": {
+        "start": 1271,
+        "end": 2239,
+        "headers": {
+          "WARC/1.1": [
+            null
+          ],
+          "Scoop-Exchange-ID": [
+            "322ff3a6-7420-43d1-831d-787017e0b8ab"
+          ],
+          "WARC-Target-URI": [
+            "http://perma.test:8999/test.html"
+          ],
+          "WARC-Date": [
+            "2025-04-23T19:18:09.861Z"
+          ],
+          "WARC-Type": [
+            "response"
+          ],
+          "WARC-Record-ID": [
+            "<urn:uuid:cc811828-6c8e-4cf6-8cd1-2a8a66ba646c>"
+          ],
+          "Content-Type": [
+            "application/http; msgtype=response"
+          ],
+          "WARC-Payload-Digest": [
+            "sha256:a61fa038e9609718445a26929d2cc8309571be8892c78725079724dd5b65f4b0"
+          ],
+          "WARC-Block-Digest": [
+            "sha256:f9f2de536ba5809d458b5e74595ec71dd27290e574c065ad2433c576667ba2dc"
+          ],
+          "Content-Length": [
+            "468"
+          ]
+        }
+      }
+    }
+  ],
+  "near_matching": [
+    {
+      "tests/assets/before.wacz": {
+        "start": 14569,
+        "end": 22859,
+        "headers": {
+          "WARC/1.1": [
+            null
+          ],
+          "Scoop-Exchange-ID": [
+            "77887b6b-cb41-4114-859f-4dd08273af36"
+          ],
+          "WARC-Refers-To-Target-URI": [
+            "http://perma.test:8999/test.html"
+          ],
+          "Scoop-Exchange-Description": [
+            "Capture Time PDF Snapshot of http://perma.test:8999/test.html"
+          ],
+          "WARC-Target-URI": [
+            "file:///pdf-snapshot.pdf"
+          ],
+          "WARC-Date": [
+            "2025-04-23T20:26:19.662Z"
+          ],
+          "WARC-Type": [
+            "response"
+          ],
+          "WARC-Record-ID": [
+            "<urn:uuid:e227c213-9eb0-40c6-9275-8b3d3e8899ff>"
+          ],
+          "Content-Type": [
+            "application/http; msgtype=response"
+          ],
+          "WARC-Payload-Digest": [
+            "sha256:ae7376e88f5bad4ef0546ce3c72b093727013fe386e7856a72aab8c266b38624"
+          ],
+          "WARC-Block-Digest": [
+            "sha256:16c5646a1128b7cb38e3b95767f52ab869d112da53131b7b662b68542606e168"
+          ],
+          "Content-Length": [
+            "7645"
+          ]
+        }
+      },
+      "tests/assets/after.wacz": {
+        "start": 14591,
+        "end": 22996,
+        "headers": {
+          "WARC/1.1": [
+            null
+          ],
+          "Scoop-Exchange-ID": [
+            "6f40ead2-bf5e-406a-a3c3-ab64fe1a101b"
+          ],
+          "WARC-Refers-To-Target-URI": [
+            "http://perma.test:8999/test.html"
+          ],
+          "Scoop-Exchange-Description": [
+            "Capture Time PDF Snapshot of http://perma.test:8999/test.html"
+          ],
+          "WARC-Target-URI": [
+            "file:///pdf-snapshot.pdf"
+          ],
+          "WARC-Date": [
+            "2025-04-23T19:18:10.511Z"
+          ],
+          "WARC-Type": [
+            "response"
+          ],
+          "WARC-Record-ID": [
+            "<urn:uuid:68eb38b3-0a70-4525-802c-f13961b9af48>"
+          ],
+          "Content-Type": [
+            "application/http; msgtype=response"
+          ],
+          "WARC-Payload-Digest": [
+            "sha256:0d99e0d36cd8760f088fc4b8acfc25694617ac6bdc129cff61f0db9d3a772372"
+          ],
+          "WARC-Block-Digest": [
+            "sha256:9678f2d976865d3be772178e530bb4c3dc254c4afa0df7b8c8b7fd3d6e158e1a"
+          ],
+          "Content-Length": [
+            "7760"
+          ]
+        }
+      }
+    },
+    {
+      "tests/assets/before.wacz": {
+        "start": 22863,
+        "end": 29833,
+        "headers": {
+          "WARC/1.1": [
+            null
+          ],
+          "Scoop-Exchange-ID": [
+            "267289b5-e68e-443c-805b-f102dcc788ab"
+          ],
+          "WARC-Refers-To-Target-URI": [
+            "http://perma.test:8999/test.html"
+          ],
+          "Scoop-Exchange-Description": [
+            "Provenance Summary"
+          ],
+          "WARC-Target-URI": [
+            "file:///provenance-summary.html"
+          ],
+          "WARC-Date": [
+            "2025-04-23T20:26:22.032Z"
+          ],
+          "WARC-Type": [
+            "response"
+          ],
+          "WARC-Record-ID": [
+            "<urn:uuid:1a020aef-566c-460b-ac11-5809f7c8ccfd>"
+          ],
+          "Content-Type": [
+            "application/http; msgtype=response"
+          ],
+          "WARC-Payload-Digest": [
+            "sha256:01cb35a51f5c75c1a31da833555a155c319b475efde2b0d73005af27aa39cb9c"
+          ],
+          "WARC-Block-Digest": [
+            "sha256:0e024a0953fd89e01922c22dc099be85288fd4b9c738a1477e728fda8b9a4f72"
+          ],
+          "Content-Length": [
+            "6361"
+          ]
+        }
+      },
+      "tests/assets/after.wacz": {
+        "start": 23000,
+        "end": 29971,
+        "headers": {
+          "WARC/1.1": [
+            null
+          ],
+          "Scoop-Exchange-ID": [
+            "f144ad8c-301f-4f32-a80c-e105d0de8a45"
+          ],
+          "WARC-Refers-To-Target-URI": [
+            "http://perma.test:8999/test.html"
+          ],
+          "Scoop-Exchange-Description": [
+            "Provenance Summary"
+          ],
+          "WARC-Target-URI": [
+            "file:///provenance-summary.html"
+          ],
+          "WARC-Date": [
+            "2025-04-23T19:18:12.824Z"
+          ],
+          "WARC-Type": [
+            "response"
+          ],
+          "WARC-Record-ID": [
+            "<urn:uuid:f87abc01-4149-418f-a7df-efb6f02c3122>"
+          ],
+          "Content-Type": [
+            "application/http; msgtype=response"
+          ],
+          "WARC-Payload-Digest": [
+            "sha256:bb4fed482e1990b9f0a8046c1a25e444c0b35ffa93c6de66d79e7ca0ab37c086"
+          ],
+          "WARC-Block-Digest": [
+            "sha256:e6861518104598667c3b0ecdda1bedc5a7354961040201328d6f8f93114764d5"
+          ],
+          "Content-Length": [
+            "6362"
+          ]
+        }
+      }
+    },
+    {
+      "tests/assets/before.wacz": {
+        "start": 5050,
+        "end": 13560,
+        "headers": {
+          "WARC/1.1": [
+            null
+          ],
+          "Scoop-Exchange-ID": [
+            "f84f98d6-14b9-4e7b-b50a-507ae83fa2a3"
+          ],
+          "WARC-Refers-To-Target-URI": [
+            "http://perma.test:8999/test.html"
+          ],
+          "Scoop-Exchange-Description": [
+            "Capture Time Screenshot of http://perma.test:8999/test.html"
+          ],
+          "WARC-Target-URI": [
+            "file:///screenshot.png"
+          ],
+          "WARC-Date": [
+            "2025-04-23T20:26:19.642Z"
+          ],
+          "WARC-Type": [
+            "response"
+          ],
+          "WARC-Record-ID": [
+            "<urn:uuid:593d2a02-d2b5-4fca-b803-4118ce16d23a>"
+          ],
+          "Content-Type": [
+            "application/http; msgtype=response"
+          ],
+          "WARC-Payload-Digest": [
+            "sha256:c27502028a18ff105b4bbdea7f970fb8d74972d5eda8971c23a57746d17196a2"
+          ],
+          "WARC-Block-Digest": [
+            "sha256:33ea731f1d2fea8adec3fe41b02709efe14aae744bb03034a1ab51f1129ff5da"
+          ],
+          "Content-Length": [
+            "7869"
+          ]
+        }
+      },
+      "tests/assets/after.wacz": {
+        "start": 5050,
+        "end": 13582,
+        "headers": {
+          "WARC/1.1": [
+            null
+          ],
+          "Scoop-Exchange-ID": [
+            "c773fecb-ed41-4072-bcd2-3eef94bba0f3"
+          ],
+          "WARC-Refers-To-Target-URI": [
+            "http://perma.test:8999/test.html"
+          ],
+          "Scoop-Exchange-Description": [
+            "Capture Time Screenshot of http://perma.test:8999/test.html"
+          ],
+          "WARC-Target-URI": [
+            "file:///screenshot.png"
+          ],
+          "WARC-Date": [
+            "2025-04-23T19:18:10.499Z"
+          ],
+          "WARC-Type": [
+            "response"
+          ],
+          "WARC-Record-ID": [
+            "<urn:uuid:e66e00b7-1b86-4aed-8641-114984593dd3>"
+          ],
+          "Content-Type": [
+            "application/http; msgtype=response"
+          ],
+          "WARC-Payload-Digest": [
+            "sha256:e8eeb8b3e2f6918c294cf6ee9833fa98881f2324127900609384bbb75642ffa4"
+          ],
+          "WARC-Block-Digest": [
+            "sha256:fe10335389c87857a86121221baa7e3059df920c3740c8e08bc44182649957ab"
+          ],
+          "Content-Length": [
+            "7891"
+          ]
+        }
+      }
+    }
+  ],
+  "near_matching_header_diffs": [
+    [
+      "  WARC/1.1\r\n",
+      "- Scoop-Exchange-ID: 77887b6b-cb41-4114-859f-4dd08273af36\r\n",
+      "+ Scoop-Exchange-ID: 6f40ead2-bf5e-406a-a3c3-ab64fe1a101b\r\n",
+      "  WARC-Refers-To-Target-URI: http://perma.test:8999/test.html\r\n",
+      "  Scoop-Exchange-Description: Capture Time PDF Snapshot of http://perma.test:8999/test.html\r\n",
+      "  WARC-Target-URI: file:///pdf-snapshot.pdf\r\n",
+      "- WARC-Date: 2025-04-23T20:26:19.662Z\r\n",
+      "?                       ^^^^^  ^ ^^^\n",
+      "+ WARC-Date: 2025-04-23T19:18:10.511Z\r\n",
+      "?                       ^^  ^^^^ ^^^\n",
+      "  WARC-Type: response\r\n",
+      "- WARC-Record-ID: <urn:uuid:e227c213-9eb0-40c6-9275-8b3d3e8899ff>\r\n",
+      "+ WARC-Record-ID: <urn:uuid:68eb38b3-0a70-4525-802c-f13961b9af48>\r\n",
+      "  Content-Type: application/http; msgtype=response\r\n",
+      "- WARC-Payload-Digest: sha256:ae7376e88f5bad4ef0546ce3c72b093727013fe386e7856a72aab8c266b38624\r\n",
+      "- WARC-Block-Digest: sha256:16c5646a1128b7cb38e3b95767f52ab869d112da53131b7b662b68542606e168\r\n",
+      "+ WARC-Payload-Digest: sha256:0d99e0d36cd8760f088fc4b8acfc25694617ac6bdc129cff61f0db9d3a772372\r\n",
+      "+ WARC-Block-Digest: sha256:9678f2d976865d3be772178e530bb4c3dc254c4afa0df7b8c8b7fd3d6e158e1a\r\n",
+      "- Content-Length: 7645\r\n",
+      "?                   ^^\n",
+      "+ Content-Length: 7760\r\n",
+      "?                 +  ^\n"
+    ],
+    [
+      "  WARC/1.1\r\n",
+      "- Scoop-Exchange-ID: 267289b5-e68e-443c-805b-f102dcc788ab\r\n",
+      "+ Scoop-Exchange-ID: f144ad8c-301f-4f32-a80c-e105d0de8a45\r\n",
+      "  WARC-Refers-To-Target-URI: http://perma.test:8999/test.html\r\n",
+      "  Scoop-Exchange-Description: Provenance Summary\r\n",
+      "  WARC-Target-URI: file:///provenance-summary.html\r\n",
+      "- WARC-Date: 2025-04-23T20:26:22.032Z\r\n",
+      "?                       ^^ ^^ ^  ^^\n",
+      "+ WARC-Date: 2025-04-23T19:18:12.824Z\r\n",
+      "?                       ^^ ^^ ^  ^ +\n",
+      "  WARC-Type: response\r\n",
+      "- WARC-Record-ID: <urn:uuid:1a020aef-566c-460b-ac11-5809f7c8ccfd>\r\n",
+      "+ WARC-Record-ID: <urn:uuid:f87abc01-4149-418f-a7df-efb6f02c3122>\r\n",
+      "  Content-Type: application/http; msgtype=response\r\n",
+      "- WARC-Payload-Digest: sha256:01cb35a51f5c75c1a31da833555a155c319b475efde2b0d73005af27aa39cb9c\r\n",
+      "- WARC-Block-Digest: sha256:0e024a0953fd89e01922c22dc099be85288fd4b9c738a1477e728fda8b9a4f72\r\n",
+      "+ WARC-Payload-Digest: sha256:bb4fed482e1990b9f0a8046c1a25e444c0b35ffa93c6de66d79e7ca0ab37c086\r\n",
+      "+ WARC-Block-Digest: sha256:e6861518104598667c3b0ecdda1bedc5a7354961040201328d6f8f93114764d5\r\n",
+      "- Content-Length: 6361\r\n",
+      "?                    ^\n",
+      "+ Content-Length: 6362\r\n",
+      "?                    ^\n"
+    ],
+    [
+      "  WARC/1.1\r\n",
+      "- Scoop-Exchange-ID: f84f98d6-14b9-4e7b-b50a-507ae83fa2a3\r\n",
+      "+ Scoop-Exchange-ID: c773fecb-ed41-4072-bcd2-3eef94bba0f3\r\n",
+      "  WARC-Refers-To-Target-URI: http://perma.test:8999/test.html\r\n",
+      "  Scoop-Exchange-Description: Capture Time Screenshot of http://perma.test:8999/test.html\r\n",
+      "  WARC-Target-URI: file:///screenshot.png\r\n",
+      "- WARC-Date: 2025-04-23T20:26:19.642Z\r\n",
+      "?                       ^^^^^   ^^^^\n",
+      "+ WARC-Date: 2025-04-23T19:18:10.499Z\r\n",
+      "?                       ^^  ++++++ ^\n",
+      "  WARC-Type: response\r\n",
+      "- WARC-Record-ID: <urn:uuid:593d2a02-d2b5-4fca-b803-4118ce16d23a>\r\n",
+      "+ WARC-Record-ID: <urn:uuid:e66e00b7-1b86-4aed-8641-114984593dd3>\r\n",
+      "  Content-Type: application/http; msgtype=response\r\n",
+      "- WARC-Payload-Digest: sha256:c27502028a18ff105b4bbdea7f970fb8d74972d5eda8971c23a57746d17196a2\r\n",
+      "- WARC-Block-Digest: sha256:33ea731f1d2fea8adec3fe41b02709efe14aae744bb03034a1ab51f1129ff5da\r\n",
+      "+ WARC-Payload-Digest: sha256:e8eeb8b3e2f6918c294cf6ee9833fa98881f2324127900609384bbb75642ffa4\r\n",
+      "+ WARC-Block-Digest: sha256:fe10335389c87857a86121221baa7e3059df920c3740c8e08bc44182649957ab\r\n",
+      "- Content-Length: 7869\r\n",
+      "?                   -\n",
+      "+ Content-Length: 7891\r\n",
+      "?                    +\n"
+    ]
+  ],
+  "near_matching_http_header_diffs": [
+    [
+      "  HTTP/1.1 200 OK\r\n",
+      "  content-type: application/pdf"
+    ],
+    [
+      "  HTTP/1.1 200 OK\r\n",
+      "  content-type: text/html"
+    ],
+    [
+      "  HTTP/1.1 200 OK\r\n",
+      "  content-type: image/png"
+    ]
+  ],
+  "unique": {
+    "tests/assets/before.wacz": [],
+    "tests/assets/after.wacz": []
+  }
+}

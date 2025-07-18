@@ -3,6 +3,7 @@ from collections import OrderedDict
 import difflib
 from http.server import HTTPServer
 import json
+import socket
 
 from warcbench import WARCParser, WARCGZParser
 from warcbench.scripts.utils import get_warc_response_handler
@@ -222,18 +223,20 @@ def compare_headers(
     matching_records = []
     near_matching_records = []
 
-    for record_type in record_types:
+    # NB: sets and set operations do not preserve order.
+    # Sort, so that the order of output is more stable.
+    for record_type in sorted(record_types):
         if record_type == "warcinfo":
             pass
         else:
             urls1 = set(records1[record_type]) if record_type in records1 else set()
             urls2 = set(records2[record_type]) if record_type in records2 else set()
 
-            # I think these set operations do not preserve order;
-            # I think this is why pairs aren't coming back in the same order.
-            common = urls1.intersection(urls2)
-            unique1 = urls1.difference(urls2)
-            unique2 = urls2.difference(urls1)
+            # NB: sets and set operations do not preserve order.
+            # Sort, so that the order of output is more stable.
+            common = sorted(urls1.intersection(urls2))
+            unique1 = sorted(urls1.difference(urls2))
+            unique2 = sorted(urls2.difference(urls1))
 
             for url in unique1:
                 unique_records1.extend(records1[record_type][url])
@@ -477,7 +480,24 @@ def compare_headers(
         click.echo("Server started http://%s:%s" % (server_host, server_port), err=True)
 
         try:
-            web_server.serve_forever()
+            stop_event = ctx.obj.get("stop_event")
+            if stop_event:
+                # We should listen for a threading.Event() to be set(),
+                # to know when to stop the server.
+                # (For example, during testing.)
+
+                # Set a timeout so that web_server.handle_request()
+                # doesn't wait indefinitely for the next request to come in,
+                # but instead times out, causing us to check stop_event.is_set() frequently
+                web_server.socket.settimeout(0.1)  # 100ms
+                while not stop_event.is_set():
+                    try:
+                        web_server.handle_request()
+                    except socket.timeout:
+                        continue
+            else:
+                # Otherwise, listen for SIGINT
+                web_server.serve_forever()
         except KeyboardInterrupt:
             pass
 

@@ -1,9 +1,11 @@
 import click
 from collections import OrderedDict
 import difflib
+from http.server import HTTPServer
 import json
 
 from warcbench import WARCParser, WARCGZParser
+from warcbench.scripts.utils import get_warc_response_handler
 from warcbench.utils import FileType, python_open_archive, system_open_archive
 
 
@@ -34,37 +36,58 @@ from warcbench.utils import FileType, python_open_archive, system_open_archive
 @click.option(
     "--output-summary/--no-output-summary",
     default=True,
+    show_default=True,
     help="Summarize the number of matching, nearly-matching, and unique records.",
 )
 @click.option(
     "--output-matching-record-details/--no-output-matching-record-details",
     default=False,
+    show_default=True,
     help="Include detailed metadata about matching records in output.",
 )
 @click.option(
     "--output-near-matching-record-details/--no-output-near-matching-record-details",
     default=False,
+    show_default=True,
     help="Include detailed metadata about nearly-matching records in output.",
 )
 @click.option(
     "--output-near-matching-record-header-diffs/--no-output-near-matching-record-header-diffs",
     default=False,
+    show_default=True,
     help="Include a diff of the warc headers of nearly-matching request/response records in output.",
 )
 @click.option(
     "--output-near-matching-record-http-header-diffs/--no-output-near-matching-record-http-header-diffs",
     default=False,
+    show_default=True,
     help="Include a diff of the http headers of nearly-matching request/response records in output.",
 )
 @click.option(
     "--output-unique-record-details/--no-output-unique-record-details",
     default=False,
+    show_default=True,
     help="Include detailed metadata about unique records in output.",
 )
 @click.option(
-    "--extract-near-matching-record-http-bodies-to",
-    type=click.Path(exists=True, file_okay=False, dir_okay=True, writable=True),
-    help="Extract the decompressed http bodies of nearly-matching records to this directory, as extensionless files.",
+    "--serve-near-matching-records/--no-serve-near-matching-records",
+    default=False,
+    show_default=True,
+    help="Serve a website with side-by-side comparisons of nearly-matching records.",
+)
+@click.option(
+    "--server-host",
+    type=str,
+    default="127.0.0.1",
+    show_default=True,
+    help="The hostname or IP address for the server to bind to.",
+)
+@click.option(
+    "--server-port",
+    type=click.IntRange(1, 65535),
+    default=8080,
+    show_default=True,
+    help="The port on which the server will accept connections (1-65535).",
 )
 @click.pass_context
 def compare_headers(
@@ -80,7 +103,9 @@ def compare_headers(
     output_near_matching_record_header_diffs,
     output_near_matching_record_http_header_diffs,
     output_unique_record_details,
-    extract_near_matching_record_http_bodies_to,
+    serve_near_matching_records,
+    server_host,
+    server_port,
 ):
     """
     Compares the record headers of two archives and reports how they differ.
@@ -109,9 +134,9 @@ def compare_headers(
     about matching, nearly-matching, or unique records.
 
     To more easily inspect nearly-matching records and determine whether their differences
-    are meaningful, you can output a diff of their http headers. You can also extract their
-    http bodies to a directory of your choice. The extracted files will be extensionless
-    for simplicity. Filenames will include the source filename and the record start offset.
+    are meaningful, you can output a diff of their http headers. You can also spin up
+    a web server that will show side-by-side comparisons of nearly-matching HTTP response
+    records in iframes, for visual comparison and/or inspection in your browser's dev tools.
     """
     ctx.obj["FILEPATH1"] = filepath1
     ctx.obj["FILEPATH2"] = filepath2
@@ -165,7 +190,7 @@ def compare_headers(
                 or output_near_matching_record_details
                 or output_near_matching_record_http_header_diffs
                 or output_unique_record_details,
-                "cache_content_block_bytes": extract_near_matching_record_http_bodies_to,
+                "cache_content_block_bytes": serve_near_matching_records,
             }
             if file_type == FileType.WARC:
                 parser = WARCParser(file, **parser_options)
@@ -204,6 +229,8 @@ def compare_headers(
             urls1 = set(records1[record_type]) if record_type in records1 else set()
             urls2 = set(records2[record_type]) if record_type in records2 else set()
 
+            # I think these set operations do not preserve order;
+            # I think this is why pairs aren't coming back in the same order.
             common = urls1.intersection(urls2)
             unique1 = urls1.difference(urls2)
             unique2 = urls2.difference(urls1)
@@ -436,3 +463,23 @@ def compare_headers(
                     click.echo("-" * 40)
             else:
                 click.echo("None")
+
+    if serve_near_matching_records:
+        responses = {}
+        for index, (record1, record2) in enumerate(near_matching_records):
+            if record1.header.get_field("WARC-Type", decode=True) == "response":
+                responses[f"/{index + 1}/"] = (index + 1, record1, record2)
+
+        handler = get_warc_response_handler(
+            responses, ctx.obj["FILEPATH1"], ctx.obj["FILEPATH2"]
+        )
+        web_server = HTTPServer((server_host, server_port), handler)
+        click.echo("Server started http://%s:%s" % (server_host, server_port), err=True)
+
+        try:
+            web_server.serve_forever()
+        except KeyboardInterrupt:
+            pass
+
+        web_server.server_close()
+        click.echo("Server stopped.", err=True)

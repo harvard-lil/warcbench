@@ -138,6 +138,25 @@ def compare_headers(
     are meaningful, you can output a diff of their http headers. You can also spin up
     a web server that will show side-by-side comparisons of nearly-matching HTTP response
     records in iframes, for visual comparison and/or inspection in your browser's dev tools.
+
+    ---
+
+    Example:
+
+      \b
+      $ wb compare-headers before.wacz after.wacz --serve-near-matching-records
+      #
+      # SUMMARY
+      #
+
+      \b
+      Matching records: 5
+      Nearly-matching records: 3
+      Unique records (before.wacz): 0
+      Unique records (after.wacz): 0
+
+      \b
+      Server started http://127.0.0.1:8080
     """
     ctx.obj["FILEPATH1"] = filepath1
     ctx.obj["FILEPATH2"] = filepath2

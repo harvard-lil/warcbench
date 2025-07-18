@@ -11,3 +11,8 @@ wheels/
 
 # Unpacked assets
 example.com
+
+# For convenience
+/*.warc
+/*.warc.gz
+/*.wacz

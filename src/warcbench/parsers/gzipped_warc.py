@@ -133,14 +133,14 @@ class BaseParser(ABC):
         ]
 
     def parse(self, cache_members):
-        iterator = self.iterator()
+        iterator = self.iterator(yield_type="members")
         if cache_members:
             self._members = []
         for member in iterator:
             if cache_members:
                 self._members.append(member)
 
-    def iterator(self, yield_type="members"):
+    def iterator(self, yield_type):
         yielded = 0
         self.file_handle.seek(0)
 
@@ -172,7 +172,9 @@ class BaseParser(ABC):
                 self.state = transition_func()
 
     def get_member_offsets(self, compressed):
-        members = self._members if self._members else self.iterator()
+        members = (
+            self._members if self._members else self.iterator(yield_type="members")
+        )
         if compressed:
             return [(member.start, member.end) for member in members]
         return [
@@ -556,8 +558,8 @@ class GzippedWARCDecompressingParser(BaseParser):
         self.uncompressed_file_handle = NamedTemporaryFile("w+b", delete=False)
 
     def iterator(self, *args, **kwargs):
-        for member in super().iterator(*args, **kwargs):
-            yield member
+        for obj in super().iterator(*args, **kwargs):
+            yield obj
         os.remove(self.uncompressed_file_handle.name)
 
     def locate_members(self):

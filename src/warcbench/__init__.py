@@ -243,8 +243,8 @@ class WARCGZParser:
     def parse(self, cache_members=True):
         return self._parser.parse(cache_members)
 
-    def iterator(self):
-        return self._parser.iterator()
+    def iterator(self, yield_type="members"):
+        return self._parser.iterator(yield_type)
 
     def get_member_offsets(self, compressed=True):
         return self._parser.get_member_offsets(compressed)

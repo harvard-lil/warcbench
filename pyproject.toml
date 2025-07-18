@@ -23,6 +23,7 @@ build-backend = "hatchling.build"
 [dependency-groups]
 dev = [
     "pytest>=8.3.4",
+    "requests>=2.31.0",
 ]
 lint = [
     "ruff>=0.9.8",

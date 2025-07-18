@@ -26,18 +26,25 @@ def extract(ctx, filepath, mimetype, extension, basename, decode):
     """This extracts files of the given MIMETYPE from the archive at FILEPATH, writing them to {basename}-{recordstart}.{EXTENSION}."""
     ctx.obj["FILEPATH"] = filepath
 
+    def log_response_found(record):
+        if ctx.obj["VERBOSE"]:
+            click.echo(
+                f"Found a response of type {mimetype} at position {record.start}",
+                err=True,
+            )
+        return True
+
     open_and_parse(
         ctx,
         record_filters=[
             http_response_content_type_filter(mimetype),
+            log_response_found,
         ],
         record_handlers=[
             extract_file(
-                mimetype,
                 basename if basename else Path(filepath).name,
                 extension,
                 decode,
-                ctx.obj["VERBOSE"],
             )
         ],
         extra_parser_kwargs={

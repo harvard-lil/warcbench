@@ -1,5 +1,6 @@
 import click
 
+from warcbench.scripts.compare_headers import compare_headers
 from warcbench.scripts.compare_parsers import compare_parsers
 from warcbench.scripts.extract import extract
 from warcbench.scripts.filter_records import filter_records
@@ -47,11 +48,6 @@ cli.add_command(summarize)
 cli.add_command(inspect)
 cli.add_command(filter_records)
 cli.add_command(extract)
+cli.add_command(compare_headers)
 cli.add_command(compare_parsers)
 cli.add_command(match_record_pairs)
-
-
-# @cli.command()
-# def compare():
-#     """Compare the contents of two archives."""
-#     raise click.ClickException("Not yet implemented")

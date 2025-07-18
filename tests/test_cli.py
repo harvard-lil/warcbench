@@ -1,10 +1,14 @@
 from click.testing import CliRunner
 import filecmp
+import warnings
 import json
 import os
 from pathlib import Path
 import pytest
+import requests
 from tempfile import NamedTemporaryFile
+import threading
+import time
 
 from warcbench.scripts import cli
 from warcbench.utils import decompress_and_get_gzip_file_member_offsets
@@ -493,3 +497,220 @@ def test_filter_records_filters(flag, args, record_count):
     )
     assert result.exit_code == 0, result.output
     assert json.loads(result.stdout)["count"] == record_count
+
+
+def test_compare_headers_default():
+    runner = CliRunner()
+    result = runner.invoke(
+        cli,
+        [
+            "--out",
+            "json",
+            "compare-headers",
+            "tests/assets/before.wacz",
+            "tests/assets/after.wacz",
+        ],
+    )
+    assert result.exit_code == 0, result.output
+    assert json.loads(result.stdout) == {
+        "summary": {
+            "matching": 5,
+            "near_matching": 3,
+            "unique": {"tests/assets/before.wacz": 0, "tests/assets/after.wacz": 0},
+        }
+    }
+
+
+def test_compare_headers_extra_field():
+    runner = CliRunner()
+    result = runner.invoke(
+        cli,
+        [
+            "--out",
+            "json",
+            "compare-headers",
+            "--include-extra-header-field",
+            "WARC-Record-ID",
+            "tests/assets/before.wacz",
+            "tests/assets/after.wacz",
+        ],
+    )
+    assert result.exit_code == 0, result.output
+    assert json.loads(result.stdout) == {
+        "summary": {
+            "matching": 0,
+            "near_matching": 0,
+            "unique": {"tests/assets/before.wacz": 8, "tests/assets/after.wacz": 8},
+        }
+    }
+
+
+def test_compare_headers_exclude_field():
+    runner = CliRunner()
+    result = runner.invoke(
+        cli,
+        [
+            "--out",
+            "json",
+            "compare-headers",
+            "--exclude-header-field",
+            "Content-Length",
+            "--exclude-header-field",
+            "WARC-Payload-Digest",
+            "tests/assets/before.wacz",
+            "tests/assets/after.wacz",
+        ],
+    )
+    assert result.exit_code == 0, result.output
+    assert json.loads(result.stdout) == {
+        "summary": {
+            "matching": 8,
+            "near_matching": 0,
+            "unique": {"tests/assets/before.wacz": 0, "tests/assets/after.wacz": 0},
+        }
+    }
+
+
+def test_compare_headers_custom_near_match_field():
+    runner = CliRunner()
+    result = runner.invoke(
+        cli,
+        [
+            "--out",
+            "json",
+            "compare-headers",
+            "--near-match-field",
+            "WARC-Target-URI",
+            "tests/assets/before.wacz",
+            "tests/assets/after.wacz",
+        ],
+    )
+    assert result.exit_code == 0, result.output
+    assert json.loads(result.stdout) == {
+        "summary": {
+            "matching": 5,
+            "near_matching": 0,
+            "unique": {"tests/assets/before.wacz": 3, "tests/assets/after.wacz": 3},
+        }
+    }
+
+
+def test_compare_headers_full_output(complete_compare_headers_json):
+    runner = CliRunner()
+    result = runner.invoke(
+        cli,
+        [
+            "--out",
+            "json",
+            "compare-headers",
+            "--output-matching-record-details",
+            "--output-near-matching-record-details",
+            "--output-near-matching-record-header-diffs",
+            "--output-near-matching-record-http-header-diffs",
+            "--output-unique-record-details",
+            "tests/assets/before.wacz",
+            "tests/assets/after.wacz",
+        ],
+    )
+    assert result.exit_code == 0, result.output
+    assert json.loads(result.stdout) == complete_compare_headers_json
+
+
+def test_compare_headers_serve():
+    runner = CliRunner()
+
+    # Run the command in a thread, so that the web server doesn't block.
+    # Pass a stop event via the click context object so we can
+    # signal the server to shut down when the test is done.
+
+    host = "127.0.0.1"
+    port = "9999"
+    base_url = f"http://{host}:{port}/"
+    stop_event = threading.Event()
+
+    def run_server():
+        runner.invoke(
+            cli,
+            [
+                "--out",
+                "json",
+                "compare-headers",
+                "--serve-near-matching-records",
+                "--server-host",
+                host,
+                "--server-port",
+                port,
+                "tests/assets/before.wacz",
+                "tests/assets/after.wacz",
+            ],
+            obj={"stop_event": stop_event},
+        )
+
+    server_thread = threading.Thread(target=run_server, daemon=True)
+    server_thread.start()
+
+    # Give the server time to start
+    time.sleep(1)
+
+    try:
+        #
+        # Test the main page (index)
+        #
+
+        response = requests.get(base_url, timeout=5)
+        assert response.status_code == 200
+        assert response.headers["Content-Type"] == "text/html"
+
+        html_content = response.text
+        assert "Nearly-Matching Records' HTTP Responses" in html_content
+        assert 'href="/1/"' in html_content
+        assert 'href="/2/"' in html_content
+        assert 'href="/3/"' in html_content
+
+        #
+        # Test the comparison pages
+        #
+
+        for pair_num in [1, 2, 3]:
+            pair_url = f"{base_url}{pair_num}/"
+            pair_response = requests.get(pair_url, timeout=5)
+
+            assert pair_response.status_code == 200, (
+                f"Got HTTP {pair_response.status_code} for pair {pair_num}."
+            )
+            assert pair_response.headers["Content-Type"] == "text/html"
+
+            pair_html = pair_response.text
+            assert "Target-URI" in pair_html
+            assert "before.wacz" in pair_html
+            assert "after.wacz" in pair_html
+            assert 'href="/"' in pair_html  # Back to index link
+            assert "<iframe" in pair_html  # Should have iframes for comparison
+            assert f'src="/{pair_num}/1/"' in pair_html  # First record iframe
+            assert f'src="/{pair_num}/2/"' in pair_html  # Second record iframe
+
+            # Test the iframes
+            for record_num in [1, 2]:
+                record_url = f"{base_url}{pair_num}/{record_num}/"
+                record_response = requests.get(record_url, timeout=5)
+                assert record_response.status_code == 200, (
+                    f"Got HTTP {record_response.status_code} for record {pair_num}/{record_num}."
+                )
+
+        # Test 404
+        not_found_response = requests.get(f"{base_url}nonexistent/", timeout=5)
+        assert not_found_response.status_code == 404
+
+        # Test favicon
+        favicon_response = requests.get(f"{base_url}favicon.ico", timeout=5)
+        assert favicon_response.status_code == 200
+        assert favicon_response.headers["Content-Type"] == "image/png"
+        assert len(favicon_response.content) > 0
+
+    finally:
+        stop_event.set()
+        server_thread.join(timeout=3)
+        if server_thread.is_alive():
+            warnings.warn(
+                "The server thread in test_compare_headers_serve did not stop."
+            )

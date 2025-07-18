@@ -1,7 +1,11 @@
+import base64
 import click
+import html
+from http.server import BaseHTTPRequestHandler
 import importlib.util
 import io
 from pathlib import Path
+import re
 import sys
 
 from warcbench import WARCParser, WARCGZParser
@@ -25,7 +29,7 @@ def dynamically_import(module_name, module_path):
     return module
 
 
-def extract_file(mimetype, basename, extension, decode, verbose):
+def extract_file(basename, extension, decode):
     """A record-handler for file extraction."""
 
     def f(record):
@@ -33,20 +37,14 @@ def extract_file(mimetype, basename, extension, decode, verbose):
             try:
                 http_body_block = record.get_decompressed_http_body()
             except DecodingException as e:
-                click.echo(f"Failed to decode block: {e}")
+                click.echo(f"Failed to decode block: {e}", err=True)
                 http_body_block = record.get_http_body_block()
         else:
             http_body_block = record.get_http_body_block()
         if not http_body_block:
             return
 
-        if verbose:
-            click.echo(
-                f"Found a response of type {mimetype} at position {record.start}",
-                err=True,
-            )
-
-        filename = f"{basename}-{record.start}.{extension}"
+        filename = f"{basename}-{record.start}{'.' + extension if extension else ''}"
         Path(filename).parent.mkdir(exist_ok=True, parents=True)
         with open(filename, "wb") as fh:
             fh.write(http_body_block)
@@ -160,6 +158,248 @@ def format_record_data_for_output(data):
                     records[index]["record_http_headers"] = None
 
     return records
+
+
+def get_warc_response_handler(pairs, file1, file2):
+    """
+    Creates an HTTP request handler for initializing an instance of http.server.HTTPServer.
+
+    The server will serve:
+    - an index page, listing all the nearly-matching record pairs
+    - each record's contents (HTTP headers and body) re-assembled into a complete HTTP response
+    - a side-by-side comparison page for each pair, showing the record headers
+      and contents in iframes
+    """
+
+    def get_warc_record_fields_as_html(record):
+        data = bytearray()
+        data.extend(b"<p>")
+        for field, values in record.header.get_parsed_fields(decode=True).items():
+            data.extend(
+                bytes(
+                    f"""
+                {field}: {html.escape(values[0]) if values[0] else values[0]}<br>
+            """,
+                    "utf-8",
+                )
+            )
+        data.extend(b"</p>")
+        return data
+
+    class WARCResponseHandler(BaseHTTPRequestHandler):
+        def do_GET(self):
+            if self.path == "/":
+                #
+                # The index page
+                #
+                self.send_response(200)
+                self.send_header("Content-type", "text/html")
+                self.end_headers()
+                self.wfile.write(
+                    bytes(
+                        "<html><head><title>Nearly-Matching Records' HTTP Responses</title></head>",
+                        "utf-8",
+                    )
+                )
+                self.wfile.write(
+                    bytes(
+                        f"""
+                    <body>
+                      <h1>Nearly-Matching Records' HTTP Responses</h1>
+                      <p> Comparing:<br><br>
+                        {file1}<br>
+                        {file2}
+                      </p>
+                      <ul>
+                """,
+                        "utf-8",
+                    )
+                )
+                for path, (index, _, _) in self.pairs.items():
+                    self.wfile.write(
+                        bytes(
+                            f"""
+                        <li><a href="{path}">Pair {index}</a></li>
+                    """,
+                            "utf-8",
+                        )
+                    )
+                self.wfile.write(bytes("</ul></body></html>", "utf-8"))
+                return
+
+            elif self.path == "/favicon.ico":
+                self.send_response(200)
+                self.send_header("Content-type", "image/png")
+                self.end_headers()
+
+                # This is a PNG of 🛠️
+                self.wfile.write(
+                    base64.b64decode(
+                        b"iVBORw0KGgoAAAANSUhEUgAAACAAAAAgCAYAAABzenr0AAAHPklEQ"
+                        b"VRYR8WXeVDTZxrHv0nIwVHCYqIQaD1QqgJRWXBrhVYEtdqulhmd3d"
+                        b"Etf7Cj1bp0drau7Ih2dqaLO9B2qtupDh7YbcW27qql1LaOolZBAUM"
+                        b"Aa5BwB0MSIHImIQk59vn9WlljEox/dPedeWdy/H7P83mf++W43W4O"
+                        b"gD20d9KOos18/zmXm4QbaB+iXcghgL304Z2fU+MUsvcxAPqfTj4lg"
+                        b"8lsxh1VCzT3tGA+CwRCxMiisCA+DjOmTweXy/V4n+RCq9VieGQMiQ"
+                        b"kLwOE8ZFiXC/QC87yBAaBv/s3udDrx2el/oX1gAsHhUjwljkRIaDi"
+                        b"4PC6s5hGMjxoxSxqG9avTJpVoNBqUf1sJkzsU8xMWY8PyueDxeL4O"
+                        b"6GYAGJ/4XMPDwzhbcR7iWUmYGLfB5XKDw+NDAAfmz5TiGZkEoSEhr"
+                        b"GJmM6LOfVWBFu0IYmNnAk47Vj0vR3TUdL/W9QvQ1dWFG4oGiCKiMG"
+                        b"QcBI/Ph3NiAjGRoch4cRlEIpGX0PKvz2PAygfsNjgmbEhLXojEpIU"
+                        b"ez9ltNgiEwsnffAKYycdnzpUjSBiOkVET3MwJyWfdqlt44YXlePnX"
+                        b"G7yUm0wmfHr2G/C4fLjJUnOixcjKWunh++8ufAeVZhg7c7LpAD9Ce"
+                        b"AE4HA60d3TiWvVNREhkGDTeZ03vdDoQF2FDh54EvPknr6BTqZpR39"
+                        b"ID89gYyBdIX5pAwZcwCapUKvHvry8iOeU5bFi1DHy+wBOA8d/31TX"
+                        b"49oYKUdPEWJ2+BLebO2HU68nvFEBkgTnSIOh67+GV7M2Iio72sMLt"
+                        b"OyrUNqrJ+jYWQEAnXJo0D0lJCejt7cXBw8cQP18OmVSMV9au8naBo"
+                        b"kkFizACFpMVldcVWJ+ZgpsV5bCZRiEMDYMoUoJwkRPt6jvYkfcWYm"
+                        b"JjPQBqautQo1CBF0SwTFyT26zuIAzdH4DVbkf8nFmsrIy0X0K+aLE"
+                        b"3QA/ld6RUChN4KP3iKnhGNS5+eZqEAdGRkQglCOPYEBIS5yJjzXqs"
+                        b"yFjpAaBsbMLRIx/j2YVkdg7lOGU3Y1Umdhggl8sJCmNs3ZbrEcCTM"
+                        b"eCi4lBdU4t+C1B75nOM2YfBE4VgT8E+XLxUiUZSoLilwOpUORakr8"
+                        b"SK9DRIJBIWglHU1NyKysvX0aKsw7PyRaSYLEGxwxZ6gnFYx7E660U"
+                        b"kp6Z6gHsE4RgF0Nt/zsfd1laERUZg3bq1yM39/aSSs+e+xOdHj+HV"
+                        b"3B3gCwXIXptBwcRHW2c3dGYXfrhVB3XtdWg62hGfKMcvJFK4KHhFg"
+                        b"iBkZmVgSUqKZ0X0lQVDQ0MoPfExFsnlyMz0TCOG5OTJMtR9X4XlG3"
+                        b"MRxrUgdXECqpo1uG8wQK/+AQa1ClyCW7dpI56OliFcLEbsM0/7q4T"
+                        b"eaei3ZP30B+Oq4qIi2K1uzH5uDTpamsgaIZgY6EJ/212IJdNQ8Ld3"
+                        b"EBYW9jhRvutAIG9ZrVbsfmsX5i5MRYhsNr4qK4GY48AM6TT8tbg4Y"
+                        b"OU+C1EgAEzQKZQNOFD8HuKT01B+5iTiZ8bgUEkJIiljnmRN2Yx8CW"
+                        b"LbbK8OHf0jOP3PUly+cB4ONxcyajjHjx3BvHnznkT/k8eAnoLt3vA"
+                        b"4qi5fRc/teigbFNBSuebxhZhLxYaBkMlkAUM8kQX0hj7oRm24ea0K"
+                        b"WlUDdOq7WLv5t/ikrAwtre3gC0RYLE/EkZLDiIiICAgiIADG7DpSb"
+                        b"jDZUXPtBptu/W1qLPhVCv6Yn4+mpibkvJaDMYuVbbXpy5fhHwcPII"
+                        b"RmhcetxwIwyu+Rzw2mCdRV3cBAhxqDPV1w8zgoOnyISnQoWwmPUoE"
+                        b"qLn6Xih8HQmpEL697CX/fX8gWqqnWlABOyvkebS+0w1Yoq6tZxaN9"
+                        b"etzXabH73SIaNpImZTNtfPvr23H5yhXqnEEQBQfjd5t/g7+QhR6dF"
+                        b"x8G8gvAzILdpFwzMAZl1XWMkWLzoBHDul4sXZOFrTt3epVVPbXujZ"
+                        b"s2UcvWEwOfXBCMP7yxA9u2bfV69gGETwDGpB3dGnToBtFYXQWzkVo"
+                        b"qtVIGwEnt8T2KdH+V7tKlS8jLy8O41U7mF5KLgvH2vgJkZ2f7hPAJ"
+                        b"0KvT4WZNAwyd7RgZHMToyAhsFjMG9b3YvncPnk9L8+tWBn7//v04c"
+                        b"eIEnDRv82l8Fz8Vhg8+eB9pPt7zAmAEXLhQidbGBuTl78IEDaIl7x"
+                        b"9Ac3095ixKwq69BX7N+YDKYrEgJycH9fVKdjYQUHpGzZCgtPQ44uL"
+                        b"i/LfjB739+Icfoa29DRtf20I9X4ozp76ARt2Cwg8Pst0tkNXW1o4t"
+                        b"Wzajr6+fpiQ+mxlvbH+ddc+jQeh1Menu7MTBwiIES2PYK4vVqMebe"
+                        b"3Zj1uzZgeiefKaiogL5u/NhJoswAXnqVBmWLEl+WAZ7Mfnxavbf6x"
+                        b"L7AHMpuXblKg0UTqzIygy4snlIJ3cyEAqFgkb0LKSnpz/qPvZq9n+"
+                        b"/nDJTWwFt5no+g/b/4nreR3o+ol34H3/lbZqbrVMgAAAAAElFTkSuQmCC"
+                    )
+                )
+                return
+
+            elif self.path in self.pairs:
+                #
+                # The side-by-side comparison pages
+                #
+                _, record1, record2 = self.pairs[self.path]
+
+                self.send_response(200)
+                self.send_header("Content-type", "text/html")
+                self.end_headers()
+                self.wfile.write(
+                    bytes(
+                        f"""
+                    <html>
+                    <head>
+                      <title>Nearly-Matching Records' HTTP Responses</title>
+                        <style>
+                          body {{
+                            height: 100%;
+                          }}
+                          .records {{
+                            display: flex;
+                            height: 100vh;
+                          }}
+                          .record {{
+                            flex: 1;
+                          }}
+                          iframe {{
+                            width: 100%;
+                            height: 100%;
+                          }}
+                      </style>
+                    </head>
+                    <body>
+                      <a href="/"><- Back to index</a>
+                      <h1>Target-URI <small>{record1.header.get_field("WARC-Target-URI", decode=True)}</h1>
+                      <div class="records">
+                        <div class="record">
+                          <h2>{file1}</h2>
+                """,
+                        "utf-8",
+                    )
+                )
+                self.wfile.write(get_warc_record_fields_as_html(record1))
+                self.wfile.write(
+                    bytes(
+                        f"""
+                          <iframe src="{self.path}1/" title="Record 1"></iframe>
+                        </div>
+                        <div class="record">
+                          <h2>{file2}</h2>
+                """,
+                        "utf-8",
+                    )
+                )
+                self.wfile.write(get_warc_record_fields_as_html(record2))
+                self.wfile.write(
+                    bytes(
+                        f"""
+                          <iframe src="{self.path}2/" title="Record 2"></iframe>
+                        </div>
+                      </div>
+                    </body>
+                    </html>
+                """,
+                        "utf-8",
+                    )
+                )
+
+                return
+
+            elif self.path[:-2] in self.pairs:
+                #
+                # The WARC record's HTTP headers and body, re-assembled into an HTTP response
+                #
+                pair = self.pairs[self.path[:-2]]
+                record = pair[int(self.path[-2:-1])]
+
+                # The HTTP Headers
+
+                status = 200  # Default to 200, in case no HTTP status is successfully parsed in the record
+
+                header_lines = (
+                    record.get_http_header_block()
+                    .decode("utf-8", errors="replace")
+                    .splitlines()
+                )
+
+                headers = []
+                for line in header_lines:
+                    split = line.split(":", 1)
+                    if len(split) == 1:
+                        # Try to extract correct HTTP status from the record
+                        if line.startswith("HTTP/1.1"):
+                            match = re.search(r"HTTP/1.1\s*(\d*)", line)
+                            if match:
+                                status = int(match.group(1))
+                    else:
+                        # Add normal headers
+                        headers.append((split[0], split[1].strip()))
+
+                self.send_response(status)
+                for header, value in headers:
+                    self.send_header(header, value)
+                self.end_headers()
+
+                # The HTTP body
+                self.wfile.write(record.get_http_body_block())
+                return
+
+            self.send_error(404, "File not found")
+
+    WARCResponseHandler.pairs = pairs
+    return WARCResponseHandler
 
 
 def open_and_invoke(

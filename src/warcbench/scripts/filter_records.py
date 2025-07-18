@@ -137,7 +137,6 @@ class PathOrStdout(click.Path):
 @click.option(
     "--extract-summary-to",
     type=PathOrStdout(),
-    default=None,
     help="In addition to extracting records, direct output from any supplied --output-* options to FILEPATH or - for stdout.",
 )
 @click.option(

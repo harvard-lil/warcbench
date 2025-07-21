@@ -22,7 +22,11 @@ from warcbench.utils import (
     decompress_and_get_gzip_file_member_offsets,
     find_matching_request_response_pairs,
 )
-from warcbench.config import WARCGZCachingConfig, WARCGZProcessorConfig
+from warcbench.config import (
+    WARCGZCachingConfig,
+    WARCGZProcessorConfig,
+    WARCGZParsingConfig,
+)
 
 logger = logging.getLogger(__name__)
 
@@ -43,18 +47,17 @@ class BaseParser(ABC):
     def __init__(
         self,
         file_handle,
-        stop_after_nth,
-        decompress_chunk_size,
-        split_records,
-        cache: WARCGZCachingConfig,
+        enable_lazy_loading_of_bytes,
+        parsing_options: WARCGZParsingConfig,
         processors: WARCGZProcessorConfig,
+        cache: WARCGZCachingConfig,
     ):
         #
         # Validate Options
         #
 
         if cache.header_bytes or cache.parsed_headers or cache.content_block_bytes:
-            if not split_records:
+            if not parsing_options.split_records:
                 raise ValueError(
                     "To cache or parse header or content block bytes, you must split records."
                 )
@@ -76,9 +79,7 @@ class BaseParser(ABC):
         }
 
         self.file_handle = file_handle
-        self.stop_after_nth = stop_after_nth
-        self.decompress_chunk_size = decompress_chunk_size
-        self.split_records = split_records
+        self.parsing_options = parsing_options
         self.cache = cache
         self.processors = processors
 
@@ -140,9 +141,12 @@ class BaseParser(ABC):
                         )
                 self.current_member = None
 
-                if self.stop_after_nth and yielded >= self.stop_after_nth:
+                if (
+                    self.parsing_options.stop_after_nth
+                    and yielded >= self.parsing_options.stop_after_nth
+                ):
                     logger.debug(
-                        f"Stopping early after yielding {self.stop_after_nth} members."
+                        f"Stopping early after yielding {self.parsing_options.stop_after_nth} members."
                     )
                     self.state = STATES["RUN_PARSER_CALLBACKS"]
                     continue
@@ -168,7 +172,7 @@ class BaseParser(ABC):
         )
 
         if split:
-            if not self.split_records:
+            if not self.parsing_options.split_records:
                 raise ValueError(
                     "Split record offsets are only available when the parser is initialized with split_records=True."
                 )
@@ -186,7 +190,7 @@ class BaseParser(ABC):
 
     def get_approximate_request_response_pairs(self, count_only):
         """
-        Recommended: use with cache_parsed_headers=True.
+        Recommended: use with cache.parsed_headers=True.
         """
         records = (
             self.records() if self._members else self.iterator(yield_type="records")
@@ -268,19 +272,17 @@ class GzippedWARCMemberParser(BaseParser):
     def __init__(
         self,
         file_handle,
-        stop_after_nth,
-        decompress_and_parse_members,
-        decompress_chunk_size,
-        split_records,
-        cache: WARCGZCachingConfig,
+        enable_lazy_loading_of_bytes,
+        parsing_options: WARCGZParsingConfig,
         processors: WARCGZProcessorConfig,
+        cache: WARCGZCachingConfig,
     ):
         #
         # Validate options
         #
 
         if (
-            split_records
+            parsing_options.split_records
             or cache.record_bytes
             or cache.header_bytes
             or cache.parsed_headers
@@ -288,9 +290,9 @@ class GzippedWARCMemberParser(BaseParser):
             or cache.non_warc_member_bytes
             or cache.member_uncompressed_bytes
         ):
-            if not decompress_and_parse_members:
+            if not parsing_options.decompress_and_parse_members:
                 raise ValueError(
-                    "You must enable the decompression of members to further parse their contents."
+                    "Decompressing records can only be disabled when decompression style is set to 'member'."
                 )
 
         #
@@ -298,14 +300,13 @@ class GzippedWARCMemberParser(BaseParser):
         #
 
         super().__init__(
-            file_handle,
-            stop_after_nth,
-            decompress_chunk_size,
-            split_records,
-            cache,
-            processors,
+            file_handle=file_handle,
+            enable_lazy_loading_of_bytes=False,
+            parsing_options=parsing_options,
+            processors=processors,
+            cache=cache,
         )
-        self.decompress_and_parse_members = decompress_and_parse_members
+        self.decompress_and_parse_members = parsing_options.decompress_and_parse_members
 
     def get_record_offsets(self, split):
         if not self.decompress_and_parse_members:
@@ -320,7 +321,7 @@ class GzippedWARCMemberParser(BaseParser):
         """
         self._offsets = decompress_and_get_gzip_file_member_offsets(
             self.file_handle,
-            chunk_size=self.decompress_chunk_size,
+            chunk_size=self.parsing_options.decompress_chunk_size,
         )
         if len(self._offsets) == 1:
             self.warnings.append(
@@ -359,7 +360,10 @@ class GzippedWARCMemberParser(BaseParser):
             # Read the member data in chunks and write to the temp file
             bytes_read = 0
             while bytes_read < member.length:
-                to_read = min(self.decompress_chunk_size, member.length - bytes_read)
+                to_read = min(
+                    self.parsing_options.decompress_chunk_size,
+                    member.length - bytes_read,
+                )
                 chunk = self.file_handle.read(to_read)
                 if not chunk:
                     raise DecompressionError(
@@ -371,7 +375,7 @@ class GzippedWARCMemberParser(BaseParser):
             extracted_member_file.flush()
 
             with patched_gzip.open(extracted_member_file_name, "rb") as gunzipped_file:
-                if self.split_records:
+                if self.parsing_options.split_records:
                     # See if this claims to be a WARC record
                     header_found = False
                     for warc_version in WARC_VERSIONS:
@@ -384,7 +388,7 @@ class GzippedWARCMemberParser(BaseParser):
                     # Find the header
                     header_start = uncompressed_start
                     header_with_linebreak_end = find_next_header_end(
-                        gunzipped_file, self.decompress_chunk_size
+                        gunzipped_file, self.parsing_options.decompress_chunk_size
                     )
                     if header_with_linebreak_end:
                         # Don't include the line break in the header's data or offsets
@@ -483,20 +487,21 @@ class GzippedWARCDecompressingParser(BaseParser):
     def __init__(
         self,
         file_handle,
-        stop_after_nth,
-        decompress_chunk_size,
-        split_records,
-        cache: WARCGZCachingConfig,
         enable_lazy_loading_of_bytes,
+        parsing_options: WARCGZParsingConfig,
         processors: WARCGZProcessorConfig,
+        cache: WARCGZCachingConfig,
     ):
+        #
+        # Set up
+        #
+
         super().__init__(
-            file_handle,
-            stop_after_nth,
-            decompress_chunk_size,
-            split_records,
-            cache,
-            processors,
+            file_handle=file_handle,
+            enable_lazy_loading_of_bytes=enable_lazy_loading_of_bytes,
+            parsing_options=parsing_options,
+            processors=processors,
+            cache=cache,
         )
         self.enable_lazy_loading_of_bytes = enable_lazy_loading_of_bytes
         self.uncompressed_file_handle = NamedTemporaryFile("w+b", delete=False)
@@ -514,7 +519,7 @@ class GzippedWARCDecompressingParser(BaseParser):
         self._offsets = decompress_and_get_gzip_file_member_offsets(
             self.file_handle,
             self.uncompressed_file_handle,
-            self.decompress_chunk_size,
+            self.parsing_options.decompress_chunk_size,
         )
         if len(self._offsets) == 1:
             self.warnings.append(
@@ -554,7 +559,7 @@ class GzippedWARCDecompressingParser(BaseParser):
 
         self.uncompressed_file_handle.seek(uncompressed_start)
 
-        if self.split_records:
+        if self.parsing_options.split_records:
             # See if this claims to be a WARC record
             header_found = False
             for warc_version in WARC_VERSIONS:
@@ -567,7 +572,8 @@ class GzippedWARCDecompressingParser(BaseParser):
             # Find the header
             header_start = uncompressed_start
             header_with_linebreak_end = find_next_header_end(
-                self.uncompressed_file_handle, self.decompress_chunk_size
+                self.uncompressed_file_handle,
+                self.parsing_options.decompress_chunk_size,
             )
             if header_with_linebreak_end:
                 # Don't include the line break in the header's data or offsets

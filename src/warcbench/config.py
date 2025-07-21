@@ -121,3 +121,74 @@ class WARCGZProcessorConfig(BaseProcessorConfig):
 
     member_filters: Optional[List] = None
     member_handlers: Optional[List] = None
+
+
+@dataclass
+class BaseParsingConfig:
+    """
+    Common parsing configuration shared between WARCParser and WARCGZParser.
+
+    Attributes:
+        style: The parsing strategy to use.
+        stop_after_nth: Stop parsing after the nth record/member.
+        split_records: Whether to split records into headers and content blocks.
+    """
+
+    style: Optional[str] = None
+    stop_after_nth: Optional[int] = None
+    split_records: bool = True
+
+
+@dataclass
+class WARCParsingConfig(BaseParsingConfig):
+    """
+    Parsing configuration specific to WARCParser.
+
+    Attributes:
+        style: The parsing strategy to use. Allowed values:
+            - "delimiter": Parse by looking for WARC record delimiters
+            - "content_length": Parse by using Content-Length headers
+        parsing_chunk_size: Size of chunks to read when parsing in delimiter mode.
+        check_content_lengths: Whether to validate content lengths in delimiter mode.
+    """
+
+    style: str = "content_length"
+    parsing_chunk_size: int = 1024
+    check_content_lengths: bool = False
+
+    def __post_init__(self):
+        if self.check_content_lengths and self.style == "content_length":
+            raise ValueError(
+                "Checking content lengths is only meaningful when parsing in delimiter mode."
+            )
+
+
+@dataclass
+class WARCGZParsingConfig(BaseParsingConfig):
+    """
+    Parsing configuration specific to WARCGZParser.
+
+    Attributes:
+        style: The parsing strategy to use. Allowed values:
+            - "split_gzip_members": Split the file into individual gzip members
+        decompress_and_parse_members: Whether to decompress and further parse members,
+             or just locate the boundaries of members.
+        decompression_style: The decompression strategy ("member" or "file").
+            "member" means decompress each gzip member separately, one by one.
+            "file" means decompress the whole file at once.
+        decompress_chunk_size: Size of chunks to use during decompression.
+    """
+
+    style: str = "split_gzip_members"
+    decompress_and_parse_members: bool = True
+    decompression_style: str = "file"
+    decompress_chunk_size: int = 1024
+
+    def __post_init__(self):
+        if (
+            not self.decompress_and_parse_members
+            and self.decompression_style != "member"
+        ):
+            raise ValueError(
+                "Decompressing records can only be disabled when decompression style is set to 'member'."
+            )

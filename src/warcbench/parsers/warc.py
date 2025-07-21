@@ -17,7 +17,7 @@ from warcbench.utils import (
     find_content_length_in_bytes,
     find_matching_request_response_pairs,
 )
-from warcbench.config import WARCCachingConfig, WARCProcessorConfig
+from warcbench.config import WARCCachingConfig, WARCProcessorConfig, WARCParsingConfig
 
 logger = logging.getLogger(__name__)
 
@@ -38,12 +38,10 @@ class BaseParser(ABC):
     def __init__(
         self,
         file_handle,
-        parsing_chunk_size,
-        stop_after_nth,
-        split_records,
-        cache: WARCCachingConfig,
         enable_lazy_loading_of_bytes,
+        parsing_options: WARCParsingConfig,
         processors: WARCProcessorConfig,
+        cache: WARCCachingConfig,
     ):
         self.state = STATES["FIND_WARC_HEADER"]
         self.transitions = {
@@ -57,12 +55,10 @@ class BaseParser(ABC):
         }
 
         self.file_handle = file_handle
-        self.parsing_chunk_size = parsing_chunk_size
-        self.stop_after_nth = stop_after_nth
-        self.split_records = split_records
+        self.enable_lazy_loading_of_bytes = enable_lazy_loading_of_bytes
+        self.parsing_options = parsing_options
         self.cache = cache
         self.processors = processors
-        self.enable_lazy_loading_of_bytes = enable_lazy_loading_of_bytes
 
         self.warnings = []
         self.error = None
@@ -111,9 +107,12 @@ class BaseParser(ABC):
                 yield self.current_record
                 self.current_record = None
 
-                if self.stop_after_nth and yielded >= self.stop_after_nth:
+                if (
+                    self.parsing_options.stop_after_nth
+                    and yielded >= self.parsing_options.stop_after_nth
+                ):
                     logger.debug(
-                        f"Stopping early after yielding {self.stop_after_nth} records."
+                        f"Stopping early after yielding {self.parsing_options.stop_after_nth} records."
                     )
                     self.state = STATES["RUN_PARSER_CALLBACKS"]
                     continue
@@ -127,7 +126,7 @@ class BaseParser(ABC):
         records = self._records if self._records else self.iterator()
 
         if split:
-            if not self.split_records:
+            if not self.parsing_options.split_records:
                 raise ValueError(
                     "Split record offsets are only available when the parser is initialized with split_records=True."
                 )
@@ -232,20 +231,17 @@ class DelimiterWARCParser(BaseParser):
     def __init__(
         self,
         file_handle,
-        parsing_chunk_size,
-        stop_after_nth,
-        split_records,
-        check_content_lengths,
-        cache: WARCCachingConfig,
         enable_lazy_loading_of_bytes,
+        parsing_options: WARCParsingConfig,
         processors: WARCProcessorConfig,
+        cache: WARCCachingConfig,
     ):
         #
         # Validate Options
         #
 
-        if check_content_lengths:
-            if not split_records:
+        if parsing_options.check_content_lengths:
+            if not parsing_options.split_records:
                 raise ValueError("To check_content_lengths, you must split records.")
 
             if not enable_lazy_loading_of_bytes and not all(
@@ -257,7 +253,7 @@ class DelimiterWARCParser(BaseParser):
                 )
 
         if cache.header_bytes or cache.parsed_headers or cache.content_block_bytes:
-            if not split_records:
+            if not parsing_options.split_records:
                 raise ValueError(
                     "To cache or parse header or content block bytes, you must split records."
                 )
@@ -266,21 +262,19 @@ class DelimiterWARCParser(BaseParser):
         # Set Up
         #
 
-        self.check_content_lengths = check_content_lengths
-
         super().__init__(
-            file_handle,
-            parsing_chunk_size,
-            stop_after_nth,
-            split_records,
-            cache,
-            enable_lazy_loading_of_bytes,
-            processors,
+            file_handle=file_handle,
+            enable_lazy_loading_of_bytes=enable_lazy_loading_of_bytes,
+            parsing_options=parsing_options,
+            processors=processors,
+            cache=cache,
         )
 
     def extract_next_record(self):
         start = self.file_handle.tell()
-        stop = find_next_delimiter(self.file_handle, self.parsing_chunk_size)
+        stop = find_next_delimiter(
+            self.file_handle, self.parsing_options.parsing_chunk_size
+        )
         if stop:
             # Don't include the delimiter in the record's data or offsets
             end = stop - len(CRLF * 2)
@@ -296,11 +290,11 @@ class DelimiterWARCParser(BaseParser):
         if self.enable_lazy_loading_of_bytes:
             record._file_handle = self.file_handle
 
-        if self.split_records:
+        if self.parsing_options.split_records:
             header_start = record.start
             self.file_handle.seek(header_start)
             header_with_linebreak_end = find_next_header_end(
-                self.file_handle, self.parsing_chunk_size
+                self.file_handle, self.parsing_options.parsing_chunk_size
             )
 
             if header_with_linebreak_end:
@@ -339,7 +333,7 @@ class DelimiterWARCParser(BaseParser):
                 if self.enable_lazy_loading_of_bytes:
                     record.content_block._file_handle = self.file_handle
 
-                if self.check_content_lengths:
+                if self.parsing_options.check_content_lengths:
                     record.check_content_length()
 
             else:
@@ -363,7 +357,7 @@ class ContentLengthWARCParser(BaseParser):
 
         header_start = self.file_handle.tell()
         header_with_linebreak_end = find_next_header_end(
-            self.file_handle, self.parsing_chunk_size
+            self.file_handle, self.parsing_options.parsing_chunk_size
         )
         if header_with_linebreak_end:
             # Don't include the line break in the header's data or offsets
@@ -424,7 +418,7 @@ class ContentLengthWARCParser(BaseParser):
         if self.enable_lazy_loading_of_bytes:
             record._file_handle = self.file_handle
 
-        if self.split_records:
+        if self.parsing_options.split_records:
             header = Header(start=header_start, end=header_end)
             if self.cache.header_bytes:
                 header._bytes = header_bytes

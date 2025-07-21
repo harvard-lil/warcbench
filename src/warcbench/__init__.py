@@ -5,10 +5,12 @@ from warcbench.parsers import (
     GzippedWARCDecompressingParser,
 )
 from warcbench.config import (
-    WARCCachingConfig,
-    WARCGZCachingConfig,
+    WARCParsingConfig,
+    WARCGZParsingConfig,
     WARCProcessorConfig,
     WARCGZProcessorConfig,
+    WARCCachingConfig,
+    WARCGZCachingConfig,
 )
 from typing import Optional
 
@@ -17,57 +19,36 @@ class WARCParser:
     def __init__(
         self,
         file_handle,
-        parsing_style="content_length",
-        parsing_chunk_size=1024,
-        stop_after_nth=None,
-        check_content_lengths=False,
-        split_records=True,
-        cache: Optional[WARCCachingConfig] = None,
-        processors: Optional[WARCProcessorConfig] = None,
         enable_lazy_loading_of_bytes=True,
+        parsing_options: Optional[WARCParsingConfig] = None,
+        processors: Optional[WARCProcessorConfig] = None,
+        cache: Optional[WARCCachingConfig] = None,
     ):
-        #
-        # Validate Options
-        #
-
-        if check_content_lengths and parsing_style == "content_length":
-            raise ValueError(
-                "Checking content lengths is only meaningful when parsing in delimiter mode."
-            )
-
-        # Use default caching config if none provided
+        # Set up default config
+        if parsing_options is None:
+            parsing_options = WARCParsingConfig()
         if cache is None:
             cache = WARCCachingConfig()
-
-        # Use default processors config if none provided
         if processors is None:
             processors = WARCProcessorConfig()
 
-        #
-        # Set up
-        #
-
-        match parsing_style:
+        # Initialize the appropriate parser
+        match parsing_options.style:
             case "delimiter":
                 self._parser = DelimiterWARCParser(
                     file_handle=file_handle,
-                    parsing_chunk_size=parsing_chunk_size,
-                    stop_after_nth=stop_after_nth,
-                    check_content_lengths=check_content_lengths,
-                    split_records=split_records,
-                    cache=cache,
-                    processors=processors,
                     enable_lazy_loading_of_bytes=enable_lazy_loading_of_bytes,
+                    parsing_options=parsing_options,
+                    processors=processors,
+                    cache=cache,
                 )
             case "content_length":
                 self._parser = ContentLengthWARCParser(
                     file_handle=file_handle,
-                    parsing_chunk_size=parsing_chunk_size,
-                    stop_after_nth=stop_after_nth,
-                    split_records=split_records,
-                    cache=cache,
-                    processors=processors,
                     enable_lazy_loading_of_bytes=enable_lazy_loading_of_bytes,
+                    parsing_options=parsing_options,
+                    processors=processors,
+                    cache=cache,
                 )
             case _:
                 supported_parsing_styles = [
@@ -115,63 +96,46 @@ class WARCGZParser:
     def __init__(
         self,
         file_handle,
-        parsing_style="split_gzip_members",
-        stop_after_nth=None,
-        decompress_and_parse_members=True,
-        decompression_style="file",
-        decompress_chunk_size=1024,
-        split_records=True,
-        cache: Optional[WARCGZCachingConfig] = None,
-        processors: Optional[WARCGZProcessorConfig] = None,
         enable_lazy_loading_of_bytes=True,
+        parsing_options: Optional[WARCGZParsingConfig] = None,
+        processors: Optional[WARCGZProcessorConfig] = None,
+        cache: Optional[WARCGZCachingConfig] = None,
     ):
-        #
-        # Validate Options
-        #
+        # Set up default config
+        if parsing_options is None:
+            parsing_options = WARCGZParsingConfig()
+        if cache is None:
+            cache = WARCGZCachingConfig()
+        if processors is None:
+            processors = WARCGZProcessorConfig()
 
-        if not decompress_and_parse_members and decompression_style != "member":
-            raise ValueError(
-                "Decompressing records can only be disabled when decompression style is set to 'member'."
-            )
-
-        if enable_lazy_loading_of_bytes and decompression_style != "file":
+        # Validate config
+        if (
+            enable_lazy_loading_of_bytes
+            and parsing_options.decompression_style != "file"
+        ):
             raise ValueError(
                 "The lazy loading of bytes is only supported when decompression style is 'file'."
             )
 
-        # Use default caching config if none provided
-        if cache is None:
-            cache = WARCGZCachingConfig()
-
-        # Use default processors config if none provided
-        if processors is None:
-            processors = WARCGZProcessorConfig()
-
-        #
-        # Set up
-        #
-
-        match parsing_style:
+        # Initialize the appropriate parser
+        match parsing_options.style:
             case "split_gzip_members":
-                if decompression_style == "member":
+                if parsing_options.decompression_style == "member":
                     self._parser = GzippedWARCMemberParser(
                         file_handle=file_handle,
-                        stop_after_nth=stop_after_nth,
-                        decompress_and_parse_members=decompress_and_parse_members,
-                        decompress_chunk_size=decompress_chunk_size,
-                        split_records=split_records,
-                        cache=cache,
+                        enable_lazy_loading_of_bytes=False,
+                        parsing_options=parsing_options,
                         processors=processors,
+                        cache=cache,
                     )
-                elif decompression_style == "file":
+                elif parsing_options.decompression_style == "file":
                     self._parser = GzippedWARCDecompressingParser(
                         file_handle=file_handle,
-                        stop_after_nth=stop_after_nth,
-                        decompress_chunk_size=decompress_chunk_size,
-                        split_records=split_records,
-                        cache=cache,
-                        processors=processors,
                         enable_lazy_loading_of_bytes=enable_lazy_loading_of_bytes,
+                        parsing_options=parsing_options,
+                        processors=processors,
+                        cache=cache,
                     )
                 else:
                     supported_decompression_styles = [

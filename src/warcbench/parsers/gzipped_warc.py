@@ -22,6 +22,7 @@ from warcbench.utils import (
     decompress_and_get_gzip_file_member_offsets,
     find_matching_request_response_pairs,
 )
+from warcbench.config import WARCGZCachingConfig
 
 logger = logging.getLogger(__name__)
 
@@ -45,13 +46,7 @@ class BaseParser(ABC):
         stop_after_nth,
         decompress_chunk_size,
         split_records,
-        cache_member_bytes,
-        cache_member_uncompressed_bytes,
-        cache_record_bytes,
-        cache_header_bytes,
-        cache_parsed_headers,
-        cache_content_block_bytes,
-        cache_non_warc_member_bytes,
+        cache: WARCGZCachingConfig,
         member_filters,
         record_filters,
         member_handlers,
@@ -62,7 +57,7 @@ class BaseParser(ABC):
         # Validate Options
         #
 
-        if cache_header_bytes or cache_parsed_headers or cache_content_block_bytes:
+        if cache.header_bytes or cache.parsed_headers or cache.content_block_bytes:
             if not split_records:
                 raise ValueError(
                     "To cache or parse header or content block bytes, you must split records."
@@ -88,13 +83,7 @@ class BaseParser(ABC):
         self.stop_after_nth = stop_after_nth
         self.decompress_chunk_size = decompress_chunk_size
         self.split_records = split_records
-        self.cache_member_bytes = cache_member_bytes
-        self.cache_member_uncompressed_bytes = cache_member_uncompressed_bytes
-        self.cache_record_bytes = cache_record_bytes
-        self.cache_header_bytes = cache_header_bytes
-        self.cache_parsed_headers = cache_parsed_headers
-        self.cache_content_block_bytes = cache_content_block_bytes
-        self.cache_non_warc_member_bytes = cache_non_warc_member_bytes
+        self.cache = cache
         self.member_filters = member_filters
         self.record_filters = record_filters
         self.member_handlers = member_handlers
@@ -288,13 +277,7 @@ class GzippedWARCMemberParser(BaseParser):
         decompress_and_parse_members,
         decompress_chunk_size,
         split_records,
-        cache_member_bytes,
-        cache_member_uncompressed_bytes,
-        cache_record_bytes,
-        cache_header_bytes,
-        cache_parsed_headers,
-        cache_content_block_bytes,
-        cache_non_warc_member_bytes,
+        cache: WARCGZCachingConfig,
         member_filters,
         record_filters,
         member_handlers,
@@ -307,12 +290,12 @@ class GzippedWARCMemberParser(BaseParser):
 
         if (
             split_records
-            or cache_record_bytes
-            or cache_header_bytes
-            or cache_parsed_headers
-            or cache_content_block_bytes
-            or cache_non_warc_member_bytes
-            or cache_member_uncompressed_bytes
+            or cache.record_bytes
+            or cache.header_bytes
+            or cache.parsed_headers
+            or cache.content_block_bytes
+            or cache.non_warc_member_bytes
+            or cache.member_uncompressed_bytes
         ):
             if not decompress_and_parse_members:
                 raise ValueError(
@@ -328,13 +311,7 @@ class GzippedWARCMemberParser(BaseParser):
             stop_after_nth,
             decompress_chunk_size,
             split_records,
-            cache_member_bytes,
-            cache_member_uncompressed_bytes,
-            cache_record_bytes,
-            cache_header_bytes,
-            cache_parsed_headers,
-            cache_content_block_bytes,
-            cache_non_warc_member_bytes,
+            cache,
             member_filters,
             record_filters,
             member_handlers,
@@ -378,7 +355,7 @@ class GzippedWARCMemberParser(BaseParser):
             end=end,
         )
         self.current_member = member
-        if self.cache_member_bytes:
+        if self.cache.member_bytes:
             self.file_handle.seek(member.start)
             member._bytes = self.file_handle.read(member.length)
 
@@ -438,7 +415,7 @@ class GzippedWARCMemberParser(BaseParser):
 
                     if not header_found or not content_length:
                         # This member isn't parsable as a WARC record
-                        if self.cache_non_warc_member_bytes:
+                        if self.cache.non_warc_member_bytes:
                             gunzipped_file.seek(0)
                             member.uncompressed_non_warc_data = gunzipped_file.read()
                             self.warnings.append(
@@ -448,12 +425,12 @@ class GzippedWARCMemberParser(BaseParser):
                     else:
                         content_start = header_end + len(CRLF)
                         content_end = content_start + content_length
-                        if self.cache_record_bytes or self.cache_content_block_bytes:
+                        if self.cache.record_bytes or self.cache.content_block_bytes:
                             content_bytes = gunzipped_file.read(content_length)
 
                         # Build the Record object
                         record = Record(start=header_start, end=content_end)
-                        if self.cache_record_bytes:
+                        if self.cache.record_bytes:
                             data = bytearray()
                             data.extend(header_bytes)
                             data.extend(b"\n")
@@ -461,10 +438,10 @@ class GzippedWARCMemberParser(BaseParser):
                             record._bytes = bytes(data)
 
                         header = Header(start=header_start, end=header_end)
-                        if self.cache_header_bytes:
+                        if self.cache.header_bytes:
                             header._bytes = header_bytes
 
-                        if self.cache_parsed_headers:
+                        if self.cache.parsed_headers:
                             header._parsed_fields = header.parse_bytes_into_fields(
                                 header_bytes
                             )
@@ -472,7 +449,7 @@ class GzippedWARCMemberParser(BaseParser):
                         content_block = ContentBlock(
                             start=content_start, end=content_end
                         )
-                        if self.cache_content_block_bytes:
+                        if self.cache.content_block_bytes:
                             content_block._bytes = content_bytes
 
                         record.header = header
@@ -500,13 +477,13 @@ class GzippedWARCMemberParser(BaseParser):
                         start=uncompressed_start, end=uncompressed_start + record_length
                     )
 
-                    if self.cache_record_bytes:
+                    if self.cache.record_bytes:
                         gunzipped_file.seek(0)
                         record._bytes = gunzipped_file.read(record_length)
 
                     member.uncompressed_warc_record = record
 
-                if self.cache_member_uncompressed_bytes:
+                if self.cache.member_uncompressed_bytes:
                     gunzipped_file.seek(0)
                     member._uncompressed_bytes = gunzipped_file.read()
 
@@ -522,13 +499,7 @@ class GzippedWARCDecompressingParser(BaseParser):
         stop_after_nth,
         decompress_chunk_size,
         split_records,
-        cache_member_bytes,
-        cache_member_uncompressed_bytes,
-        cache_record_bytes,
-        cache_header_bytes,
-        cache_parsed_headers,
-        cache_content_block_bytes,
-        cache_non_warc_member_bytes,
+        cache: WARCGZCachingConfig,
         enable_lazy_loading_of_bytes,
         member_filters,
         record_filters,
@@ -541,13 +512,7 @@ class GzippedWARCDecompressingParser(BaseParser):
             stop_after_nth,
             decompress_chunk_size,
             split_records,
-            cache_member_bytes,
-            cache_member_uncompressed_bytes,
-            cache_record_bytes,
-            cache_header_bytes,
-            cache_parsed_headers,
-            cache_content_block_bytes,
-            cache_non_warc_member_bytes,
+            cache,
             member_filters,
             record_filters,
             member_handlers,
@@ -592,10 +557,10 @@ class GzippedWARCDecompressingParser(BaseParser):
             end=end,
         )
         self.current_member = member
-        if self.cache_member_bytes:
+        if self.cache.member_bytes:
             self.file_handle.seek(member.start)
             member._bytes = self.file_handle.read(member.length)
-        if self.cache_member_uncompressed_bytes:
+        if self.cache.member_uncompressed_bytes:
             self.uncompressed_file_handle.seek(member.uncompressed_start)
             member._uncompressed_bytes = self.uncompressed_file_handle.read(
                 member.uncompressed_length
@@ -641,7 +606,7 @@ class GzippedWARCDecompressingParser(BaseParser):
 
             if not header_found or not content_length:
                 # This member isn't parsable as a WARC record
-                if self.cache_non_warc_member_bytes:
+                if self.cache.non_warc_member_bytes:
                     self.uncompressed_file_handle.seek(uncompressed_start)
                     member.uncompressed_non_warc_data = (
                         self.uncompressed_file_handle.read(member.uncompressed_length)
@@ -653,14 +618,14 @@ class GzippedWARCDecompressingParser(BaseParser):
             else:
                 content_start = header_end + len(CRLF)
                 content_end = content_start + content_length
-                if self.cache_record_bytes or self.cache_content_block_bytes:
+                if self.cache.record_bytes or self.cache.content_block_bytes:
                     content_bytes = self.uncompressed_file_handle.read(content_length)
                 else:
                     self.uncompressed_file_handle.seek(content_length, os.SEEK_CUR)
 
                 # Build the Record object
                 record = Record(start=header_start, end=content_end)
-                if self.cache_record_bytes:
+                if self.cache.record_bytes:
                     data = bytearray()
                     data.extend(header_bytes)
                     data.extend(b"\n")
@@ -670,15 +635,15 @@ class GzippedWARCDecompressingParser(BaseParser):
                     record._file_handle = self.uncompressed_file_handle
 
                 header = Header(start=header_start, end=header_end)
-                if self.cache_header_bytes:
+                if self.cache.header_bytes:
                     header._bytes = header_bytes
                 if self.enable_lazy_loading_of_bytes:
                     header._file_handle = self.uncompressed_file_handle
-                if self.cache_parsed_headers:
+                if self.cache.parsed_headers:
                     header._parsed_fields = header.parse_bytes_into_fields(header_bytes)
 
                 content_block = ContentBlock(start=content_start, end=content_end)
-                if self.cache_content_block_bytes:
+                if self.cache.content_block_bytes:
                     content_block._bytes = content_bytes
                 if self.enable_lazy_loading_of_bytes:
                     content_block._file_handle = self.uncompressed_file_handle
@@ -697,7 +662,7 @@ class GzippedWARCDecompressingParser(BaseParser):
 
         else:
             record_length = member.uncompressed_length - len(CRLF * 2)
-            if self.cache_record_bytes:
+            if self.cache.record_bytes:
                 record_bytes = bytearray
                 record_bytes.extend(self.uncompressed_file_handle.read(record_length))
             else:
@@ -713,7 +678,7 @@ class GzippedWARCDecompressingParser(BaseParser):
             record = Record(
                 start=uncompressed_start, end=uncompressed_start + record_length
             )
-            if self.cache_record_bytes:
+            if self.cache.record_bytes:
                 record._bytes = record_bytes
 
             member.uncompressed_warc_record = record

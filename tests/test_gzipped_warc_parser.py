@@ -1,6 +1,7 @@
 import pytest
 
 from warcbench import WARCGZParser
+from warcbench.config import WARCGZCachingConfig
 
 
 @pytest.mark.parametrize("decompression_style", ["file", "member"])
@@ -93,11 +94,13 @@ def test_warc_gz_parser_caches_compressed_and_uncompressed_bytes(
         gzipped_warc_file,
         decompression_style=decompression_style,
         enable_lazy_loading_of_bytes=False,
-        cache_member_bytes=True,
-        cache_member_uncompressed_bytes=True,
-        cache_record_bytes=True,
-        cache_header_bytes=True,
-        cache_content_block_bytes=True,
+        cache=WARCGZCachingConfig(
+            member_bytes=True,
+            member_uncompressed_bytes=True,
+            record_bytes=True,
+            header_bytes=True,
+            content_block_bytes=True,
+        ),
     )
     parser.parse()
 
@@ -115,7 +118,9 @@ def test_warc_gz_parser_lazy_loads_bytes_in_file_mode(
         gzipped_warc_file,
         decompression_style="file",
         enable_lazy_loading_of_bytes=True,
-        cache_member_uncompressed_bytes=False,
+        cache=WARCGZCachingConfig(
+            member_uncompressed_bytes=False,
+        ),
     )
     parser.parse()
 
@@ -134,7 +139,9 @@ def test_warc_gz_parser_does_not_load_bytes_in_member_mode(
             gzipped_warc_file,
             decompression_style="member",
             enable_lazy_loading_of_bytes=True,
-            cache_member_uncompressed_bytes=False,
+            cache=WARCGZCachingConfig(
+                member_uncompressed_bytes=False,
+            ),
         )
 
     assert (

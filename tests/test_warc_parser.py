@@ -1,6 +1,7 @@
 import pytest
 
 from warcbench import WARCParser
+from warcbench.config import WARCCachingConfig
 
 
 @pytest.mark.parametrize("parsing_style", ["delimiter", "content_length"])
@@ -94,10 +95,12 @@ def test_warc_parser_records_caches_bytes(
     parser = WARCParser(
         warc_file,
         parsing_style=parsing_style,
-        cache_record_bytes=True,
-        cache_header_bytes=True,
-        cache_content_block_bytes=True,
-        cache_unparsable_line_bytes=True,
+        cache=WARCCachingConfig(
+            record_bytes=True,
+            header_bytes=True,
+            content_block_bytes=True,
+            unparsable_line_bytes=True,
+        ),
     )
     parser.parse()
 

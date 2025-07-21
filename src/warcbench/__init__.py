@@ -4,6 +4,8 @@ from warcbench.parsers import (
     GzippedWARCMemberParser,
     GzippedWARCDecompressingParser,
 )
+from warcbench.config import WARCCachingConfig, WARCGZCachingConfig
+from typing import Optional
 
 
 class WARCParser:
@@ -15,12 +17,7 @@ class WARCParser:
         stop_after_nth=None,
         check_content_lengths=False,
         split_records=True,
-        cache_unparsable_lines=False,
-        cache_record_bytes=False,
-        cache_header_bytes=False,
-        cache_parsed_headers=False,
-        cache_content_block_bytes=False,
-        cache_unparsable_line_bytes=False,
+        cache: Optional[WARCCachingConfig] = None,
         enable_lazy_loading_of_bytes=True,
         record_filters=None,
         record_handlers=None,
@@ -36,6 +33,10 @@ class WARCParser:
                 "Checking content lengths is only meaningful when parsing in delimiter mode."
             )
 
+        # Use default caching config if none provided
+        if cache is None:
+            cache = WARCCachingConfig()
+
         #
         # Set up
         #
@@ -48,12 +49,7 @@ class WARCParser:
                     stop_after_nth=stop_after_nth,
                     check_content_lengths=check_content_lengths,
                     split_records=split_records,
-                    cache_unparsable_lines=cache_unparsable_lines,
-                    cache_record_bytes=cache_record_bytes,
-                    cache_header_bytes=cache_header_bytes,
-                    cache_parsed_headers=cache_parsed_headers,
-                    cache_content_block_bytes=cache_content_block_bytes,
-                    cache_unparsable_line_bytes=cache_unparsable_line_bytes,
+                    cache=cache,
                     enable_lazy_loading_of_bytes=enable_lazy_loading_of_bytes,
                     record_filters=record_filters,
                     record_handlers=record_handlers,
@@ -66,12 +62,7 @@ class WARCParser:
                     parsing_chunk_size=parsing_chunk_size,
                     stop_after_nth=stop_after_nth,
                     split_records=split_records,
-                    cache_unparsable_lines=cache_unparsable_lines,
-                    cache_record_bytes=cache_record_bytes,
-                    cache_header_bytes=cache_header_bytes,
-                    cache_parsed_headers=cache_parsed_headers,
-                    cache_content_block_bytes=cache_content_block_bytes,
-                    cache_unparsable_line_bytes=cache_unparsable_line_bytes,
+                    cache=cache,
                     enable_lazy_loading_of_bytes=enable_lazy_loading_of_bytes,
                     record_filters=record_filters,
                     record_handlers=record_handlers,
@@ -130,13 +121,7 @@ class WARCGZParser:
         decompression_style="file",
         decompress_chunk_size=1024,
         split_records=True,
-        cache_member_bytes=False,
-        cache_member_uncompressed_bytes=False,
-        cache_record_bytes=False,
-        cache_header_bytes=False,
-        cache_parsed_headers=False,
-        cache_content_block_bytes=False,
-        cache_non_warc_member_bytes=False,
+        cache: Optional[WARCGZCachingConfig] = None,
         enable_lazy_loading_of_bytes=True,
         member_filters=None,
         record_filters=None,
@@ -158,6 +143,10 @@ class WARCGZParser:
                 "The lazy loading of bytes is only supported when decompression style is 'file'."
             )
 
+        # Use default caching config if none provided
+        if cache is None:
+            cache = WARCGZCachingConfig()
+
         #
         # Set up
         #
@@ -171,13 +160,7 @@ class WARCGZParser:
                         decompress_and_parse_members=decompress_and_parse_members,
                         decompress_chunk_size=decompress_chunk_size,
                         split_records=split_records,
-                        cache_member_bytes=cache_member_bytes,
-                        cache_member_uncompressed_bytes=cache_member_uncompressed_bytes,
-                        cache_record_bytes=cache_record_bytes,
-                        cache_header_bytes=cache_header_bytes,
-                        cache_parsed_headers=cache_parsed_headers,
-                        cache_content_block_bytes=cache_content_block_bytes,
-                        cache_non_warc_member_bytes=cache_non_warc_member_bytes,
+                        cache=cache,
                         member_filters=member_filters,
                         record_filters=record_filters,
                         member_handlers=member_handlers,
@@ -190,13 +173,7 @@ class WARCGZParser:
                         stop_after_nth=stop_after_nth,
                         decompress_chunk_size=decompress_chunk_size,
                         split_records=split_records,
-                        cache_member_bytes=cache_member_bytes,
-                        cache_member_uncompressed_bytes=cache_member_uncompressed_bytes,
-                        cache_record_bytes=cache_record_bytes,
-                        cache_header_bytes=cache_header_bytes,
-                        cache_parsed_headers=cache_parsed_headers,
-                        cache_content_block_bytes=cache_content_block_bytes,
-                        cache_non_warc_member_bytes=cache_non_warc_member_bytes,
+                        cache=cache,
                         enable_lazy_loading_of_bytes=enable_lazy_loading_of_bytes,
                         member_filters=member_filters,
                         record_filters=record_filters,

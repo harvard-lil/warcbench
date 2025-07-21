@@ -1,6 +1,7 @@
 import base64
 import click
 import html
+from dataclasses import dataclass
 from http.server import BaseHTTPRequestHandler
 import importlib.util
 import io
@@ -9,6 +10,7 @@ import re
 import sys
 
 from warcbench import WARCParser, WARCGZParser
+from warcbench.config import WARCCachingConfig, WARCGZCachingConfig
 from warcbench.exceptions import DecodingException
 from warcbench.patches import patched_gzip
 from warcbench.patterns import CRLF
@@ -412,6 +414,7 @@ def open_and_invoke(
     record_handlers=None,
     parser_callbacks=None,
     cache_records_or_members=False,
+    cache_config=None,
     extra_parser_kwargs=None,
 ):
     if not invoke_args:
@@ -454,20 +457,26 @@ def open_and_invoke(
                         "DEBUG: parsing as WARC file, member_handlers will be ignored.\n",
                         err=True,
                     )
+                if isinstance(cache_config, CLICachingConfig):
+                    cache_config = cache_config.to_warc_config()
                 parser = WARCParser(
                     file,
                     record_filters=record_filters,
                     record_handlers=record_handlers,
                     parser_callbacks=parser_callbacks,
+                    cache=cache_config,
                     **extra_parser_kwargs,
                 )
             elif file_type == FileType.GZIPPED_WARC:
+                if isinstance(cache_config, CLICachingConfig):
+                    cache_config = cache_config.to_warc_gz_config()
                 parser = WARCGZParser(
                     file,
                     record_filters=record_filters,
                     member_handlers=member_handlers,
                     record_handlers=record_handlers,
                     parser_callbacks=parser_callbacks,
+                    cache=cache_config,
                     **extra_parser_kwargs,
                 )
 
@@ -483,6 +492,7 @@ def open_and_parse(
     record_handlers=None,
     parser_callbacks=None,
     cache_records_or_members=False,
+    cache_config=None,
     extra_parser_kwargs=None,
 ):
     """This function runs the parser, filtering and running record handlers and parser callbacks as necessary."""
@@ -497,5 +507,61 @@ def open_and_parse(
         record_handlers=record_handlers,
         parser_callbacks=parser_callbacks,
         cache_records_or_members=cache_records_or_members,
+        cache_config=cache_config,
         extra_parser_kwargs=extra_parser_kwargs,
     )
+
+
+@dataclass
+class CLICachingConfig:
+    """
+    Unified caching configuration for CLI commands.
+
+    This configuration can be automatically converted to WARCCachingConfig or WARCGZCachingConfig
+    based on the file type being processed. CLI commands can use this single configuration
+    class regardless of whether they're processing WARC or gzipped WARC files.
+
+    Attributes:
+        record_bytes: If True, cache the raw bytes of each WARC record.
+        header_bytes: If True, cache the raw bytes of each WARC record header.
+        parsed_headers: If True, cache the WARC header fields parsed into a dictionary.
+        content_block_bytes: If True, cache the raw bytes of each WARC record content block.
+        unparsable_lines: If True, collect unparsable lines as UnparsableLine objects (WARC only).
+        unparsable_line_bytes: If True, cache the raw bytes of unparsable lines (WARC only).
+        member_bytes: If True, cache the raw compressed bytes of each gzip member (gzipped WARC only).
+        member_uncompressed_bytes: If True, cache the decompressed bytes of each gzip member (gzipped WARC only).
+        non_warc_member_bytes: If True, cache bytes from gzip members that don't contain valid WARC records (gzipped WARC only).
+    """
+
+    record_bytes: bool = False
+    header_bytes: bool = False
+    parsed_headers: bool = False
+    content_block_bytes: bool = False
+    unparsable_lines: bool = False
+    unparsable_line_bytes: bool = False
+    member_bytes: bool = False
+    member_uncompressed_bytes: bool = False
+    non_warc_member_bytes: bool = False
+
+    def to_warc_config(self) -> WARCCachingConfig:
+        """Convert to WARCCachingConfig for WARC files."""
+        return WARCCachingConfig(
+            record_bytes=self.record_bytes,
+            header_bytes=self.header_bytes,
+            parsed_headers=self.parsed_headers,
+            content_block_bytes=self.content_block_bytes,
+            unparsable_lines=self.unparsable_lines,
+            unparsable_line_bytes=self.unparsable_line_bytes,
+        )
+
+    def to_warc_gz_config(self) -> WARCGZCachingConfig:
+        """Convert to WARCGZCachingConfig for gzipped WARC files."""
+        return WARCGZCachingConfig(
+            record_bytes=self.record_bytes,
+            header_bytes=self.header_bytes,
+            parsed_headers=self.parsed_headers,
+            content_block_bytes=self.content_block_bytes,
+            member_bytes=self.member_bytes,
+            member_uncompressed_bytes=self.member_uncompressed_bytes,
+            non_warc_member_bytes=self.non_warc_member_bytes,
+        )

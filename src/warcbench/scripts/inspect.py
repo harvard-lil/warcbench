@@ -8,7 +8,11 @@ from warcbench.record_handlers import (
     get_record_headers,
     get_record_http_headers,
 )
-from warcbench.scripts.utils import open_and_parse, format_record_data_for_output
+from warcbench.scripts.utils import (
+    CLICachingConfig,
+    open_and_parse,
+    format_record_data_for_output,
+)
 
 
 @click.command(short_help="Get detailed record metadata.")
@@ -127,10 +131,10 @@ def inspect(
         ctx,
         member_handlers=member_handlers,
         record_handlers=record_handlers,
-        extra_parser_kwargs={
-            "cache_header_bytes": True,
-            "cache_content_block_bytes": True,
-        },
+        cache_config=CLICachingConfig(
+            header_bytes=True,
+            content_block_bytes=True,
+        ),
     )
 
     #

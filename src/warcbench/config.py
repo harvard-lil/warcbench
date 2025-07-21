@@ -8,7 +8,6 @@ The configuration classes follow a hierarchy:
 """
 
 from dataclasses import dataclass
-from typing import Optional, List, Callable
 
 
 @dataclass

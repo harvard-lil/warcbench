@@ -5,7 +5,7 @@ from urllib.parse import urlparse
 
 from warcbench.filters import record_content_type_filter
 from warcbench.patterns import get_warc_named_field_pattern, CONTENT_TYPE_PATTERN
-from warcbench.scripts.utils import open_and_parse
+from warcbench.scripts.utils import CLICachingConfig, open_and_parse
 from warcbench.utils import find_pattern_in_bytes
 
 
@@ -134,10 +134,10 @@ def summarize(ctx, filepath):
             count_content_types(),
         ],
         parser_callbacks=[get_warnings_and_errors()],
-        extra_parser_kwargs={
-            "cache_header_bytes": True,
-            "cache_content_block_bytes": True,
-        },
+        cache_config=CLICachingConfig(
+            header_bytes=True,
+            content_block_bytes=True,
+        ),
     )
 
     if ctx.obj["OUT"] == "json":

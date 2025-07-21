@@ -21,6 +21,7 @@ from warcbench.record_handlers import (
     get_record_http_body,
 )
 from warcbench.scripts.utils import (
+    CLICachingConfig,
     open_and_parse,
     dynamically_import,
     output_record,
@@ -354,11 +355,11 @@ def filter_records(
         record_filters=record_filters,
         member_handlers=member_handlers,
         record_handlers=record_handlers,
-        extra_parser_kwargs={
-            "cache_header_bytes": True,
-            "cache_parsed_headers": True,
-            "cache_content_block_bytes": True,
-        },
+        cache_config=CLICachingConfig(
+            header_bytes=True,
+            parsed_headers=True,
+            content_block_bytes=True,
+        ),
     )
 
     #

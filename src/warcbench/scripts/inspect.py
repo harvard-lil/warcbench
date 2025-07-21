@@ -10,6 +10,7 @@ from warcbench.record_handlers import (
 )
 from warcbench.scripts.utils import (
     CLICachingConfig,
+    CLIProcessorConfig,
     open_and_parse,
     format_record_data_for_output,
 )
@@ -129,8 +130,10 @@ def inspect(
 
     open_and_parse(
         ctx,
-        member_handlers=member_handlers,
-        record_handlers=record_handlers,
+        processor_config=CLIProcessorConfig(
+            member_handlers=member_handlers,
+            record_handlers=record_handlers,
+        ),
         cache_config=CLICachingConfig(
             header_bytes=True,
             content_block_bytes=True,

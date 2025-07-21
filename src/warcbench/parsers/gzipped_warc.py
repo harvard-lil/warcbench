@@ -22,7 +22,7 @@ from warcbench.utils import (
     decompress_and_get_gzip_file_member_offsets,
     find_matching_request_response_pairs,
 )
-from warcbench.config import WARCGZCachingConfig
+from warcbench.config import WARCGZCachingConfig, WARCGZProcessorConfig
 
 logger = logging.getLogger(__name__)
 
@@ -47,11 +47,7 @@ class BaseParser(ABC):
         decompress_chunk_size,
         split_records,
         cache: WARCGZCachingConfig,
-        member_filters,
-        record_filters,
-        member_handlers,
-        record_handlers,
-        parser_callbacks,
+        processors: WARCGZProcessorConfig,
     ):
         #
         # Validate Options
@@ -84,11 +80,7 @@ class BaseParser(ABC):
         self.decompress_chunk_size = decompress_chunk_size
         self.split_records = split_records
         self.cache = cache
-        self.member_filters = member_filters
-        self.record_filters = record_filters
-        self.member_handlers = member_handlers
-        self.record_handlers = record_handlers
-        self.parser_callbacks = parser_callbacks
+        self.processors = processors
 
         self.warnings = []
         self.error = None
@@ -215,8 +207,8 @@ class BaseParser(ABC):
     def check_member_against_filters(self):
         retained = True
 
-        if self.member_filters:
-            for f in self.member_filters:
+        if self.processors.member_filters:
+            for f in self.processors.member_filters:
                 if not f(self.current_member):
                     retained = False
                     logger.debug(
@@ -224,8 +216,8 @@ class BaseParser(ABC):
                     )
                     break
 
-        if self.record_filters:
-            for f in self.record_filters:
+        if self.processors.record_filters:
+            for f in self.processors.record_filters:
                 if not self.current_member.uncompressed_warc_record or not f(
                     self.current_member.uncompressed_warc_record
                 ):
@@ -240,22 +232,25 @@ class BaseParser(ABC):
         return STATES["FIND_NEXT_MEMBER"]
 
     def run_member_handlers(self):
-        if self.member_handlers:
-            for f in self.member_handlers:
+        if self.processors.member_handlers:
+            for f in self.processors.member_handlers:
                 f(self.current_member)
 
         return STATES["RUN_RECORD_HANDLERS"]
 
     def run_record_handlers(self):
-        if self.record_handlers and self.current_member.uncompressed_warc_record:
-            for f in self.record_handlers:
+        if (
+            self.processors.record_handlers
+            and self.current_member.uncompressed_warc_record
+        ):
+            for f in self.processors.record_handlers:
                 f(self.current_member.uncompressed_warc_record)
 
         return STATES["YIELD_CURRENT_MEMBER"]
 
     def run_parser_callbacks(self):
-        if self.parser_callbacks:
-            for f in self.parser_callbacks:
+        if self.processors.parser_callbacks:
+            for f in self.processors.parser_callbacks:
                 f(self)
 
         return STATES["END"]
@@ -278,11 +273,7 @@ class GzippedWARCMemberParser(BaseParser):
         decompress_chunk_size,
         split_records,
         cache: WARCGZCachingConfig,
-        member_filters,
-        record_filters,
-        member_handlers,
-        record_handlers,
-        parser_callbacks,
+        processors: WARCGZProcessorConfig,
     ):
         #
         # Validate options
@@ -312,11 +303,7 @@ class GzippedWARCMemberParser(BaseParser):
             decompress_chunk_size,
             split_records,
             cache,
-            member_filters,
-            record_filters,
-            member_handlers,
-            record_handlers,
-            parser_callbacks,
+            processors,
         )
         self.decompress_and_parse_members = decompress_and_parse_members
 
@@ -501,11 +488,7 @@ class GzippedWARCDecompressingParser(BaseParser):
         split_records,
         cache: WARCGZCachingConfig,
         enable_lazy_loading_of_bytes,
-        member_filters,
-        record_filters,
-        member_handlers,
-        record_handlers,
-        parser_callbacks,
+        processors: WARCGZProcessorConfig,
     ):
         super().__init__(
             file_handle,
@@ -513,11 +496,7 @@ class GzippedWARCDecompressingParser(BaseParser):
             decompress_chunk_size,
             split_records,
             cache,
-            member_filters,
-            record_filters,
-            member_handlers,
-            record_handlers,
-            parser_callbacks,
+            processors,
         )
         self.enable_lazy_loading_of_bytes = enable_lazy_loading_of_bytes
         self.uncompressed_file_handle = NamedTemporaryFile("w+b", delete=False)

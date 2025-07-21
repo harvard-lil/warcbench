@@ -5,7 +5,7 @@ from urllib.parse import urlparse
 
 from warcbench.filters import record_content_type_filter
 from warcbench.patterns import get_warc_named_field_pattern, CONTENT_TYPE_PATTERN
-from warcbench.scripts.utils import CLICachingConfig, open_and_parse
+from warcbench.scripts.utils import CLICachingConfig, CLIProcessorConfig, open_and_parse
 from warcbench.utils import find_pattern_in_bytes
 
 
@@ -127,13 +127,15 @@ def summarize(ctx, filepath):
 
     open_and_parse(
         ctx,
-        record_handlers=[
-            count_records(),
-            count_types(),
-            count_domains(),
-            count_content_types(),
-        ],
-        parser_callbacks=[get_warnings_and_errors()],
+        processor_config=CLIProcessorConfig(
+            record_handlers=[
+                count_records(),
+                count_types(),
+                count_domains(),
+                count_content_types(),
+            ],
+            parser_callbacks=[get_warnings_and_errors()],
+        ),
         cache_config=CLICachingConfig(
             header_bytes=True,
             content_block_bytes=True,

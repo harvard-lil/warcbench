@@ -1,6 +1,7 @@
 import pytest
 
 from warcbench import WARCParser, WARCGZParser
+from warcbench.config import WARCProcessorConfig, WARCGZProcessorConfig
 from warcbench.filters import (
     warc_header_regex_filter,
     record_content_length_filter,
@@ -22,9 +23,13 @@ def parse_and_check_record_count(request, file, filters, record_count):
 
     match file:
         case "warc_file":
-            parser = WARCParser(file_handle, record_filters=filters)
+            parser = WARCParser(
+                file_handle, processors=WARCProcessorConfig(record_filters=filters)
+            )
         case "gzipped_warc_file":
-            parser = WARCGZParser(file_handle, record_filters=filters)
+            parser = WARCGZParser(
+                file_handle, processors=WARCGZProcessorConfig(record_filters=filters)
+            )
 
     parser.parse()
     assert len(parser.records) == record_count

@@ -2,7 +2,11 @@ import base64
 import click
 import json
 
-from warcbench.scripts.utils import CLICachingConfig, open_and_invoke
+from warcbench.scripts.utils import (
+    CLICachingConfig,
+    CLIProcessorConfig,
+    open_and_invoke,
+)
 
 
 @click.command(short_help="Match requests/responses into pairs.")
@@ -147,7 +151,9 @@ def match_record_pairs(
         ctx,
         "get_approximate_request_response_pairs",
         invoke_kwargs={"count_only": count_only},
-        record_filters=record_filters,
+        processor_config=CLIProcessorConfig(
+            record_filters=record_filters,
+        ),
         cache_config=CLICachingConfig(
             header_bytes=True,
             parsed_headers=True,

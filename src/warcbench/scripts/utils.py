@@ -8,6 +8,7 @@ import io
 from pathlib import Path
 import re
 import sys
+from typing import List, Optional
 
 from warcbench import WARCParser, WARCGZParser
 from warcbench.config import WARCCachingConfig, WARCGZCachingConfig
@@ -19,6 +20,7 @@ from warcbench.utils import (
     python_open_archive,
     system_open_archive,
 )
+from warcbench.config import WARCProcessorConfig, WARCGZProcessorConfig
 
 
 def dynamically_import(module_name, module_path):
@@ -409,10 +411,7 @@ def open_and_invoke(
     invoke_method,
     invoke_args=None,
     invoke_kwargs=None,
-    record_filters=None,
-    member_handlers=None,
-    record_handlers=None,
-    parser_callbacks=None,
+    processor_config=None,
     cache_records_or_members=False,
     cache_config=None,
     extra_parser_kwargs=None,
@@ -452,31 +451,34 @@ def open_and_invoke(
             # Initialize parser
             #
             if file_type == FileType.WARC:
-                if member_handlers and ctx.obj["VERBOSE"]:
+                if (
+                    processor_config
+                    and getattr(processor_config, "member_handlers", None)
+                    and ctx.obj["VERBOSE"]
+                ):
                     click.echo(
                         "DEBUG: parsing as WARC file, member_handlers will be ignored.\n",
                         err=True,
                     )
                 if isinstance(cache_config, CLICachingConfig):
                     cache_config = cache_config.to_warc_config()
+                if isinstance(processor_config, CLIProcessorConfig):
+                    processor_config = processor_config.to_warc_config()
                 parser = WARCParser(
                     file,
-                    record_filters=record_filters,
-                    record_handlers=record_handlers,
-                    parser_callbacks=parser_callbacks,
                     cache=cache_config,
+                    processors=processor_config,
                     **extra_parser_kwargs,
                 )
             elif file_type == FileType.GZIPPED_WARC:
                 if isinstance(cache_config, CLICachingConfig):
                     cache_config = cache_config.to_warc_gz_config()
+                if isinstance(processor_config, CLIProcessorConfig):
+                    processor_config = processor_config.to_warc_gz_config()
                 parser = WARCGZParser(
                     file,
-                    record_filters=record_filters,
-                    member_handlers=member_handlers,
-                    record_handlers=record_handlers,
-                    parser_callbacks=parser_callbacks,
                     cache=cache_config,
+                    processors=processor_config,
                     **extra_parser_kwargs,
                 )
 
@@ -487,10 +489,7 @@ def open_and_invoke(
 
 def open_and_parse(
     ctx,
-    record_filters=None,
-    member_handlers=None,
-    record_handlers=None,
-    parser_callbacks=None,
+    processor_config=None,
     cache_records_or_members=False,
     cache_config=None,
     extra_parser_kwargs=None,
@@ -502,10 +501,7 @@ def open_and_parse(
     return open_and_invoke(
         ctx,
         "parse",
-        record_filters=record_filters,
-        member_handlers=member_handlers,
-        record_handlers=record_handlers,
-        parser_callbacks=parser_callbacks,
+        processor_config=processor_config,
         cache_records_or_members=cache_records_or_members,
         cache_config=cache_config,
         extra_parser_kwargs=extra_parser_kwargs,
@@ -564,4 +560,46 @@ class CLICachingConfig:
             member_bytes=self.member_bytes,
             member_uncompressed_bytes=self.member_uncompressed_bytes,
             non_warc_member_bytes=self.non_warc_member_bytes,
+        )
+
+
+@dataclass
+class CLIProcessorConfig:
+    """
+    Unified processor configuration for CLI commands.
+
+    This configuration can be automatically converted to WARCProcessorConfig or WARCGZProcessorConfig
+    based on the file type being processed. CLI commands can use this single configuration
+    class regardless of whether they're processing WARC or gzipped WARC files.
+
+    Attributes:
+        record_filters: List of functions to filter WARC records.
+        record_handlers: List of functions to handle WARC records.
+        parser_callbacks: List of functions to call when parsing is complete.
+        member_handlers: List of functions to handle gzip members (gzipped WARC only).
+        unparsable_line_handlers: List of functions to handle unparsable lines (WARC only).
+    """
+
+    record_filters: Optional[List] = None
+    record_handlers: Optional[List] = None
+    parser_callbacks: Optional[List] = None
+    member_handlers: Optional[List] = None
+    unparsable_line_handlers: Optional[List] = None
+
+    def to_warc_config(self) -> WARCProcessorConfig:
+        """Convert to WARCProcessorConfig for WARC files."""
+        return WARCProcessorConfig(
+            record_filters=self.record_filters,
+            record_handlers=self.record_handlers,
+            parser_callbacks=self.parser_callbacks,
+            unparsable_line_handlers=self.unparsable_line_handlers,
+        )
+
+    def to_warc_gz_config(self) -> WARCGZProcessorConfig:
+        """Convert to WARCGZProcessorConfig for gzipped WARC files."""
+        return WARCGZProcessorConfig(
+            record_filters=self.record_filters,
+            record_handlers=self.record_handlers,
+            parser_callbacks=self.parser_callbacks,
+            member_handlers=self.member_handlers,
         )

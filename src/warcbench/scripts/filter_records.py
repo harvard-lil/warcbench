@@ -22,6 +22,7 @@ from warcbench.record_handlers import (
 )
 from warcbench.scripts.utils import (
     CLICachingConfig,
+    CLIProcessorConfig,
     open_and_parse,
     dynamically_import,
     output_record,
@@ -352,9 +353,11 @@ def filter_records(
 
     open_and_parse(
         ctx,
-        record_filters=record_filters,
-        member_handlers=member_handlers,
-        record_handlers=record_handlers,
+        processor_config=CLIProcessorConfig(
+            record_filters=record_filters,
+            member_handlers=member_handlers,
+            record_handlers=record_handlers,
+        ),
         cache_config=CLICachingConfig(
             header_bytes=True,
             parsed_headers=True,

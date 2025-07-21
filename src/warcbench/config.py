@@ -2,12 +2,13 @@
 `config` module: Configuration dataclasses for parsers
 
 The configuration classes follow a hierarchy:
-- BaseCachingConfig: Common options shared by all parsers
-- WARCCachingConfig: WARC-specific options (extends BaseCachingConfig)
-- WARCGZCachingConfig: Gzip-specific options (extends BaseCachingConfig)
+- Base*Config: Common options shared by all parsers
+- WARC*Config: WARC-specific options (extends Base*Config)
+- WARCGZ*Config: Gzip-specific options (extends Base*Config)
 """
 
 from dataclasses import dataclass
+from typing import Optional, List
 
 
 @dataclass
@@ -69,3 +70,54 @@ class WARCGZCachingConfig(BaseCachingConfig):
     member_bytes: bool = False
     member_uncompressed_bytes: bool = False
     non_warc_member_bytes: bool = False
+
+
+@dataclass
+class BaseProcessorConfig:
+    """
+    Common processor configuration shared between WARCParser and WARCGZParser.
+
+    This configuration controls what processors are applied during parsing, including
+    filters, handlers, and callbacks.
+
+    See "Filters, handlers, and callbacks" in README.md for details.
+
+    Attributes:
+        record_filters: List of functions to filter WARC records.
+        record_handlers: List of functions to handle WARC records.
+        parser_callbacks: List of functions to call when parsing is complete.
+    """
+
+    record_filters: Optional[List] = None
+    record_handlers: Optional[List] = None
+    parser_callbacks: Optional[List] = None
+
+
+@dataclass
+class WARCProcessorConfig(BaseProcessorConfig):
+    """
+    Processor configuration specific to WARCParser.
+
+    Adds options for handling unparsable lines encountered during parsing.
+
+    Attributes:
+        unparsable_line_handlers: List of functions to handle unparsable lines.
+    """
+
+    unparsable_line_handlers: Optional[List] = None
+
+
+@dataclass
+class WARCGZProcessorConfig(BaseProcessorConfig):
+    """
+    Processor configuration specific to WARCGZParser.
+
+    Adds options for handling gzip members (see warcbench.models.GzippedMember).
+
+    Attributes:
+        member_filters: List of functions to filter gzip members.
+        member_handlers: List of functions to handle gzip members.
+    """
+
+    member_filters: Optional[List] = None
+    member_handlers: Optional[List] = None

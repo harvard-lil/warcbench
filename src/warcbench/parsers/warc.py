@@ -17,7 +17,7 @@ from warcbench.utils import (
     find_content_length_in_bytes,
     find_matching_request_response_pairs,
 )
-from warcbench.config import WARCCachingConfig
+from warcbench.config import WARCCachingConfig, WARCProcessorConfig
 
 logger = logging.getLogger(__name__)
 
@@ -43,10 +43,7 @@ class BaseParser(ABC):
         split_records,
         cache: WARCCachingConfig,
         enable_lazy_loading_of_bytes,
-        record_filters,
-        record_handlers,
-        unparsable_line_handlers,
-        parser_callbacks,
+        processors: WARCProcessorConfig,
     ):
         self.state = STATES["FIND_WARC_HEADER"]
         self.transitions = {
@@ -64,11 +61,8 @@ class BaseParser(ABC):
         self.stop_after_nth = stop_after_nth
         self.split_records = split_records
         self.cache = cache
+        self.processors = processors
         self.enable_lazy_loading_of_bytes = enable_lazy_loading_of_bytes
-        self.record_filters = record_filters
-        self.record_handlers = record_handlers
-        self.unparsable_line_handlers = unparsable_line_handlers
-        self.parser_callbacks = parser_callbacks
 
         self.warnings = []
         self.error = None
@@ -192,8 +186,8 @@ class BaseParser(ABC):
                     )
                 if self.enable_lazy_loading_of_bytes:
                     unparsable_line._file_handle = self.file_handle
-                if self.unparsable_line_handlers:
-                    for handler in self.unparsable_line_handlers:
+                if self.processors.unparsable_line_handlers:
+                    for handler in self.processors.unparsable_line_handlers:
                         handler(unparsable_line)
                 if self.cache.unparsable_lines:
                     self.unparsable_lines.append(unparsable_line)
@@ -202,8 +196,8 @@ class BaseParser(ABC):
 
     def check_record_against_filters(self):
         retained = True
-        if self.record_filters:
-            for f in self.record_filters:
+        if self.processors.record_filters:
+            for f in self.processors.record_filters:
                 if not f(self.current_record):
                     retained = False
                     logger.debug(
@@ -216,15 +210,15 @@ class BaseParser(ABC):
         return STATES["FIND_NEXT_RECORD"]
 
     def run_record_handlers(self):
-        if self.record_handlers:
-            for f in self.record_handlers:
+        if self.processors.record_handlers:
+            for f in self.processors.record_handlers:
                 f(self.current_record)
 
         return STATES["YIELD_CURRENT_RECORD"]
 
     def run_parser_callbacks(self):
-        if self.parser_callbacks:
-            for f in self.parser_callbacks:
+        if self.processors.parser_callbacks:
+            for f in self.processors.parser_callbacks:
                 f(self)
 
         return STATES["END"]
@@ -244,10 +238,7 @@ class DelimiterWARCParser(BaseParser):
         check_content_lengths,
         cache: WARCCachingConfig,
         enable_lazy_loading_of_bytes,
-        record_filters,
-        record_handlers,
-        unparsable_line_handlers,
-        parser_callbacks,
+        processors: WARCProcessorConfig,
     ):
         #
         # Validate Options
@@ -284,10 +275,7 @@ class DelimiterWARCParser(BaseParser):
             split_records,
             cache,
             enable_lazy_loading_of_bytes,
-            record_filters,
-            record_handlers,
-            unparsable_line_handlers,
-            parser_callbacks,
+            processors,
         )
 
     def extract_next_record(self):
@@ -408,8 +396,8 @@ class ContentLengthWARCParser(BaseParser):
                     unparsable_line._bytes = line + b"\n"
                 if self.enable_lazy_loading_of_bytes:
                     unparsable_line._file_handle = self.file_handle
-                if self.unparsable_line_handlers:
-                    for handler in self.unparsable_line_handlers:
+                if self.processors.unparsable_line_handlers:
+                    for handler in self.processors.unparsable_line_handlers:
                         handler(unparsable_line)
                 if self.cache.unparsable_lines:
                     self.unparsable_lines.append(unparsable_line)

@@ -277,15 +277,18 @@ WARCbench includes several additional mechanisms for wrangling WARC records: fil
 
 ```python
 from warcbench import WARCGZParser
+from warcbench.config import WARCGZProcessorConfig
 from warcbench.filters import warc_named_field_filter
 from warcbench.utils import system_open_archive
 
 with system_open_archive('example.com.wacz') as warcgz_file:
     parser = WARCGZParser(
         warcgz_file,
-        record_filters=[
-            warc_named_field_filter('type', 'request'),
-        ]
+        processors=WARCGZProcessorConfig(
+            record_filters=[
+                warc_named_field_filter('type', 'request'),
+            ]
+        )
     )
 ```
 
@@ -293,15 +296,18 @@ with system_open_archive('example.com.wacz') as warcgz_file:
 
 ```python
 from warcbench import WARCGZParser
+from warcbench.config import WARCGZProcessorConfig
 from warcbench.utils import system_open_archive
 
 with system_open_archive('example.com.wacz') as warcgz_file:
     parser = WARCGZParser(
         warcgz_file,
-        member_filters=[
-            # only yield malformed members
-            lambda member: bool(member.uncompressed_non_warc_data),
-        ]
+        processors=WARCGZProcessorConfig(
+            member_filters=[
+                # only yield malformed members
+                lambda member: bool(member.uncompressed_non_warc_data),
+            ]
+        )
     )
 ```
 
@@ -311,30 +317,37 @@ with system_open_archive('example.com.wacz') as warcgz_file:
 
 ```python
 from warcbench import WARCParser
+from warcbench.config import WARCProcessorConfig
 from warcbench.record_handlers import get_record_offsets
 from warcbench.utils import system_open_archive
 
 with system_open_archive('example.com.warc') as warc_file:
     parser = WARCParser(
         warc_file,
-        record_handlers=[
-            get_record_offsets(),
-        ]
+        processors=WARCProcessorConfig(
+            record_handlers=[
+                get_record_offsets(),
+            ]
+        )
     )
 ```
 
 To support inspection of WARC files that contain invalid records, WARCbench also includes a way to specify handlers for unparsable lines. **Unparsable line handlers** behave just like record handlers, except that they accept `warcbench.models.UnparsableLine` objects instead of `Record`s. You could use these handlers to print information about unparsable lines, or even repair them. Example:
 
 ```python
+from warcbench import WARCParser
+from warcbench.config import WARCProcessorConfig
 from warcbench.record_handlers import get_record_offsets
 from warcbench.utils import system_open_archive
 
 with system_open_archive('example.com.wacz') as warc_file:
     parser = WARCParser(
         warc_file,
-        unparsable_line_handlers=[
-            lambda line: print(line),
-        ]
+        processors=WARCProcessorConfig(
+            unparsable_line_handlers=[
+                lambda line: print(line),
+            ]
+        )
     )
 ```
 
@@ -347,6 +360,8 @@ with system_open_archive('example.com.wacz') as warc_file:
 Filters, handlers, and callbacks are additive, but you can combine them together to produce output of arbitrary complexity. Example:
 
 ```python
+from warcbench import WARCGZParser
+from warcbench.config import WARCGZProcessorConfig
 from warcbench.filters import warc_named_field_filter
 from warcbench.utils import system_open_archive
 
@@ -368,10 +383,12 @@ def combo_filter(record):
 with system_open_archive('example.com.wacz') as warcgz_file:
     parser = WARCGZParser(
         warcgz_file,
-        record_filters=[
-            combo_filter,
-            record_content_length_filter('2056', 'le'),
-        ]
+        processors=WARCGZProcessorConfig(
+            record_filters=[
+                combo_filter,
+                record_content_length_filter('2056', 'le'),
+            ]
+        )
     )
 ```
 
@@ -386,6 +403,8 @@ WARCbench supports a number of configuration options:
 - You can choose whether or not to attempt to split WARC records into headers and content blocks.
 
 - You can choose whether to cache record properties, such as the bytes of headers or content blocks, on the parser object as it proceeds, or to instead consume those bytes lazily on access.
+
+See `config.py` for details.
 
 [⇧ Back to top](#contents)
 

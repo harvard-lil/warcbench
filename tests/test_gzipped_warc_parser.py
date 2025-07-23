@@ -1,6 +1,7 @@
 import pytest
 
 from warcbench import WARCGZParser
+from warcbench.config import WARCGZParsingConfig, WARCGZCachingConfig
 
 
 @pytest.mark.parametrize("decompression_style", ["file", "member"])
@@ -11,7 +12,7 @@ def test_warc_gz_parser_offsets(
 ):
     parser = WARCGZParser(
         gzipped_warc_file,
-        decompression_style=decompression_style,
+        parsing_options=WARCGZParsingConfig(decompression_style=decompression_style),
         enable_lazy_loading_of_bytes=False,
     )
     parser.parse()
@@ -32,9 +33,10 @@ def test_warc_gz_parser_offsets(
 def test_warc_gz_parser_stop_after_nth(gzipped_warc_file, decompression_style):
     parser = WARCGZParser(
         gzipped_warc_file,
-        decompression_style=decompression_style,
+        parsing_options=WARCGZParsingConfig(
+            decompression_style=decompression_style, stop_after_nth=2
+        ),
         enable_lazy_loading_of_bytes=False,
-        stop_after_nth=2,
     )
     parser.parse()
     assert len(parser.members) == 2
@@ -47,9 +49,10 @@ def test_warc_gz_parser_records_not_split(
 ):
     parser = WARCGZParser(
         gzipped_warc_file,
-        decompression_style=decompression_style,
+        parsing_options=WARCGZParsingConfig(
+            decompression_style=decompression_style, split_records=False
+        ),
         enable_lazy_loading_of_bytes=False,
-        split_records=False,
     )
     parser.parse()
 
@@ -66,7 +69,7 @@ def test_warc_gz_parser_records_split_correctly(
 ):
     parser = WARCGZParser(
         gzipped_warc_file,
-        decompression_style=decompression_style,
+        parsing_options=WARCGZParsingConfig(decompression_style=decompression_style),
         enable_lazy_loading_of_bytes=False,
     )
     parser.parse()
@@ -91,13 +94,15 @@ def test_warc_gz_parser_caches_compressed_and_uncompressed_bytes(
 ):
     parser = WARCGZParser(
         gzipped_warc_file,
-        decompression_style=decompression_style,
+        parsing_options=WARCGZParsingConfig(decompression_style=decompression_style),
         enable_lazy_loading_of_bytes=False,
-        cache_member_bytes=True,
-        cache_member_uncompressed_bytes=True,
-        cache_record_bytes=True,
-        cache_header_bytes=True,
-        cache_content_block_bytes=True,
+        cache=WARCGZCachingConfig(
+            member_bytes=True,
+            member_uncompressed_bytes=True,
+            record_bytes=True,
+            header_bytes=True,
+            content_block_bytes=True,
+        ),
     )
     parser.parse()
 
@@ -113,9 +118,11 @@ def test_warc_gz_parser_lazy_loads_bytes_in_file_mode(
 ):
     parser = WARCGZParser(
         gzipped_warc_file,
-        decompression_style="file",
+        parsing_options=WARCGZParsingConfig(decompression_style="file"),
         enable_lazy_loading_of_bytes=True,
-        cache_member_uncompressed_bytes=False,
+        cache=WARCGZCachingConfig(
+            member_uncompressed_bytes=False,
+        ),
     )
     parser.parse()
 
@@ -132,9 +139,11 @@ def test_warc_gz_parser_does_not_load_bytes_in_member_mode(
     with pytest.raises(ValueError) as e:
         WARCGZParser(
             gzipped_warc_file,
-            decompression_style="member",
+            parsing_options=WARCGZParsingConfig(decompression_style="member"),
             enable_lazy_loading_of_bytes=True,
-            cache_member_uncompressed_bytes=False,
+            cache=WARCGZCachingConfig(
+                member_uncompressed_bytes=False,
+            ),
         )
 
     assert (
@@ -151,7 +160,7 @@ def test_warc_gz_parser_get_member_offsets(
 ):
     parser = WARCGZParser(
         gzipped_warc_file,
-        decompression_style=decompression_style,
+        parsing_options=WARCGZParsingConfig(decompression_style=decompression_style),
         enable_lazy_loading_of_bytes=False,
     )
     assert parser.get_member_offsets() == expected_offsets["warc_gz_members"]
@@ -165,7 +174,7 @@ def test_warc_gz_parser_get_member_uncompressed_offsets(
 ):
     parser = WARCGZParser(
         gzipped_warc_file,
-        decompression_style=decompression_style,
+        parsing_options=WARCGZParsingConfig(decompression_style=decompression_style),
         enable_lazy_loading_of_bytes=False,
     )
     assert (
@@ -182,7 +191,7 @@ def test_warc_gz_parser_get_record_offsets(
 ):
     parser = WARCGZParser(
         gzipped_warc_file,
-        decompression_style=decompression_style,
+        parsing_options=WARCGZParsingConfig(decompression_style=decompression_style),
         enable_lazy_loading_of_bytes=False,
     )
     assert parser.get_record_offsets() == expected_offsets["warc_records"]
@@ -204,7 +213,7 @@ def test_warc_gz_parser_get_split_record_offsets(
 
     parser = WARCGZParser(
         gzipped_warc_file,
-        decompression_style=decompression_style,
+        parsing_options=WARCGZParsingConfig(decompression_style=decompression_style),
         enable_lazy_loading_of_bytes=False,
     )
     assert parser.get_record_offsets(split=True) == offsets

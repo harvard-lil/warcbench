@@ -1,11 +1,14 @@
 import pytest
 
 from warcbench import WARCParser
+from warcbench.config import WARCParsingConfig, WARCCachingConfig
 
 
 @pytest.mark.parametrize("parsing_style", ["delimiter", "content_length"])
 def test_warc_parser_offsets(warc_file, expected_offsets, parsing_style):
-    parser = WARCParser(warc_file, parsing_style=parsing_style)
+    parser = WARCParser(
+        warc_file, parsing_options=WARCParsingConfig(style=parsing_style)
+    )
     parser.parse()
 
     assert len(parser.records) == len(expected_offsets["warc_records"])
@@ -16,7 +19,10 @@ def test_warc_parser_offsets(warc_file, expected_offsets, parsing_style):
 
 @pytest.mark.parametrize("parsing_style", ["delimiter", "content_length"])
 def test_warc_parser_stop_after_nth(warc_file, parsing_style):
-    parser = WARCParser(warc_file, parsing_style=parsing_style, stop_after_nth=2)
+    parser = WARCParser(
+        warc_file,
+        parsing_options=WARCParsingConfig(style=parsing_style, stop_after_nth=2),
+    )
     parser.parse()
     assert len(parser.records) == 2
 
@@ -25,7 +31,10 @@ def test_warc_parser_check_content_lengths_not_supported_in_content_length_mode(
     warc_file,
 ):
     with pytest.raises(ValueError) as e:
-        WARCParser(warc_file, check_content_lengths=True)
+        WARCParser(
+            warc_file,
+            parsing_options=WARCParsingConfig(check_content_lengths=True),
+        )
 
     assert (
         "Checking content lengths is only meaningful when parsing in delimiter mode."
@@ -36,7 +45,10 @@ def test_warc_parser_check_content_lengths_not_supported_in_content_length_mode(
 def test_warc_parser_check_content_lengths_false(warc_file):
     # None, by default, when not checking
     parser = WARCParser(
-        warc_file, parsing_style="delimiter", check_content_lengths=False
+        warc_file,
+        parsing_options=WARCParsingConfig(
+            style="delimiter", check_content_lengths=False
+        ),
     )
     parser.parse()
     for record in parser.records:
@@ -46,7 +58,10 @@ def test_warc_parser_check_content_lengths_false(warc_file):
 def test_warc_parser_check_content_lengths_true(warc_file):
     # True, for this valid WARC, when checking
     parser = WARCParser(
-        warc_file, parsing_style="delimiter", check_content_lengths=True
+        warc_file,
+        parsing_options=WARCParsingConfig(
+            style="delimiter", check_content_lengths=True
+        ),
     )
     parser.parse()
     for record in parser.records:
@@ -55,7 +70,10 @@ def test_warc_parser_check_content_lengths_true(warc_file):
 
 @pytest.mark.parametrize("parsing_style", ["delimiter", "content_length"])
 def test_warc_parser_records_not_split(warc_file, parsing_style):
-    parser = WARCParser(warc_file, parsing_style=parsing_style, split_records=False)
+    parser = WARCParser(
+        warc_file,
+        parsing_options=WARCParsingConfig(style=parsing_style, split_records=False),
+    )
     parser.parse()
 
     for record in parser.records:
@@ -67,7 +85,9 @@ def test_warc_parser_records_not_split(warc_file, parsing_style):
 def test_warc_parser_records_split_correctly(
     warc_file, expected_offsets, parsing_style
 ):
-    parser = WARCParser(warc_file, parsing_style=parsing_style)
+    parser = WARCParser(
+        warc_file, parsing_options=WARCParsingConfig(style=parsing_style)
+    )
     parser.parse()
 
     for record, (header_start, header_end), (
@@ -93,11 +113,13 @@ def test_warc_parser_records_caches_bytes(
 ):
     parser = WARCParser(
         warc_file,
-        parsing_style=parsing_style,
-        cache_record_bytes=True,
-        cache_header_bytes=True,
-        cache_content_block_bytes=True,
-        cache_unparsable_line_bytes=True,
+        parsing_options=WARCParsingConfig(style=parsing_style),
+        cache=WARCCachingConfig(
+            record_bytes=True,
+            header_bytes=True,
+            content_block_bytes=True,
+            unparsable_line_bytes=True,
+        ),
     )
     parser.parse()
 
@@ -113,7 +135,7 @@ def test_warc_parser_records_lazy_loads_bytes(
 ):
     parser = WARCParser(
         warc_file,
-        parsing_style=parsing_style,
+        parsing_options=WARCParsingConfig(style=parsing_style),
     )
     parser.parse()
 
@@ -128,7 +150,7 @@ def test_warc_parser_get_record_offsets(
 ):
     parser = WARCParser(
         warc_file,
-        parsing_style=parsing_style,
+        parsing_options=WARCParsingConfig(style=parsing_style),
     )
     assert parser.get_record_offsets() == expected_offsets["warc_records"]
 
@@ -149,6 +171,6 @@ def test_warc_parser_get_split_record_offsets(
 
     parser = WARCParser(
         warc_file,
-        parsing_style=parsing_style,
+        parsing_options=WARCParsingConfig(style=parsing_style),
     )
     assert parser.get_record_offsets(split=True) == offsets

@@ -2,7 +2,12 @@ import click
 from pathlib import Path
 
 from warcbench.filters import http_response_content_type_filter
-from warcbench.scripts.utils import extract_file, open_and_parse
+from warcbench.scripts.utils import (
+    CLICachingConfig,
+    CLIProcessorConfig,
+    extract_file,
+    open_and_parse,
+)
 
 
 @click.command(short_help="Extract files of MIMETYPE to disk.")
@@ -36,19 +41,21 @@ def extract(ctx, filepath, mimetype, extension, basename, decode):
 
     open_and_parse(
         ctx,
-        record_filters=[
-            http_response_content_type_filter(mimetype),
-            log_response_found,
-        ],
-        record_handlers=[
-            extract_file(
-                basename if basename else Path(filepath).name,
-                extension,
-                decode,
-            )
-        ],
-        extra_parser_kwargs={
-            "cache_header_bytes": True,
-            "cache_content_block_bytes": True,
-        },
+        processor_config=CLIProcessorConfig(
+            record_filters=[
+                http_response_content_type_filter(mimetype),
+                log_response_found,
+            ],
+            record_handlers=[
+                extract_file(
+                    basename if basename else Path(filepath).name,
+                    extension,
+                    decode,
+                )
+            ],
+        ),
+        cache_config=CLICachingConfig(
+            header_bytes=True,
+            content_block_bytes=True,
+        ),
     )

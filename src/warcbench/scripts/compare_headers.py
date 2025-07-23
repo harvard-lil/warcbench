@@ -6,7 +6,7 @@ import json
 import socket
 
 from warcbench import WARCParser, WARCGZParser
-from warcbench.scripts.utils import get_warc_response_handler
+from warcbench.scripts.utils import CLICachingConfig, get_warc_response_handler
 from warcbench.utils import FileType, python_open_archive, system_open_archive
 
 
@@ -204,19 +204,20 @@ def compare_headers(
     def collect_records(path, gunzip):
         records = {}
         with open_archive(path, gunzip) as (file, file_type):
-            parser_options = {
-                "cache_parsed_headers": True,
-                "cache_header_bytes": output_matching_record_details
+            cache_config = CLICachingConfig(
+                parsed_headers=True,
+                header_bytes=output_matching_record_details
                 or output_near_matching_record_details
                 or output_near_matching_record_http_header_diffs
                 or output_unique_record_details,
-                "cache_content_block_bytes": serve_near_matching_records,
-            }
+                content_block_bytes=serve_near_matching_records,
+            )
+
             if file_type == FileType.WARC:
-                parser = WARCParser(file, **parser_options)
+                parser = WARCParser(file, cache=cache_config.to_warc_config())
                 iterator = parser.iterator()
             elif file_type == FileType.GZIPPED_WARC:
-                parser = WARCGZParser(file, **parser_options)
+                parser = WARCGZParser(file, cache=cache_config.to_warc_gz_config())
                 iterator = parser.iterator(yield_type="records")
 
             for record in iterator:

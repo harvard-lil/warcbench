@@ -3,6 +3,7 @@ from collections import defaultdict
 import json
 
 from warcbench import WARCParser, WARCGZParser
+from warcbench.config import WARCParsingConfig, WARCGZParsingConfig
 from warcbench.utils import FileType, python_open_archive, system_open_archive
 
 
@@ -45,14 +46,18 @@ def compare_parsers(ctx, filepath, output_offsets):
                 #
                 # Get the offsets
                 #
-                delimiter_parser = WARCParser(file, parsing_style="delimiter")
+                delimiter_parser = WARCParser(
+                    file, parsing_options=WARCParsingConfig(style="delimiter")
+                )
                 data["record"]["offsets"]["delimiter_parser"] = (
                     delimiter_parser.get_record_offsets(split=True)
                 )
                 data["warnings"]["delimiter_parser"] = delimiter_parser.warnings
                 data["error"]["delimiter_parser"] = delimiter_parser.error
 
-                content_length_parser = WARCParser(file, parsing_style="content_length")
+                content_length_parser = WARCParser(
+                    file, parsing_options=WARCParsingConfig(style="content_length")
+                )
                 data["record"]["offsets"]["content_length_parser"] = (
                     content_length_parser.get_record_offsets(split=True)
                 )
@@ -81,7 +86,9 @@ def compare_parsers(ctx, filepath, output_offsets):
                 data["member"]["offsets"]["gzip_member_decompressing_parser"] = (
                     WARCGZParser(
                         file,
-                        decompression_style="member",
+                        parsing_options=WARCGZParsingConfig(
+                            decompression_style="member"
+                        ),
                         enable_lazy_loading_of_bytes=False,
                     ).get_member_offsets(compressed=True)
                 )
@@ -89,7 +96,7 @@ def compare_parsers(ctx, filepath, output_offsets):
                 # Record offsets
                 gzip_member_decompressing_parser = WARCGZParser(
                     file,
-                    decompression_style="member",
+                    parsing_options=WARCGZParsingConfig(decompression_style="member"),
                     enable_lazy_loading_of_bytes=False,
                 )
                 data["record"]["offsets"]["gzip_member_decompressing_parser"] = (
@@ -104,14 +111,16 @@ def compare_parsers(ctx, filepath, output_offsets):
 
                 # Member offsets
                 data["member"]["offsets"]["gzip_file_decompressing_parser"] = (
-                    WARCGZParser(file, decompression_style="file").get_member_offsets(
-                        compressed=True
-                    )
+                    WARCGZParser(
+                        file,
+                        parsing_options=WARCGZParsingConfig(decompression_style="file"),
+                    ).get_member_offsets(compressed=True)
                 )
 
                 # Record offsets
                 gzip_file_decompressing_parser = WARCGZParser(
-                    file, decompression_style="file"
+                    file,
+                    parsing_options=WARCGZParsingConfig(decompression_style="file"),
                 )
                 data["record"]["offsets"]["gzip_file_decompressing_parser"] = (
                     gzip_file_decompressing_parser.get_record_offsets(split=True)
@@ -132,14 +141,18 @@ def compare_parsers(ctx, filepath, output_offsets):
                 #
                 # Get the offsets
                 #
-                delimiter_parser = WARCParser(file, parsing_style="delimiter")
+                delimiter_parser = WARCParser(
+                    file, parsing_options=WARCParsingConfig(style="delimiter")
+                )
                 data["record"]["offsets"]["delimiter_parser"] = (
                     delimiter_parser.get_record_offsets(split=True)
                 )
                 data["warnings"]["delimiter_parser"] = delimiter_parser.warnings
                 data["error"]["delimiter_parser"] = delimiter_parser.error
 
-                content_length_parser = WARCParser(file, parsing_style="content_length")
+                content_length_parser = WARCParser(
+                    file, parsing_options=WARCParsingConfig(style="content_length")
+                )
                 data["record"]["offsets"]["content_length_parser"] = (
                     content_length_parser.get_record_offsets(split=True)
                 )

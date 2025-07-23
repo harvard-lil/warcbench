@@ -513,9 +513,9 @@ class CLICachingConfig:
     """
     Unified caching configuration for CLI commands.
 
-    This configuration can be automatically converted to WARCCachingConfig or WARCGZCachingConfig
-    based on the file type being processed. CLI commands can use this single configuration
-    class regardless of whether they're processing WARC or gzipped WARC files.
+    CLI commands should use this unified configuration object; upstream code should
+    use the built-in utility methods to cast to WARCProcessorConfig or WARCGZProcessorConfig
+    when instantiating parsers.
 
     Attributes:
         record_bytes: If True, cache the raw bytes of each WARC record.
@@ -568,9 +568,9 @@ class CLIProcessorConfig:
     """
     Unified processor configuration for CLI commands.
 
-    This configuration can be automatically converted to WARCProcessorConfig or WARCGZProcessorConfig
-    based on the file type being processed. CLI commands can use this single configuration
-    class regardless of whether they're processing WARC or gzipped WARC files.
+    CLI commands should use this unified configuration object; upstream code should
+    use the built-in utility methods to cast to WARCProcessorConfig or WARCGZProcessorConfig
+    when instantiating parsers.
 
     Attributes:
         record_filters: List of functions to filter WARC records.

@@ -8,7 +8,7 @@ The configuration classes follow a hierarchy:
 """
 
 from dataclasses import dataclass
-from typing import Optional, List, Callable, Any, TYPE_CHECKING
+from typing import Optional, List, Callable, TYPE_CHECKING
 
 if TYPE_CHECKING:
     from warcbench.models import Record, UnparsableLine, GzippedMember

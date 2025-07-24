@@ -268,6 +268,40 @@ def test_compare_parsers_warc():
     assert comparison_data["error"]["any"] is False
 
 
+def test_match_record_pairs_http_headers_without_record_details_error():
+    """Test that output-http-headers requires output-record-details."""
+    runner = CliRunner()
+    result = runner.invoke(
+        cli,
+        [
+            "--out",
+            "json",
+            "match-record-pairs",
+            "--output-http-headers",
+            "tests/assets/example.com.wacz",
+        ],
+    )
+    assert result.exit_code != 0
+    assert "Please pass --output-record-metadata together with --include-http-headers." in result.output
+
+
+def test_match_record_pairs_pair_details_without_record_details_error():
+    """Test that include-pair-details requires output-record-details."""
+    runner = CliRunner()
+    result = runner.invoke(
+        cli,
+        [
+            "--out",
+            "json",
+            "match-record-pairs",
+            "--include-pair-details",
+            "tests/assets/example.com.wacz",
+        ],
+    )
+    assert result.exit_code != 0
+    assert "Please pass --output-record-metadata together with --include-pairs." in result.output
+
+
 @pytest.mark.parametrize(
     "file_name", ["example.com.warc", "example.com.wacz", "test-crawl.wacz"]
 )
@@ -288,6 +322,67 @@ def test_match_record_pairs(file_name, sample_match_pairs_json):
     )
     assert result.exit_code == 0, result.output
     assert json.loads(result.stdout) == sample_match_pairs_json[file_name]
+
+
+def test_filter_records_incompatible_extract_options_error(tmp_path):
+    """Test that specifying both extract options raises an error."""
+    warc_output = tmp_path / "output.warc"
+    gzipped_warc_output = tmp_path / "output.warc.gz"
+    
+    runner = CliRunner()
+    result = runner.invoke(
+        cli,
+        [
+            "filter-records",
+            "--extract-to-warc",
+            str(warc_output),
+            "--extract-to-gzipped-warc",
+            str(gzipped_warc_output),
+            "tests/assets/example.com.wacz",
+        ],
+    )
+    assert result.exit_code != 0
+    assert "Incompatible options: only one of --extract-to-warc or --extract-to-gzipped-warc may be set." in result.output
+
+
+def test_filter_records_same_destination_error(tmp_path):
+    """Test that extract-to-warc and extract-summary-to cannot output to the same destination."""
+    same_output = tmp_path / "output.warc"
+    
+    runner = CliRunner()
+    result = runner.invoke(
+        cli,
+        [
+            "filter-records",
+            "--extract-to-warc",
+            str(same_output),
+            "--extract-summary-to",
+            str(same_output),
+            "tests/assets/example.com.wacz",
+        ],
+    )
+    assert result.exit_code != 0
+    assert "Incompatible options: --extract-to-warc and --extract-summary-to cannot output to the same destination." in result.output
+
+
+def test_filter_records_gzipped_same_destination_error(tmp_path):
+    """Test that extract-to-gzipped-warc and extract-summary-to cannot output to the same destination."""
+    same_output = tmp_path / "output.warc.gz"
+    
+    runner = CliRunner()
+    result = runner.invoke(
+        cli,
+        [
+            "filter-records",
+            "--extract-to-gzipped-warc",
+            str(same_output),
+            "--extract-summary-to",
+            str(same_output),
+            "tests/assets/example.com.wacz",
+        ],
+    )
+    assert result.exit_code != 0
+    assert "Incompatible options: --extract-to-gzipped-warc and --extract-summary-to cannot output to the same destination." in result.output
 
 
 def test_filter_records_extract_warc():
@@ -569,6 +664,26 @@ def test_compare_headers_exclude_field():
             "unique": {"tests/assets/before.wacz": 0, "tests/assets/after.wacz": 0},
         }
     }
+
+
+@pytest.mark.parametrize("field", ["WARC-Type", "WARC-Target-URI"])
+def test_compare_headers_exclude_required_field_error(field):
+    """Test that excluding required fields raises an error."""
+    runner = CliRunner()
+    result = runner.invoke(
+        cli,
+        [
+            "--out",
+            "json",
+            "compare-headers",
+            "--exclude-header-field",
+            field,
+            "tests/assets/before.wacz",
+            "tests/assets/after.wacz",
+        ],
+    )
+    assert result.exit_code != 0
+    assert "WARC-Type and WARC-Target-URI cannot be excluded from comparisons." in result.output
 
 
 def test_compare_headers_custom_near_match_field():

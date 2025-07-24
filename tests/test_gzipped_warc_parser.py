@@ -15,6 +15,21 @@ def test_warc_gz_parser_unsupported_style(gzipped_warc_file):
     assert "Supported parsing styles: split_gzip_members" in str(e.value)
 
 
+def test_warc_gz_parser_unsupported_decompression_style(gzipped_warc_file):
+    """Test that WARCGZParser raises ValueError for unsupported decompression styles."""
+    with pytest.raises(ValueError) as e:
+        WARCGZParser(
+            gzipped_warc_file,
+            enable_lazy_loading_of_bytes=False,
+            parsing_options=WARCGZParsingConfig(
+                style="split_gzip_members",
+                decompression_style="unsupported_decompression_style"
+            ),
+        )
+    
+    assert "Supported decompression styles: member, file" in str(e.value)
+
+
 @pytest.mark.parametrize("decompression_style", ["file", "member"])
 def test_warc_gz_parser_offsets(
     gzipped_warc_file,

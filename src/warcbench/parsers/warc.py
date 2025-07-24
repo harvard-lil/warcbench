@@ -380,14 +380,15 @@ class ContentLengthWARCParser(BaseParser):
 
         if not content_length:
             start_index = header_start
-            for line in header_bytes.split(b"\n"):
-                end_index = start_index + len(line) + 1
+            for line in header_bytes.split(b"\r\n"):
+                end_index = start_index + len(line) + 2
                 unparsable_line = UnparsableLine(
                     start=start_index,
                     end=end_index,
                 )
+                start_index = end_index
                 if self.cache.unparsable_line_bytes:
-                    unparsable_line._bytes = line + b"\n"
+                    unparsable_line._bytes = line + b"\r\n"
                 if self.enable_lazy_loading_of_bytes:
                     unparsable_line._file_handle = self.file_handle
                 if self.processors.unparsable_line_handlers:

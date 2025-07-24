@@ -11,6 +11,7 @@ wheels/
 
 # Coverage
 .coverage
+coverage.xml
 htmlcov
 
 # Unpacked assets

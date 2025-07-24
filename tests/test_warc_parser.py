@@ -1,4 +1,5 @@
 import pytest
+from unittest.mock import patch
 
 from warcbench import WARCParser
 from warcbench.config import WARCParsingConfig, WARCCachingConfig
@@ -206,3 +207,39 @@ def test_warc_parser_iterator_current_record(warc_file, parsing_style):
     assert parser.current_record is third_record
 
 
+def test_content_length_warc_parser_unparsable_lines(warc_file):
+    """
+    Test ContentLengthWARCParser when find_content_length_in_bytes always returns None,
+    so every line is considered unparsable.
+    """
+    # Patch find_content_length_in_bytes to always return None
+    with patch(
+        "warcbench.parsers.warc.find_content_length_in_bytes", return_value=None
+    ):
+        parser = WARCParser(
+            warc_file,
+            parsing_options=WARCParsingConfig(style="content_length"),
+            cache=WARCCachingConfig(unparsable_lines=True, unparsable_line_bytes=True),
+        )
+        parser.parse()
+
+        # Check that no records were parsed (since content length is always None)
+        assert len(parser.records) == 0
+
+        # Check that unparsable lines were captured
+        assert len(parser.unparsable_lines) == 967
+
+        # Check that the list of unparsable lines matches reality
+        warc_file.seek(0)
+        for unparsable_line in parser.unparsable_lines:
+            assert warc_file.tell() == unparsable_line.start
+            file_line = warc_file.readline()
+            assert warc_file.tell() == unparsable_line.end
+            assert unparsable_line.bytes == file_line
+
+        # Check that, after having gone through the whole list of unparsable lines,
+        # we're at the end of the file: there's no content that wasn't captured.
+        file_size = warc_file.seek(0, 2)  # Get file size
+        assert warc_file.tell() == file_size, (
+            "File handle should be at EOF after processing all unparsable lines"
+        )

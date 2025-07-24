@@ -239,7 +239,6 @@ def test_content_length_warc_parser_unparsable_lines(warc_file):
 
         # Check that, after having gone through the whole list of unparsable lines,
         # we're at the end of the file: there's no content that wasn't captured.
-        file_size = warc_file.seek(0, 2)  # Get file size
-        assert warc_file.tell() == file_size, (
+        assert not warc_file.read(), (
             "File handle should be at EOF after processing all unparsable lines"
         )

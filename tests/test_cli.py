@@ -24,12 +24,19 @@ def test_summarize_json(file_name, sample_summarize_json):
     )
     assert result.exit_code == 0, result.output
     summary_data = json.loads(result.stdout)
-    assert summary_data["record_count"] == sample_summarize_json[file_name]["record_count"]
+    assert (
+        summary_data["record_count"] == sample_summarize_json[file_name]["record_count"]
+    )
     assert not summary_data["warnings"]
     assert not summary_data["error"]
-    assert summary_data["record_types"] == sample_summarize_json[file_name]["record_types"]
+    assert (
+        summary_data["record_types"] == sample_summarize_json[file_name]["record_types"]
+    )
     assert summary_data["domains"] == sample_summarize_json[file_name]["domains"]
-    assert summary_data["content_types"] == sample_summarize_json[file_name]["content_types"]
+    assert (
+        summary_data["content_types"]
+        == sample_summarize_json[file_name]["content_types"]
+    )
 
 
 @pytest.mark.parametrize(
@@ -37,9 +44,7 @@ def test_summarize_json(file_name, sample_summarize_json):
 )
 def test_summarize_text(file_name, sample_summarize_txt):
     runner = CliRunner()
-    result = runner.invoke(
-        cli, ["summarize", f"tests/assets/{file_name}"]
-    )
+    result = runner.invoke(cli, ["summarize", f"tests/assets/{file_name}"])
     assert result.exit_code == 0, result.output
     assert result.stdout == sample_summarize_txt[file_name]
 
@@ -61,9 +66,7 @@ def test_inspect_json(file_name, sample_inspect_json):
 )
 def test_inspect_text(file_name, sample_inspect_txt):
     runner = CliRunner()
-    result = runner.invoke(
-        cli, ["inspect", f"tests/assets/{file_name}"]
-    )
+    result = runner.invoke(cli, ["inspect", f"tests/assets/{file_name}"])
     assert result.exit_code == 0, result.output
     assert result.stdout == sample_inspect_txt[file_name]
 
@@ -321,7 +324,10 @@ def test_match_record_pairs_http_headers_without_record_details_error():
         ],
     )
     assert result.exit_code != 0
-    assert "Please pass --output-record-metadata together with --include-http-headers." in result.output
+    assert (
+        "Please pass --output-record-metadata together with --include-http-headers."
+        in result.output
+    )
 
 
 def test_match_record_pairs_pair_details_without_record_details_error():
@@ -338,7 +344,10 @@ def test_match_record_pairs_pair_details_without_record_details_error():
         ],
     )
     assert result.exit_code != 0
-    assert "Please pass --output-record-metadata together with --include-pairs." in result.output
+    assert (
+        "Please pass --output-record-metadata together with --include-pairs."
+        in result.output
+    )
 
 
 @pytest.mark.parametrize(
@@ -384,7 +393,7 @@ def test_filter_records_incompatible_extract_options_error(tmp_path):
     """Test that specifying both extract options raises an error."""
     warc_output = tmp_path / "output.warc"
     gzipped_warc_output = tmp_path / "output.warc.gz"
-    
+
     runner = CliRunner()
     result = runner.invoke(
         cli,
@@ -398,13 +407,16 @@ def test_filter_records_incompatible_extract_options_error(tmp_path):
         ],
     )
     assert result.exit_code != 0
-    assert "Incompatible options: only one of --extract-to-warc or --extract-to-gzipped-warc may be set." in result.output
+    assert (
+        "Incompatible options: only one of --extract-to-warc or --extract-to-gzipped-warc may be set."
+        in result.output
+    )
 
 
 def test_filter_records_same_destination_error(tmp_path):
     """Test that extract-to-warc and extract-summary-to cannot output to the same destination."""
     same_output = tmp_path / "output.warc"
-    
+
     runner = CliRunner()
     result = runner.invoke(
         cli,
@@ -418,13 +430,16 @@ def test_filter_records_same_destination_error(tmp_path):
         ],
     )
     assert result.exit_code != 0
-    assert "Incompatible options: --extract-to-warc and --extract-summary-to cannot output to the same destination." in result.output
+    assert (
+        "Incompatible options: --extract-to-warc and --extract-summary-to cannot output to the same destination."
+        in result.output
+    )
 
 
 def test_filter_records_gzipped_same_destination_error(tmp_path):
     """Test that extract-to-gzipped-warc and extract-summary-to cannot output to the same destination."""
     same_output = tmp_path / "output.warc.gz"
-    
+
     runner = CliRunner()
     result = runner.invoke(
         cli,
@@ -438,7 +453,10 @@ def test_filter_records_gzipped_same_destination_error(tmp_path):
         ],
     )
     assert result.exit_code != 0
-    assert "Incompatible options: --extract-to-gzipped-warc and --extract-summary-to cannot output to the same destination." in result.output
+    assert (
+        "Incompatible options: --extract-to-gzipped-warc and --extract-summary-to cannot output to the same destination."
+        in result.output
+    )
 
 
 def test_filter_records_extract_warc():
@@ -557,7 +575,7 @@ def test_filter_records_detailed_output(sample_filter_detailed_txt):
         [
             "filter-records",
             "--output-member-offsets",
-            "--output-record-offsets", 
+            "--output-record-offsets",
             "--output-warc-headers",
             "--output-http-headers",
             "--output-http-body",
@@ -758,7 +776,10 @@ def test_compare_headers_exclude_required_field_error(field):
         ],
     )
     assert result.exit_code != 0
-    assert "WARC-Type and WARC-Target-URI cannot be excluded from comparisons." in result.output
+    assert (
+        "WARC-Type and WARC-Target-URI cannot be excluded from comparisons."
+        in result.output
+    )
 
 
 def test_compare_headers_custom_near_match_field():

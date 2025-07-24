@@ -11,7 +11,11 @@ from dataclasses import dataclass
 from typing import Optional, List, Callable, TYPE_CHECKING
 
 if TYPE_CHECKING:
-    from warcbench.models import Record, UnparsableLine, GzippedMember  # pragma: no cover
+    from warcbench.models import (
+        Record,
+        UnparsableLine,
+        GzippedMember,
+    )  # pragma: no cover
     from warcbench.parsers.warc import BaseParser  # pragma: no cover
 
 

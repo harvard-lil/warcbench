@@ -34,11 +34,17 @@ def test_warc_gz_parser_unsupported_decompression_style(gzipped_warc_file):
 @pytest.mark.parametrize(
     "decompression_style,should_raise,expected_message",
     [
-        ("file", True, "Decompressing records can only be disabled when decompression style is set to 'member'."),
+        (
+            "file",
+            True,
+            "Decompressing records can only be disabled when decompression style is set to 'member'.",
+        ),
         ("member", False, None),
     ],
 )
-def test_warc_gz_parser_decompression_style_validation(gzipped_warc_file, decompression_style, should_raise, expected_message):
+def test_warc_gz_parser_decompression_style_validation(
+    gzipped_warc_file, decompression_style, should_raise, expected_message
+):
     """Test that WARCGZParser validates decompression_style when decompress_and_parse_members=False."""
     if should_raise:
         with pytest.raises(ValueError) as e:
@@ -100,7 +106,9 @@ def test_warc_gz_parser_cache_options_without_split_records(
                     content_block_bytes=content_block_bytes,
                 ),
             )
-        expected_message = "To cache or parse header or content block bytes, you must split records."
+        expected_message = (
+            "To cache or parse header or content block bytes, you must split records."
+        )
         assert str(e.value) == expected_message
     else:
         # This should not raise an error

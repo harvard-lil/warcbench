@@ -183,5 +183,6 @@ def test_gzipped_warc_parser_member_filter(gzipped_warc_file):
     parser_no_filter.parse()
     original_count = len(parser_no_filter.members)
 
-    assert len(all_members) + len(filtered_members) == original_count, \
+    assert len(all_members) + len(filtered_members) == original_count, (
         f"Expected {original_count} total members, got {len(all_members)} kept + {len(filtered_members)} filtered"
+    )

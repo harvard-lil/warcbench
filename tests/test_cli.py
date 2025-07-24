@@ -35,13 +35,25 @@ def test_summarize(file_name, expected_summary):
 @pytest.mark.parametrize(
     "file_name", ["example.com.warc", "example.com.wacz", "test-crawl.wacz"]
 )
-def test_inspect(file_name, sample_inspect_json):
+def test_inspect_json(file_name, sample_inspect_json):
     runner = CliRunner()
     result = runner.invoke(
         cli, ["--out", "json", "inspect", f"tests/assets/{file_name}"]
     )
     assert result.exit_code == 0, result.output
     assert json.loads(result.stdout) == sample_inspect_json[file_name]
+
+
+@pytest.mark.parametrize(
+    "file_name", ["example.com.warc", "example.com.wacz", "test-crawl.wacz"]
+)
+def test_inspect_text(file_name, sample_inspect_txt):
+    runner = CliRunner()
+    result = runner.invoke(
+        cli, ["inspect", f"tests/assets/{file_name}"]
+    )
+    assert result.exit_code == 0, result.output
+    assert result.stdout == sample_inspect_txt[file_name]
 
 
 def test_extract(tmp_path):

@@ -1,0 +1,209 @@
+Member bytes 0-237
+
+Record bytes 0-280
+
+WARC/1.1
+WARC-Filename: archive.warc
+WARC-Date: 2024-11-04T19:10:55.900Z
+WARC-Type: warcinfo
+WARC-Record-ID: <urn:uuid:a6fd8346-f170-497b-9e26-47a5bde6d86c>
+Content-Type: application/warc-fields
+Content-Length: 57
+
+----------------------------------------
+Member bytes 237-876
+
+Record bytes 284-1237
+
+WARC/1.1
+Scoop-Exchange-ID: 5733be1f-60ea-47c8-99be-abc4f8b31846
+WARC-Target-URI: http://example.com/
+WARC-Date: 2024-11-04T19:10:51.248Z
+WARC-Type: request
+WARC-Record-ID: <urn:uuid:ab3ef7b3-0c7e-4a12-9097-96352b6c9e3a>
+Content-Type: application/http; msgtype=request
+WARC-Payload-Digest: sha256:e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855
+WARC-Block-Digest: sha256:ee4938cc9bc0d0cd340a97536ec32cebc937815e52bb40b5e3bc37753c5c87d2
+Content-Length: 468
+
+GET http://example.com/ HTTP/1.1
+accept: text/html,application/xhtml+xml,application/xml;q=0.9,image/avif,image/webp,image/apng,*/*;q=0.8,application/signed-exchange;v=b3;q=0.7
+accept-encoding: gzip, compress, deflate, br
+accept-language: en-US,en;q=0.9
+host: example.com
+proxy-connection: keep-alive
+upgrade-insecure-requests: 1
+user-agent: Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/130.0.6723.31 Safari/537.36
+
+----------------------------------------
+Member bytes 876-2216
+
+Record bytes 1241-2736
+
+WARC/1.1
+Scoop-Exchange-ID: 5733be1f-60ea-47c8-99be-abc4f8b31846
+WARC-Target-URI: http://example.com/
+WARC-Date: 2024-11-04T19:10:51.248Z
+WARC-Type: response
+WARC-Record-ID: <urn:uuid:c4a6a946-252c-48cc-8e7b-85d3aa8ee81b>
+Content-Type: application/http; msgtype=response
+WARC-Payload-Digest: sha256:2682a32f5b99c7d0c9395ccba0464a38856b36472926eaf53fd4f11d5d3364a0
+WARC-Block-Digest: sha256:d6e9fe3f079a51a37a4ecaf6ba5483a2bcc7865e5395dea42c136b9f8e74f3fb
+Content-Length: 1007
+
+HTTP/1.1 200 OK
+age: 346313
+cache-control: max-age=604800
+content-encoding: gzip
+content-length: 648
+content-type: text/html; charset=UTF-8
+date: Mon, 04 Nov 2024 19:10:51 GMT
+etag: "3147526947+gzip"
+expires: Mon, 11 Nov 2024 19:10:51 GMT
+last-modified: Thu, 17 Oct 2019 07:18:26 GMT
+server: ECAcc (dcd/7D79)
+vary: Accept-Encoding
+x-cache: HIT
+
+----------------------------------------
+Member bytes 2216-2829
+
+Record bytes 2740-3644
+
+WARC/1.1
+Scoop-Exchange-ID: 4e0846f5-1c77-4025-872c-22f7c3866b53
+WARC-Target-URI: http://example.com/favicon.ico
+WARC-Date: 2024-11-04T19:10:51.291Z
+WARC-Type: request
+WARC-Record-ID: <urn:uuid:dea1050d-a9e4-4930-9832-87838b805b02>
+Content-Type: application/http; msgtype=request
+WARC-Payload-Digest: sha256:e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855
+WARC-Block-Digest: sha256:c6797e4202d6b427cd080310f3fcb21b32406211c8c4b6729a743dc14651be98
+Content-Length: 408
+
+GET http://example.com/favicon.ico HTTP/1.1
+accept: image/avif,image/webp,image/apng,image/svg+xml,image/*,*/*;q=0.8
+accept-encoding: gzip, compress, deflate, br
+accept-language: en-US,en;q=0.9
+host: example.com
+proxy-connection: keep-alive
+referer: http://example.com/
+user-agent: Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/130.0.6723.31 Safari/537.36
+
+----------------------------------------
+Member bytes 2829-4183
+
+Record bytes 3648-5172
+
+WARC/1.1
+Scoop-Exchange-ID: 4e0846f5-1c77-4025-872c-22f7c3866b53
+WARC-Target-URI: http://example.com/favicon.ico
+WARC-Date: 2024-11-04T19:10:51.291Z
+WARC-Type: response
+WARC-Record-ID: <urn:uuid:9831f6b7-247d-45d2-a6a8-21708a194b23>
+Content-Type: application/http; msgtype=response
+WARC-Payload-Digest: sha256:52b7f5460b3e8c1a3e0b257eef40699ebad0b398a09a6d6ecb9926c99d645487
+WARC-Block-Digest: sha256:64862e8210d37108e2bd52922e9817a5eed987a0bb06e4420e51c6ce6d6052d4
+Content-Length: 1025
+
+HTTP/1.1 404 Not Found
+accept-ranges: bytes
+age: 222999
+cache-control: max-age=604800
+content-encoding: gzip
+content-length: 648
+content-type: text/html
+date: Mon, 04 Nov 2024 19:10:51 GMT
+etag: "1088432560+gzip"
+expires: Mon, 11 Nov 2024 19:10:51 GMT
+last-modified: Sat, 12 Oct 2024 03:26:51 GMT
+server: ECAcc (dcd/7D69)
+vary: Accept-Encoding
+x-cache: 404-HIT
+
+----------------------------------------
+Member bytes 4183-27222
+
+Record bytes 5176-34535
+
+WARC/1.1
+Scoop-Exchange-ID: 1466cc7f-2fb0-4a6a-b8cb-c1f7f474d55f
+WARC-Refers-To-Target-URI: http://example.com/
+Scoop-Exchange-Description: Capture Time Screenshot of http://example.com/
+WARC-Target-URI: file:///screenshot.png
+WARC-Date: 2024-11-04T19:10:51.931Z
+WARC-Type: response
+WARC-Record-ID: <urn:uuid:50acd058-14c3-4e29-bbdd-ca50a066b207>
+Content-Type: application/http; msgtype=response
+WARC-Payload-Digest: sha256:9e8f9241575224cc1bda536f3f8b98d5c3e486d5efc4e23cf4222e7959c8eb64
+WARC-Block-Digest: sha256:ab9283c29e20dc81bd145905205d1c936e0a12da84ea38332ae41bf11144d6d0
+Content-Length: 28743
+
+HTTP/1.1 200 OK
+content-type: image/png
+
+----------------------------------------
+Member bytes 27222-28294
+
+Record bytes 34539-36484
+
+WARC/1.1
+Scoop-Exchange-ID: d097a074-3935-4932-96bc-ba024dcf2690
+WARC-Refers-To-Target-URI: http://example.com/
+Scoop-Exchange-Description: Capture Time DOM Snapshot of http://example.com/
+WARC-Target-URI: file:///dom-snapshot.html
+WARC-Date: 2024-11-04T19:10:51.934Z
+WARC-Type: response
+WARC-Record-ID: <urn:uuid:6b46c68f-5cee-47a9-9a7c-201a969cd29f>
+Content-Type: application/http; msgtype=response
+WARC-Payload-Digest: sha256:202f5e47301b2f89285bcc5d2d852b38990dcc860c571cbe22e96cbabe3bc125
+WARC-Block-Digest: sha256:8ed6bc66d7cd137e56edd7edaf994f2bdced95247b692cea13f90cb0e90aff06
+Content-Length: 1325
+
+HTTP/1.1 200 OK
+content-disposition: Attachment
+content-type: text/html
+
+----------------------------------------
+Member bytes 28294-49670
+
+Record bytes 36488-76087
+
+WARC/1.1
+Scoop-Exchange-ID: f3021da4-be62-421d-8234-6890c9e5087b
+WARC-Refers-To-Target-URI: http://example.com/
+Scoop-Exchange-Description: Capture Time PDF Snapshot of http://example.com/
+WARC-Target-URI: file:///pdf-snapshot.pdf
+WARC-Date: 2024-11-04T19:10:51.987Z
+WARC-Type: response
+WARC-Record-ID: <urn:uuid:3c31bdb4-05f7-4559-8f0b-c41c8720d3b1>
+Content-Type: application/http; msgtype=response
+WARC-Payload-Digest: sha256:03cba0f5998623e9b1481ce0d77c485d4527c3038f167ddb71a043c2464f8b89
+WARC-Block-Digest: sha256:faa5ca7647d431796aaa9904e98cd17a61056b93253a640c31a590027ece6d77
+Content-Length: 38979
+
+HTTP/1.1 200 OK
+content-type: application/pdf
+
+----------------------------------------
+Member bytes 49670-51764
+
+Record bytes 76091-82943
+
+WARC/1.1
+Scoop-Exchange-ID: 06d2e684-7510-4fc8-a35c-15ef14ae6fd2
+WARC-Refers-To-Target-URI: http://example.com/
+Scoop-Exchange-Description: Provenance Summary
+WARC-Target-URI: file:///provenance-summary.html
+WARC-Date: 2024-11-04T19:10:55.805Z
+WARC-Type: response
+WARC-Record-ID: <urn:uuid:098a96cf-90c9-4bbd-a240-9dca2a920da8>
+Content-Type: application/http; msgtype=response
+WARC-Payload-Digest: sha256:ce18e6bf98ce631a5a35d8ee6cb0d8ce678cdaaebb0e6b1b432e9f205bdfe9cd
+WARC-Block-Digest: sha256:c54c44e0515c9131f5726138ff556643e5579aad8f168a7aae7aea0fac8a491a
+Content-Length: 6256
+
+HTTP/1.1 200 OK
+content-type: text/html
+
+----------------------------------------

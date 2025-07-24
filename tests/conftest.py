@@ -148,6 +148,16 @@ def sample_inspect_json(assets_path: Path):
 
 
 @pytest.fixture
+def sample_inspect_txt(assets_path: Path):
+    inspect_txt = {}
+    for file_name in ["example.com.warc", "example.com.wacz", "test-crawl.wacz"]:
+        filepath = assets_path / f"{file_name}.inspect.txt"
+        with filepath.open("r") as txt_file:
+            inspect_txt[file_name] = txt_file.read()
+    return inspect_txt
+
+
+@pytest.fixture
 def sample_match_pairs_json(assets_path: Path):
     pairs_json = {}
     for file_name in ["example.com.warc", "example.com.wacz", "test-crawl.wacz"]:

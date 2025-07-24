@@ -174,3 +174,14 @@ def test_warc_parser_get_split_record_offsets(
         parsing_options=WARCParsingConfig(style=parsing_style),
     )
     assert parser.get_record_offsets(split=True) == offsets
+
+
+def test_warc_parser_unsupported_style(warc_file):
+    """Test that WARCParser raises ValueError for unsupported styles."""
+    with pytest.raises(ValueError) as e:
+        WARCParser(
+            warc_file,
+            parsing_options=WARCParsingConfig(style="unsupported_style"),
+        )
+
+    assert "Supported parsing styles: delimiter, content_length" in str(e.value)

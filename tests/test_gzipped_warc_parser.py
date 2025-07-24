@@ -4,6 +4,17 @@ from warcbench import WARCGZParser
 from warcbench.config import WARCGZParsingConfig, WARCGZCachingConfig
 
 
+def test_warc_gz_parser_unsupported_style(gzipped_warc_file):
+    """Test that WARCGZParser raises ValueError for unsupported styles."""
+    with pytest.raises(ValueError) as e:
+        WARCGZParser(
+            gzipped_warc_file,
+            parsing_options=WARCGZParsingConfig(style="unsupported_style"),
+        )
+
+    assert "Supported parsing styles: split_gzip_members" in str(e.value)
+
+
 @pytest.mark.parametrize("decompression_style", ["file", "member"])
 def test_warc_gz_parser_offsets(
     gzipped_warc_file,

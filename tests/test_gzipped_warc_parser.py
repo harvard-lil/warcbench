@@ -31,6 +31,26 @@ def test_warc_gz_parser_unsupported_decompression_style(gzipped_warc_file):
 
 
 @pytest.mark.parametrize("decompression_style", ["file", "member"])
+def test_warc_gz_parser_iterator_current_member(gzipped_warc_file, decompression_style):
+    """Test that WARCGZParser's iterator and current_member work correctly."""
+    parser = WARCGZParser(
+        gzipped_warc_file,
+        parsing_options=WARCGZParsingConfig(decompression_style=decompression_style),
+        enable_lazy_loading_of_bytes=False,
+    )
+    
+    iterator = parser.iterator()
+    
+    # Get the third member
+    for _ in range(2):
+        next(iterator)
+    third_member = next(iterator)
+    
+    # Verify that parser.current_member matches the third member
+    assert parser.current_member is third_member
+
+
+@pytest.mark.parametrize("decompression_style", ["file", "member"])
 def test_warc_gz_parser_offsets(
     gzipped_warc_file,
     expected_offsets,

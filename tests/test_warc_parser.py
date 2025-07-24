@@ -185,3 +185,24 @@ def test_warc_parser_unsupported_style(warc_file):
         )
 
     assert "Supported parsing styles: delimiter, content_length" in str(e.value)
+
+
+@pytest.mark.parametrize("parsing_style", ["delimiter", "content_length"])
+def test_warc_parser_iterator_current_record(warc_file, parsing_style):
+    """Test that WARCParser's iterator and current_record work correctly."""
+    parser = WARCParser(
+        warc_file,
+        parsing_options=WARCParsingConfig(style=parsing_style),
+    )
+
+    iterator = parser.iterator()
+
+    # Get the third record
+    for _ in range(2):
+        next(iterator)
+    third_record = next(iterator)
+
+    # Verify that parser.current_record matches the third record
+    assert parser.current_record is third_record
+
+

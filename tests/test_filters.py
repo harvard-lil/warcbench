@@ -141,3 +141,47 @@ def test_http_header_filter(request, file, header, value, record_count):
 def test_http_response_content_type_filter(request, file, content_type, record_count):
     filters = [http_response_content_type_filter(content_type)]
     parse_and_check_record_count(request, file, filters, record_count)
+
+
+def test_gzipped_warc_parser_member_filter(gzipped_warc_file):
+    """
+    Test that WARCGZParser can use a custom member filter.
+    (Arbitrarily filter out members larger than 1KB.)
+    """
+
+    # Track which members are filtered out
+    filtered_members = []
+
+    def size_filter(member):
+        """Filter out members larger than 1KB (1024 bytes)."""
+        if len(member.uncompressed_bytes) > 1024:
+            filtered_members.append(member)
+            return False
+        return True
+
+    parser = WARCGZParser(
+        gzipped_warc_file,
+        enable_lazy_loading_of_bytes=True,
+        processors=WARCGZProcessorConfig(
+            member_filters=[size_filter],
+        ),
+    )
+
+    # Parse and get all members
+    parser.parse()
+    all_members = parser.members
+
+    # Verify that some members were filtered out
+    assert len(filtered_members) > 0, "Expected some members to be filtered out"
+
+    # Verify that the total number of members (kept + filtered) equals the original count
+    # We need to parse again without the filter to get the original count
+    parser_no_filter = WARCGZParser(
+        gzipped_warc_file,
+        enable_lazy_loading_of_bytes=False,
+    )
+    parser_no_filter.parse()
+    original_count = len(parser_no_filter.members)
+
+    assert len(all_members) + len(filtered_members) == original_count, \
+        f"Expected {original_count} total members, got {len(all_members)} kept + {len(filtered_members)} filtered"

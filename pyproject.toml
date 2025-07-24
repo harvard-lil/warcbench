@@ -49,3 +49,15 @@ dev = [
 lint = [
     "ruff>=0.9.8",
 ]
+
+[tool.coverage.run]
+source = ["src/warcbench"]
+
+[tool.coverage.report]
+exclude_lines = [
+    "pragma: no cover",
+    "@(abc\\.)?abstractmethod",
+]
+
+[tool.coverage.html]
+directory = "htmlcov"

@@ -23,10 +23,10 @@ def test_warc_gz_parser_unsupported_decompression_style(gzipped_warc_file):
             enable_lazy_loading_of_bytes=False,
             parsing_options=WARCGZParsingConfig(
                 style="split_gzip_members",
-                decompression_style="unsupported_decompression_style"
+                decompression_style="unsupported_decompression_style",
             ),
         )
-    
+
     assert "Supported decompression styles: member, file" in str(e.value)
 
 
@@ -38,14 +38,14 @@ def test_warc_gz_parser_iterator_current_member(gzipped_warc_file, decompression
         parsing_options=WARCGZParsingConfig(decompression_style=decompression_style),
         enable_lazy_loading_of_bytes=False,
     )
-    
+
     iterator = parser.iterator()
-    
+
     # Get the third member
     for _ in range(2):
         next(iterator)
     third_member = next(iterator)
-    
+
     # Verify that parser.current_member matches the third member
     assert parser.current_member is third_member
 

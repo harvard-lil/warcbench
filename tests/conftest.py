@@ -198,6 +198,13 @@ def sample_filter_detailed_txt(assets_path: Path):
 
 
 @pytest.fixture
+def sample_pairs_detailed_txt(assets_path: Path):
+    filepath = assets_path / "example.com.wacz.pairs-detailed.txt"
+    with filepath.open("r") as txt_file:
+        return txt_file.read()
+
+
+@pytest.fixture
 def sample_summarize_json():
     return {
         "example.com.warc": {

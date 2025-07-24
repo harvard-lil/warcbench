@@ -329,7 +329,7 @@ def test_match_record_pairs_pair_details_without_record_details_error():
 @pytest.mark.parametrize(
     "file_name", ["example.com.warc", "example.com.wacz", "test-crawl.wacz"]
 )
-def test_match_record_pairs(file_name, sample_match_pairs_json):
+def test_match_record_pairs_json(file_name, sample_match_pairs_json):
     runner = CliRunner()
     result = runner.invoke(
         cli,
@@ -346,6 +346,23 @@ def test_match_record_pairs(file_name, sample_match_pairs_json):
     )
     assert result.exit_code == 0, result.output
     assert json.loads(result.stdout) == sample_match_pairs_json[file_name]
+
+
+def test_match_record_pairs_detailed_output(sample_pairs_detailed_txt):
+    """Test match-record-pairs with all detailed output options enabled."""
+    runner = CliRunner()
+    result = runner.invoke(
+        cli,
+        [
+            "match-record-pairs",
+            "--output-record-details",
+            "--output-http-headers",
+            "--include-pair-details",
+            "tests/assets/example.com.wacz",
+        ],
+    )
+    assert result.exit_code == 0, result.output
+    assert result.stdout == sample_pairs_detailed_txt
 
 
 def test_filter_records_incompatible_extract_options_error(tmp_path):

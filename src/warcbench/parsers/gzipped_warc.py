@@ -288,7 +288,7 @@ class GzippedWARCMemberParser(BaseParser):
         ):
             if not parsing_options.decompress_and_parse_members:
                 raise ValueError(
-                    "Decompressing records can only be disabled when decompression style is set to 'member'."
+                    "Decompressing records must be enabled, for this parsing and caching configuration."
                 )
 
         #

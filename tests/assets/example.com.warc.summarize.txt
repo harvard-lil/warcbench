@@ -1,0 +1,11 @@
+Found 9 records.
+WARC-Type: 1 warcinfo, 2 request, 6 response
+
+Found target URLs from 1 domain.
+example.com
+
+Found 4 response content-types.
+1 text/html; charset=UTF-8, 3 text/html, 1 image/png, 1 application/pdf
+
+Warnings: []
+Error: None

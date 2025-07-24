@@ -17,19 +17,31 @@ from warcbench.utils import decompress_and_get_gzip_file_member_offsets
 @pytest.mark.parametrize(
     "file_name", ["example.com.warc", "example.com.wacz", "test-crawl.wacz"]
 )
-def test_summarize(file_name, expected_summary):
+def test_summarize_json(file_name, sample_summarize_json):
     runner = CliRunner()
     result = runner.invoke(
         cli, ["--out", "json", "summarize", f"tests/assets/{file_name}"]
     )
     assert result.exit_code == 0, result.output
     summary_data = json.loads(result.stdout)
-    assert summary_data["record_count"] == expected_summary[file_name]["record_count"]
+    assert summary_data["record_count"] == sample_summarize_json[file_name]["record_count"]
     assert not summary_data["warnings"]
     assert not summary_data["error"]
-    assert summary_data["record_types"] == expected_summary[file_name]["record_types"]
-    assert summary_data["domains"] == expected_summary[file_name]["domains"]
-    assert summary_data["content_types"] == expected_summary[file_name]["content_types"]
+    assert summary_data["record_types"] == sample_summarize_json[file_name]["record_types"]
+    assert summary_data["domains"] == sample_summarize_json[file_name]["domains"]
+    assert summary_data["content_types"] == sample_summarize_json[file_name]["content_types"]
+
+
+@pytest.mark.parametrize(
+    "file_name", ["example.com.warc", "example.com.wacz", "test-crawl.wacz"]
+)
+def test_summarize_text(file_name, sample_summarize_txt):
+    runner = CliRunner()
+    result = runner.invoke(
+        cli, ["summarize", f"tests/assets/{file_name}"]
+    )
+    assert result.exit_code == 0, result.output
+    assert result.stdout == sample_summarize_txt[file_name]
 
 
 @pytest.mark.parametrize(

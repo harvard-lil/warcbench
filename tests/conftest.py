@@ -181,7 +181,17 @@ def sample_filter_json(assets_path: Path):
 
 
 @pytest.fixture
-def expected_summary():
+def sample_summarize_txt(assets_path: Path):
+    summarize_txt = {}
+    for file_name in ["example.com.warc", "example.com.wacz", "test-crawl.wacz"]:
+        filepath = assets_path / f"{file_name}.summarize.txt"
+        with filepath.open("r") as txt_file:
+            summarize_txt[file_name] = txt_file.read()
+    return summarize_txt
+
+
+@pytest.fixture
+def sample_summarize_json():
     return {
         "example.com.warc": {
             "record_count": 9,

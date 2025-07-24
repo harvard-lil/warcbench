@@ -770,7 +770,7 @@ def test_compare_headers_custom_near_match_field():
     }
 
 
-def test_compare_headers_full_output(complete_compare_headers_json):
+def test_compare_headers_full_output_json(complete_compare_headers_json):
     runner = CliRunner()
     result = runner.invoke(
         cli,
@@ -789,6 +789,26 @@ def test_compare_headers_full_output(complete_compare_headers_json):
     )
     assert result.exit_code == 0, result.output
     assert json.loads(result.stdout) == complete_compare_headers_json
+
+
+def test_compare_headers_full_output_text(sample_compare_headers_detailed_txt):
+    """Test compare-headers with all detailed output options enabled."""
+    runner = CliRunner()
+    result = runner.invoke(
+        cli,
+        [
+            "compare-headers",
+            "--output-matching-record-details",
+            "--output-near-matching-record-details",
+            "--output-near-matching-record-header-diffs",
+            "--output-near-matching-record-http-header-diffs",
+            "--output-unique-record-details",
+            "tests/assets/before.wacz",
+            "tests/assets/after.wacz",
+        ],
+    )
+    assert result.exit_code == 0, result.output
+    assert result.stdout == sample_compare_headers_detailed_txt
 
 
 def test_compare_headers_serve():

@@ -3,6 +3,7 @@ from unittest.mock import patch
 
 from warcbench import WARCParser
 from warcbench.config import WARCParsingConfig, WARCCachingConfig
+from warcbench.exceptions import AttributeNotInitializedError
 
 
 @pytest.mark.parametrize("parsing_style", ["delimiter", "content_length"])
@@ -242,3 +243,181 @@ def test_content_length_warc_parser_unparsable_lines(warc_file):
         assert not warc_file.read(), (
             "File handle should be at EOF after processing all unparsable lines"
         )
+
+
+@pytest.mark.parametrize("parsing_style", ["delimiter", "content_length"])
+def test_warc_parser_records_access_without_cache_members(warc_file, parsing_style):
+    """Test that accessing records without cache_members=True raises the correct error."""
+    parser = WARCParser(
+        warc_file,
+        parsing_options=WARCParsingConfig(style=parsing_style),
+    )
+
+    with pytest.raises(AttributeNotInitializedError) as exc_info:
+        _ = parser.records
+
+    expected_message = (
+        "Call parser.parse(cache_members=True) to load records into RAM and populate parser.records, "
+        "or use parser.iterator() to iterate through records without preloading."
+    )
+    assert str(exc_info.value) == expected_message
+
+
+@pytest.mark.parametrize("parsing_style", ["delimiter", "content_length"])
+def test_warc_parser_unparsable_lines_access_without_cache(warc_file, parsing_style):
+    """Test that accessing unparsable_lines without cache_unparsable_lines=True raises the correct error."""
+    parser = WARCParser(
+        warc_file,
+        parsing_options=WARCParsingConfig(style=parsing_style),
+    )
+
+    with pytest.raises(AttributeNotInitializedError) as exc_info:
+        _ = parser.unparsable_lines
+
+    expected_message = (
+        "Pass cache_unparsable_lines=True to WARCParser() to store UnparsableLines "
+        "in parser.unparsable_lines."
+    )
+    assert str(exc_info.value) == expected_message
+
+
+@pytest.mark.parametrize("parsing_style", ["delimiter", "content_length"])
+def test_warc_parser_get_split_record_offsets_without_split_records(
+    warc_file, parsing_style
+):
+    """Test that getting split record offsets without split_records=True raises the correct error."""
+    parser = WARCParser(
+        warc_file,
+        parsing_options=WARCParsingConfig(style=parsing_style, split_records=False),
+    )
+    parser.parse()
+
+    with pytest.raises(ValueError) as exc_info:
+        parser.get_record_offsets(split=True)
+
+    expected_message = "Split record offsets are only available when the parser is initialized with split_records=True."
+    assert str(exc_info.value) == expected_message
+
+
+def test_warc_parser_check_content_lengths_without_split_records(warc_file):
+    """Test that using check_content_lengths=True without split_records=True raises the correct error."""
+    with pytest.raises(ValueError) as exc_info:
+        WARCParser(
+            warc_file,
+            parsing_options=WARCParsingConfig(
+                style="delimiter", check_content_lengths=True, split_records=False
+            ),
+        )
+
+    expected_message = "To check_content_lengths, you must split records."
+    assert str(exc_info.value) == expected_message
+
+
+@pytest.mark.parametrize(
+    "enable_lazy_loading,header_bytes,content_block_bytes,should_raise",
+    [
+        # Both cache options false, no lazy loading - should raise
+        (False, False, False, True),
+        # Only header_bytes true - should raise
+        (False, True, False, True),
+        # Only content_block_bytes true - should raise
+        (False, False, True, True),
+        # Both cache options false, but lazy loading enabled - should work
+        (True, False, False, False),
+        # Both cache options true, no lazy loading - should work
+        (False, True, True, False),
+        # Both cache options true, lazy loading enabled - should work
+        (True, True, True, False),
+    ],
+)
+def test_warc_parser_check_content_lengths_cache_configs(
+    warc_file, enable_lazy_loading, header_bytes, content_block_bytes, should_raise
+):
+    """Test different cache configurations with check_content_lengths=True."""
+    if should_raise:
+        with pytest.raises(ValueError) as exc_info:
+            WARCParser(
+                warc_file,
+                enable_lazy_loading_of_bytes=enable_lazy_loading,
+                parsing_options=WARCParsingConfig(
+                    style="delimiter", check_content_lengths=True, split_records=True
+                ),
+                cache=WARCCachingConfig(
+                    header_bytes=header_bytes, content_block_bytes=content_block_bytes
+                ),
+            )
+
+        expected_message = (
+            "To check_content_lengths, you must either enable_lazy_loading_of_bytes or "
+            "both cache_header_bytes and cache_content_block_bytes."
+        )
+        assert str(exc_info.value) == expected_message
+    else:
+        # Should not raise an error
+        parser = WARCParser(
+            warc_file,
+            enable_lazy_loading_of_bytes=enable_lazy_loading,
+            parsing_options=WARCParsingConfig(
+                style="delimiter", check_content_lengths=True, split_records=True
+            ),
+            cache=WARCCachingConfig(
+                header_bytes=header_bytes, content_block_bytes=content_block_bytes
+            ),
+        )
+        # If we get here without an exception, the test passes
+        assert parser is not None
+
+
+@pytest.mark.parametrize(
+    "header_bytes,parsed_headers,content_block_bytes,should_raise",
+    [
+        # Only header_bytes true - should raise
+        (True, False, False, True),
+        # Only parsed_headers true - should raise
+        (False, True, False, True),
+        # Only content_block_bytes true - should raise
+        (False, False, True, True),
+        # Multiple cache options true - should raise
+        (True, True, False, True),
+        (True, False, True, True),
+        (False, True, True, True),
+        (True, True, True, True),
+        # All cache options false - should work
+        (False, False, False, False),
+    ],
+)
+def test_warc_parser_cache_header_content_without_split_records(
+    warc_file, header_bytes, parsed_headers, content_block_bytes, should_raise
+):
+    """Test that caching header or content block bytes without split_records=True raises the correct error."""
+    if should_raise:
+        with pytest.raises(ValueError) as exc_info:
+            WARCParser(
+                warc_file,
+                parsing_options=WARCParsingConfig(
+                    style="delimiter", split_records=False
+                ),
+                cache=WARCCachingConfig(
+                    header_bytes=header_bytes,
+                    parsed_headers=parsed_headers,
+                    content_block_bytes=content_block_bytes,
+                ),
+            )
+
+        expected_message = (
+            "To cache or parse header or content block bytes, you must split records."
+        )
+        assert str(exc_info.value) == expected_message
+    else:
+        # Should not raise an error
+        parser = WARCParser(
+            warc_file,
+            parsing_options=WARCParsingConfig(style="delimiter", split_records=False),
+            cache=WARCCachingConfig(
+                header_bytes=header_bytes,
+                parsed_headers=parsed_headers,
+                content_block_bytes=content_block_bytes,
+            ),
+        )
+        # If we get here without an exception, the test passes
+        assert parser is not None

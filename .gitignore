@@ -9,6 +9,10 @@ wheels/
 # Virtual environments
 .venv
 
+# Coverage
+.coverage
+htmlcov
+
 # Unpacked assets
 example.com
 

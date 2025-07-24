@@ -2,10 +2,9 @@
 
 A tool for exploring, analyzing, transforming, recombining, and extracting data from WARC (Web ARChive) files.
 
-> [!WARNING]
-> WARCbench is currently under active development. Breaking changes are expected as the project moves toward an initial release.
-
 <a href="https://tools.perma.cc"><img src="https://github.com/harvard-lil/tools.perma.cc/blob/main/perma-tools.png?raw=1" alt="Perma Tools" width="150"></a>
+
+[![Coverage](https://codecov.io/gh/harvard-lil/warcbench/branch/main/graph/badge.svg)](https://codecov.io/gh/harvard-lil/warcbench)
 
 ---
 
@@ -445,5 +444,19 @@ Run tests like so:
 ```sh
 uv run pytest
 ```
+
+### Coverage
+
+Run tests with coverage reporting:
+
+```sh
+# Terminal coverage report
+uv run pytest --cov=src/warcbench
+
+# HTML coverage report (opens in browser)
+uv run pytest --cov=src/warcbench --cov-report=html
+```
+
+The HTML report will be generated in the `htmlcov/` directory. Open `htmlcov/index.html` in your browser to view the detailed coverage report.
 
 [⇧ Back to top](#contents)

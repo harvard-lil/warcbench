@@ -307,3 +307,10 @@ def sample_compare_headers_detailed_txt(assets_path: Path):
     filepath = assets_path / "compare-headers-detailed.txt"
     with filepath.open("r") as txt_file:
         return txt_file.read()
+
+
+@pytest.fixture
+def sample_compare_parsers_txt(assets_path: Path):
+    filepath = assets_path / "example.com.warc.compare-parsers.txt"
+    with filepath.open("r") as txt_file:
+        return txt_file.read()

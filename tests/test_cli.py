@@ -292,6 +292,21 @@ def test_compare_parsers_warc():
     assert comparison_data["error"]["any"] is False
 
 
+def test_compare_parsers_warc_text(sample_compare_parsers_txt):
+    """Test compare-parsers with text output."""
+    runner = CliRunner()
+    result = runner.invoke(
+        cli,
+        [
+            "compare-parsers",
+            "--output-offsets",
+            "tests/assets/example.com.warc",
+        ],
+    )
+    assert result.exit_code == 0, result.output
+    assert result.stdout == sample_compare_parsers_txt
+
+
 def test_match_record_pairs_http_headers_without_record_details_error():
     """Test that output-http-headers requires output-record-details."""
     runner = CliRunner()

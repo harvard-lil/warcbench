@@ -1,17 +1,37 @@
 [project]
 name = "warcbench"
 version = "0.1.0"
-description = "Add your description here"
+description = "A tool for exploring, analyzing, transforming, recombining, and extracting data from WARC (Web ARChive) files"
 readme = "README.md"
 authors = [
-    { name = "Rebecca Cremona", email = "rcremona@law.harvard.edu" }
+    { name = "Harvard Library Innovation Lab", email = "lil@law.harvard.edu" }
 ]
 requires-python = ">=3.10"
+keywords = ["warc", "web-archive", "parsing", "analysis", "harvard", "library", "web-crawling", "archive"]
+classifiers = [
+    "Development Status :: 3 - Alpha",
+    "Intended Audience :: Developers",
+    "Intended Audience :: Science/Research",
+    "License :: OSI Approved :: MIT License",
+    "Programming Language :: Python :: 3",
+    "Programming Language :: Python :: 3.10",
+    "Programming Language :: Python :: 3.11",
+    "Programming Language :: Python :: 3.12",
+    "Programming Language :: Python :: 3.13",
+    "Topic :: Software Development :: Libraries :: Python Modules",
+    "Topic :: Internet :: WWW/HTTP",
+    "Topic :: Text Processing :: Markup :: HTML",
+    "Topic :: System :: Archiving",
+]
 dependencies = [
     "brotli>=1.1.0",
     "click>=8.1.8",
     "pyzstd>=0.16.2",
 ]
+
+[project.urls]
+Repository = "https://github.com/harvard-lil/warcbench"
+"Bug Tracker" = "https://github.com/harvard-lil/warcbench/issues"
 
 [project.scripts]
 wb = "warcbench.scripts:cli"

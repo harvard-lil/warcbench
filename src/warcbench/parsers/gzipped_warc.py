@@ -167,9 +167,7 @@ class BaseParser(ABC):
         ]
 
     def get_record_offsets(self, split):
-        records = (
-            self.records() if self._members else self.iterator(yield_type="records")
-        )
+        records = self.records if self._members else self.iterator(yield_type="records")
 
         if split:
             if not self.parsing_options.split_records:
@@ -192,9 +190,7 @@ class BaseParser(ABC):
         """
         Recommended: use with cache.parsed_headers=True.
         """
-        records = (
-            self.records() if self._members else self.iterator(yield_type="records")
-        )
+        records = self.records if self._members else self.iterator(yield_type="records")
         return find_matching_request_response_pairs(records, count_only)
 
     #
@@ -292,7 +288,7 @@ class GzippedWARCMemberParser(BaseParser):
         ):
             if not parsing_options.decompress_and_parse_members:
                 raise ValueError(
-                    "Decompressing records can only be disabled when decompression style is set to 'member'."
+                    "Decompressing records must be enabled, for this parsing and caching configuration."
                 )
 
         #

@@ -1,0 +1,39 @@
+PARSERS
+Delimiter parser
+Content length parser
+
+ERRORS
+None
+
+WARNINGS
+None
+
+COMPARE OFFSETS
+All record offsets match: True
+
+RECORD OFFSETS
+
+Delimiter parser
+
+Header 0-221, Content Block 223-280
+Header 284-767, Content Block 769-1237
+Header 1241-1727, Content Block 1729-2736
+Header 2740-3234, Content Block 3236-3644
+Header 3648-4145, Content Block 4147-5172
+Header 5176-5790, Content Block 5792-34535
+Header 34539-35157, Content Block 35159-36484
+Header 36488-37106, Content Block 37108-76087
+Header 76091-76685, Content Block 76687-82943
+
+Content length parser
+
+Header 0-221, Content Block 223-280
+Header 284-767, Content Block 769-1237
+Header 1241-1727, Content Block 1729-2736
+Header 2740-3234, Content Block 3236-3644
+Header 3648-4145, Content Block 4147-5172
+Header 5176-5790, Content Block 5792-34535
+Header 34539-35157, Content Block 35159-36484
+Header 36488-37106, Content Block 37108-76087
+Header 76091-76685, Content Block 76687-82943
+

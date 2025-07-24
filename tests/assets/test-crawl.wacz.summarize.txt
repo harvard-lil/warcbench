@@ -1,0 +1,11 @@
+Found 23 records.
+WARC-Type: 1 warcinfo, 11 response, 11 request
+
+Found target URLs from 3 domains.
+www.iana.org, dict.brave.com, example.com
+
+Found 8 response content-types.
+2 text/javascript, 1 font/ttf, 1 application/octet-stream, 2 text/html, 2 image/svg+xml, 1 image/vnd.microsoft.icon, 1 text/css, 1 text/html; charset=UTF-8
+
+Warnings: []
+Error: None

@@ -1,0 +1,690 @@
+Member bytes 0-268
+
+Record bytes 0-330
+
+WARC/1.0
+WARC-Filename: test-crawl_0.warc.gz
+WARC-Date: 2025-04-04T21:25:35Z
+WARC-Type: warcinfo
+WARC-Record-ID: <urn:uuid:1f70bc21-d428-44da-b4c0-0bed4ca36b52>
+Content-Type: application/warc-fields
+Content-Length: 102
+
+----------------------------------------
+Member bytes 268-29175
+
+Record bytes 334-29741
+
+WARC/1.0
+WARC-Type: response
+WARC-Record-ID: <urn:uuid:55305838-119b-11f0-866b-0242ac110002>
+WARC-Target-URI: https://www.iana.org/_js/jquery.js
+WARC-Date: 2025-04-04T21:25:29Z
+WARC-IP-Address: 192.0.33.8
+Content-Type: application/http; msgtype=response
+Content-Length: 29003
+WARC-Payload-Digest: sha1:MPK2HSBZUUEOOTDJCOJ3U44WZHJHXTKV
+WARC-Block-Digest: sha1:APRAA4FOCGR2G7EGK2Y4RMYXBIAH7HH5
+
+HTTP/1.1 200 OK
+Date: Fri, 04 Apr 2025 21:25:03 GMT
+Server: Apache
+Vary: Accept-Encoding
+Last-Modified: Mon, 27 Jan 2025 19:46:07 GMT
+X-Frame-Options: DENY
+X-Content-Type-Options: nosniff
+Referrer-Policy: same-origin
+Cross-Origin-Opener-Policy: same-origin
+Expires: Fri, 04 Apr 2025 21:38:48 GMT
+X-Content-Type-Options: nosniff
+Age: 1001
+Content-Encoding: br
+Cache-Control: public, s-maxage=86402, max-age=604814
+Content-Security-Policy: upgrade-insecure-requests; default-src 'self' https://*.iana.org; script-src 'self' 'unsafe-inline' 'unsafe-eval' https://www.google.com https://cse.google.com https://clients1.google.com; style-src 'self' 'unsafe-inline' https://www.google.com; child-src 'self' https://www.youtube.com https://clients1.google.com https://cse.google.com https://www.google.com/; img-src 'self' https://data.iana.org https://www.iana.org https://www.google.com https://www.googleapis.com https://clients1.google.com https://*.gstatic.com;
+Content-Length: 27918
+Content-Type: text/javascript
+Strict-Transport-Security: max-age=48211200; preload
+
+----------------------------------------
+Member bytes 29175-29757
+
+Record bytes 29745-30598
+
+WARC/1.0
+WARC-Type: request
+WARC-Record-ID: <urn:uuid:3dc7817c-340f-4731-9cd6-d474f1988fd4>
+WARC-Target-URI: https://www.iana.org/_js/jquery.js
+WARC-Date: 2025-04-04T21:25:29Z
+WARC-Payload-Digest: sha1:3I42H3S6NNFQ2MSVX7XZKYAYSCX5QBYJ
+WARC-Concurrent-To: <urn:uuid:55305838-119b-11f0-866b-0242ac110002>
+WARC-Block-Digest: sha1:U7M2SOOMTWEZEHCEJG755SPGTFNA56CY
+Content-Type: application/http; msgtype=request
+Content-Length: 413
+
+GET https://www.iana.org/_js/jquery.js HTTP/1.1
+Host: www.iana.org
+User-Agent: Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/118.1.59.120 Safari/537.36
+Accept: */*
+Sec-Gpc: 1
+Accept-Language: en-US,en;q=0.5
+Sec-Fetch-Site: same-origin
+Sec-Fetch-Mode: no-cors
+Sec-Fetch-Dest: script
+Referer: https://www.iana.org/help/example-domains
+Accept-Encoding: gzip, deflate, br
+
+----------------------------------------
+Member bytes 29757-1220758
+
+Record bytes 30602-2076638
+
+WARC/1.0
+WARC-Type: response
+WARC-Record-ID: <urn:uuid:5577d988-119b-11f0-b89c-0242ac110002>
+WARC-Target-URI: https://www.iana.org/_img/2025.01/fonts/NotoSans-Latin.ttf
+WARC-Date: 2025-04-04T21:25:29Z
+WARC-IP-Address: 192.0.33.8
+Content-Type: application/http; msgtype=response
+Content-Length: 2045606
+WARC-Payload-Digest: sha1:OS4BM53RFT2MVYXVRSLCFGEJ6YD54HOU
+WARC-Block-Digest: sha1:J6QGXFSZ2Q3CV2EQHYS3IYN425WDPZSQ
+
+HTTP/1.1 200 OK
+Date: Fri, 04 Apr 2025 20:59:59 GMT
+Server: Apache
+Last-Modified: Thu, 30 Jan 2025 03:57:07 GMT
+Content-Length: 2044548
+Age: 1560
+X-Content-Type-Options: nosniff
+Vary: Accept-Encoding
+X-Frame-Options: DENY
+X-Content-Type-Options: nosniff
+Referrer-Policy: same-origin
+Cross-Origin-Opener-Policy: same-origin
+Cache-Control: public, s-maxage=86402, max-age=604814
+Expires: Fri, 04 Apr 2025 21:29:59 GMT
+Content-Security-Policy: upgrade-insecure-requests; default-src 'self' https://*.iana.org; script-src 'self' 'unsafe-inline' 'unsafe-eval' https://www.google.com https://cse.google.com https://clients1.google.com; style-src 'self' 'unsafe-inline' https://www.google.com; child-src 'self' https://www.youtube.com https://clients1.google.com https://cse.google.com https://www.google.com/; img-src 'self' https://data.iana.org https://www.iana.org https://www.google.com https://www.googleapis.com https://clients1.google.com https://*.gstatic.com;
+Content-Type: font/ttf
+Strict-Transport-Security: max-age=48211200; preload
+
+----------------------------------------
+Member bytes 1220758-1221360
+
+Record bytes 2076642-2077577
+
+WARC/1.0
+WARC-Type: request
+WARC-Record-ID: <urn:uuid:eb18ef01-ee43-4fc3-b122-72f16f5bfbab>
+WARC-Target-URI: https://www.iana.org/_img/2025.01/fonts/NotoSans-Latin.ttf
+WARC-Date: 2025-04-04T21:25:29Z
+WARC-Payload-Digest: sha1:3I42H3S6NNFQ2MSVX7XZKYAYSCX5QBYJ
+WARC-Concurrent-To: <urn:uuid:5577d988-119b-11f0-b89c-0242ac110002>
+WARC-Block-Digest: sha1:T634QGS6PMDPRFE4BUIRUBVCBZUGZLXX
+Content-Type: application/http; msgtype=request
+Content-Length: 471
+
+GET https://www.iana.org/_img/2025.01/fonts/NotoSans-Latin.ttf HTTP/1.1
+Host: www.iana.org
+User-Agent: Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/118.1.59.120 Safari/537.36
+Origin: https://www.iana.org
+Accept: */*
+Sec-Gpc: 1
+Accept-Language: en-US,en;q=0.5
+Sec-Fetch-Site: same-origin
+Sec-Fetch-Mode: cors
+Sec-Fetch-Dest: font
+Referer: https://www.iana.org/_css/2025.01/iana_website.css
+Accept-Encoding: gzip, deflate, br
+
+----------------------------------------
+Member bytes 1221360-1438019
+
+Record bytes 2077581-2530502
+
+WARC/1.0
+WARC-Type: response
+WARC-Record-ID: <urn:uuid:548be2ee-119b-11f0-add8-0242ac110002>
+WARC-Target-URI: https://dict.brave.com/edgedl/chrome/dict/en-us-10-1.bdic
+WARC-Date: 2025-04-04T21:25:28Z
+WARC-IP-Address: 65.8.19.86
+WARC-Payload-Digest: sha1:IFPPHMWKBBI6ADV26DLMT5RBHRLBVSMP
+WARC-Block-Digest: sha1:C5VZKIJL6YEWJ4TOPW4EW3M5KTACR4A4
+Content-Type: application/http; msgtype=response
+Content-Length: 452493
+
+HTTP/1.1 200 OK
+Content-Type: application/octet-stream
+Transfer-Encoding: chunked
+Connection: keep-alive
+Server: uvicorn
+Last-Modified: Mon, 07 Mar 2022 21:59:30 GMT
+Date: Fri, 04 Apr 2025 13:02:47 GMT
+Cache-Control: public,max-age=86400
+ETag: "cb08eb"
+Vary: Accept-Encoding
+X-Cache: Hit from cloudfront
+Via: 1.1 2c00b6f1d42245c6c3867cc4dfa7f32e.cloudfront.net (CloudFront)
+X-Amz-Cf-Pop: BOS50-C3
+Alt-Svc: h3=":443"; ma=86400
+X-Amz-Cf-Id: -b_V3RaX6Bs74jvb9O1b06wpLfc4dc10Qx7bxkWQV7rXmdAvjVSk-Q==
+Age: 30356
+
+----------------------------------------
+Member bytes 1438019-1438566
+
+Record bytes 2530506-2531322
+
+WARC/1.0
+WARC-Type: request
+WARC-Record-ID: <urn:uuid:8c8a3560-3169-463a-a11c-6e5aee91c1ee>
+WARC-Target-URI: https://dict.brave.com/edgedl/chrome/dict/en-us-10-1.bdic
+WARC-Date: 2025-04-04T21:25:28Z
+WARC-Payload-Digest: sha1:3I42H3S6NNFQ2MSVX7XZKYAYSCX5QBYJ
+WARC-Concurrent-To: <urn:uuid:548be2ee-119b-11f0-add8-0242ac110002>
+WARC-Block-Digest: sha1:PIFJ7JNY3UROX342XQ2VFQA5H2QCKY4J
+Content-Type: application/http; msgtype=request
+Content-Length: 353
+
+GET https://dict.brave.com/edgedl/chrome/dict/en-us-10-1.bdic HTTP/1.1
+Host: dict.brave.com
+User-Agent: Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/118.1.59.120 Safari/537.36
+Sec-Fetch-Site: none
+Sec-Fetch-Mode: no-cors
+Sec-Fetch-Dest: empty
+Accept-Encoding: gzip, deflate, br
+Accept-Language: en-US,en;q=0.9
+
+----------------------------------------
+Member bytes 1438566-1439863
+
+Record bytes 2531326-2532779
+
+WARC/1.0
+WARC-Type: response
+WARC-Record-ID: <urn:uuid:54e0d01a-119b-11f0-866b-0242ac110002>
+WARC-Target-URI: https://example.com/
+WARC-Date: 2025-04-04T21:25:28Z
+WARC-IP-Address: 23.192.228.80
+Content-Type: application/http; msgtype=response
+Content-Length: 1061
+WARC-Payload-Digest: sha1:YXWQ7LLPPIZ7CVO6DVQ4U3Y2IO5M42AG
+WARC-Block-Digest: sha1:A4Q7QA2WY7RPNZC43FKUW2NOTQBFOK73
+
+HTTP/1.1 200 OK
+Accept-Ranges: bytes
+Content-Type: text/html
+ETag: "84238dfc8092e5d9c0dac8ef93371a07:1736799080.121134"
+Last-Modified: Mon, 13 Jan 2025 20:11:20 GMT
+Vary: Accept-Encoding
+Content-Encoding: gzip
+Cache-Control: max-age=3071
+Date: Fri, 04 Apr 2025 21:25:28 GMT
+Alt-Svc: h3=":443"; ma=93600,h3-29=":443"; ma=93600,quic=":443"; ma=93600; v="43"
+Content-Length: 648
+Connection: keep-alive
+
+----------------------------------------
+Member bytes 1439863-1440469
+
+Record bytes 2532783-2533694
+
+WARC/1.0
+WARC-Type: request
+WARC-Record-ID: <urn:uuid:b74cb0f9-85ac-4fb9-bc13-2c097dcfc70a>
+WARC-Target-URI: https://example.com/
+WARC-Date: 2025-04-04T21:25:28Z
+WARC-Payload-Digest: sha1:3I42H3S6NNFQ2MSVX7XZKYAYSCX5QBYJ
+WARC-Concurrent-To: <urn:uuid:54e0d01a-119b-11f0-866b-0242ac110002>
+WARC-Block-Digest: sha1:UAGHT6WI4ULXIS64HR4VSOMJSISASZCK
+Content-Type: application/http; msgtype=request
+Content-Length: 485
+
+GET https://example.com/ HTTP/1.1
+Host: example.com
+User-Agent: Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/118.1.59.120 Safari/537.36
+Upgrade-Insecure-Requests: 1
+Accept: text/html,application/xhtml+xml,application/xml;q=0.9,image/avif,image/webp,image/apng,*/*;q=0.8
+Sec-Gpc: 1
+Accept-Language: en-US,en;q=0.9
+Sec-Fetch-Site: none
+Sec-Fetch-Mode: navigate
+Sec-Fetch-User: ?1
+Sec-Fetch-Dest: document
+Accept-Encoding: gzip, deflate, br
+
+----------------------------------------
+Member bytes 1440469-1449501
+
+Record bytes 2533698-2543246
+
+WARC/1.0
+WARC-Type: response
+WARC-Record-ID: <urn:uuid:5540808c-119b-11f0-866b-0242ac110002>
+WARC-Target-URI: https://www.iana.org/_img/2025.01/iana-logo-header.svg
+WARC-Date: 2025-04-04T21:25:29Z
+WARC-IP-Address: 192.0.33.8
+Content-Type: application/http; msgtype=response
+Content-Length: 9125
+WARC-Payload-Digest: sha1:TSYAUO4ECV7XP27MT7WZX32JNCUJUAZB
+WARC-Block-Digest: sha1:3LCLRK6Y4ZS5A6EDOOUJAASMOXDEFPLR
+
+HTTP/1.1 200 OK
+Date: Fri, 04 Apr 2025 21:12:55 GMT
+Server: Apache
+X-Content-Type-Options: nosniff
+Vary: Accept-Encoding
+Last-Modified: Thu, 30 Jan 2025 03:57:07 GMT
+X-Frame-Options: DENY
+X-Content-Type-Options: nosniff
+Referrer-Policy: same-origin
+Cross-Origin-Opener-Policy: same-origin
+Cache-Control: public, s-maxage=86402, max-age=604814
+Expires: Fri, 04 Apr 2025 21:42:55 GMT
+Content-Encoding: br
+Content-Security-Policy: upgrade-insecure-requests; default-src 'self' https://*.iana.org; script-src 'self' 'unsafe-inline' 'unsafe-eval' https://www.google.com https://cse.google.com https://clients1.google.com; style-src 'self' 'unsafe-inline' https://www.google.com; child-src 'self' https://www.youtube.com https://clients1.google.com https://cse.google.com https://www.google.com/; img-src 'self' https://data.iana.org https://www.iana.org https://www.google.com https://www.googleapis.com https://clients1.google.com https://*.gstatic.com;
+Age: 754
+Content-Length: 8044
+Content-Type: image/svg+xml
+Strict-Transport-Security: max-age=48211200; preload
+
+----------------------------------------
+Member bytes 1449501-1450124
+
+Record bytes 2543250-2544203
+
+WARC/1.0
+WARC-Type: request
+WARC-Record-ID: <urn:uuid:96b4d25d-4286-4174-b0a6-4ee620c9d535>
+WARC-Target-URI: https://www.iana.org/_img/2025.01/iana-logo-header.svg
+WARC-Date: 2025-04-04T21:25:29Z
+WARC-Payload-Digest: sha1:3I42H3S6NNFQ2MSVX7XZKYAYSCX5QBYJ
+WARC-Concurrent-To: <urn:uuid:5540808c-119b-11f0-866b-0242ac110002>
+WARC-Block-Digest: sha1:XZDDKBJDA66BTCSYBKQVZIFUKMPO4XQC
+Content-Type: application/http; msgtype=request
+Content-Length: 493
+
+GET https://www.iana.org/_img/2025.01/iana-logo-header.svg HTTP/1.1
+Host: www.iana.org
+User-Agent: Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/118.1.59.120 Safari/537.36
+Accept: image/avif,image/webp,image/apng,image/svg+xml,image/*,*/*;q=0.8
+Sec-Gpc: 1
+Accept-Language: en-US,en;q=0.5
+Sec-Fetch-Site: same-origin
+Sec-Fetch-Mode: no-cors
+Sec-Fetch-Dest: image
+Referer: https://www.iana.org/help/example-domains
+Accept-Encoding: gzip, deflate, br
+
+----------------------------------------
+Member bytes 1450124-1455397
+
+Record bytes 2544207-2553096
+
+WARC/1.0
+WARC-Type: response
+WARC-Record-ID: <urn:uuid:57125912-119b-11f0-875b-0242ac110002>
+WARC-Target-URI: https://www.iana.org/_img/bookmark_icon.ico
+WARC-Date: 2025-04-04T21:25:32Z
+WARC-IP-Address: 192.0.33.8
+Content-Type: application/http; msgtype=response
+Content-Length: 8477
+WARC-Payload-Digest: sha1:PG3PAWWE72JQ37CXJSPCJNNF7QI3SNX7
+WARC-Block-Digest: sha1:4RQWSW34LDPASF7MVL3JTD2C2LVEZJL3
+
+HTTP/1.1 200 OK
+Date: Fri, 04 Apr 2025 21:03:11 GMT
+Server: Apache
+Last-Modified: Sun, 18 Jul 2021 22:53:39 GMT
+Content-Length: 7406
+Age: 1359
+X-Content-Type-Options: nosniff
+Vary: Accept-Encoding
+X-Frame-Options: DENY
+X-Content-Type-Options: nosniff
+Referrer-Policy: same-origin
+Cross-Origin-Opener-Policy: same-origin
+Cache-Control: public, s-maxage=86402, max-age=604814
+Expires: Fri, 04 Apr 2025 21:33:11 GMT
+Content-Security-Policy: upgrade-insecure-requests; default-src 'self' https://*.iana.org; script-src 'self' 'unsafe-inline' 'unsafe-eval' https://www.google.com https://cse.google.com https://clients1.google.com; style-src 'self' 'unsafe-inline' https://www.google.com; child-src 'self' https://www.youtube.com https://clients1.google.com https://cse.google.com https://www.google.com/; img-src 'self' https://data.iana.org https://www.iana.org https://www.google.com https://www.googleapis.com https://clients1.google.com https://*.gstatic.com;
+Content-Type: image/vnd.microsoft.icon
+Strict-Transport-Security: max-age=48211200; preload
+
+----------------------------------------
+Member bytes 1455397-1456016
+
+Record bytes 2553100-2554031
+
+WARC/1.0
+WARC-Type: request
+WARC-Record-ID: <urn:uuid:aa45e208-9531-4d04-8929-555a0bb88b9e>
+WARC-Target-URI: https://www.iana.org/_img/bookmark_icon.ico
+WARC-Date: 2025-04-04T21:25:32Z
+WARC-Payload-Digest: sha1:3I42H3S6NNFQ2MSVX7XZKYAYSCX5QBYJ
+WARC-Concurrent-To: <urn:uuid:57125912-119b-11f0-875b-0242ac110002>
+WARC-Block-Digest: sha1:JEQDPLW26B2JSWSGNZ64DATQQD23UZAK
+Content-Type: application/http; msgtype=request
+Content-Length: 482
+
+GET https://www.iana.org/_img/bookmark_icon.ico HTTP/1.1
+Host: www.iana.org
+User-Agent: Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/118.1.59.120 Safari/537.36
+Accept: image/avif,image/webp,image/apng,image/svg+xml,image/*,*/*;q=0.8
+Sec-Gpc: 1
+Accept-Language: en-US,en;q=0.5
+Sec-Fetch-Site: same-origin
+Sec-Fetch-Mode: no-cors
+Sec-Fetch-Dest: image
+Referer: https://www.iana.org/help/example-domains
+Accept-Encoding: gzip, deflate, br
+
+----------------------------------------
+Member bytes 1456016-1461318
+
+Record bytes 2554035-2559872
+
+WARC/1.0
+WARC-Type: response
+WARC-Record-ID: <urn:uuid:57ae185c-119b-11f0-9959-0242ac110002>
+WARC-Target-URI: https://www.iana.org/_img/2022/iana-logo-header-notext.svg
+WARC-Date: 2025-04-04T21:25:33Z
+WARC-IP-Address: 192.0.33.8
+Content-Type: application/http; msgtype=response
+Content-Length: 5410
+WARC-Payload-Digest: sha1:IH7STHLTPJRITKRIFAACL63NDLWOR6K7
+WARC-Block-Digest: sha1:OWF6CKGYWOE55BV2U2TGHQOWQI5BI4VX
+
+HTTP/1.1 200 OK
+Date: Fri, 04 Apr 2025 15:47:52 GMT
+Server: Apache
+Vary: Accept-Encoding
+Last-Modified: Tue, 05 Oct 2021 16:31:06 GMT
+X-Frame-Options: DENY
+X-Content-Type-Options: nosniff
+Referrer-Policy: same-origin
+Cross-Origin-Opener-Policy: same-origin
+Expires: Fri, 04 Apr 2025 16:06:49 GMT
+X-Content-Type-Options: nosniff
+Age: 20923
+Content-Encoding: br
+Cache-Control: public, s-maxage=86402, max-age=604814
+Content-Security-Policy: upgrade-insecure-requests; default-src 'self' https://*.iana.org; script-src 'self' 'unsafe-inline' 'unsafe-eval' https://www.google.com https://cse.google.com https://clients1.google.com; style-src 'self' 'unsafe-inline' https://www.google.com; child-src 'self' https://www.youtube.com https://clients1.google.com https://cse.google.com https://www.google.com/; img-src 'self' https://data.iana.org https://www.iana.org https://www.google.com https://www.googleapis.com https://clients1.google.com https://*.gstatic.com;
+Content-Length: 4327
+Content-Type: image/svg+xml
+Strict-Transport-Security: max-age=48211200; preload
+
+----------------------------------------
+Member bytes 1461318-1461915
+
+Record bytes 2559876-2560776
+
+WARC/1.0
+WARC-Type: request
+WARC-Record-ID: <urn:uuid:bd7e4c87-f975-4c65-b2fb-99a70aab4762>
+WARC-Target-URI: https://www.iana.org/_img/2022/iana-logo-header-notext.svg
+WARC-Date: 2025-04-04T21:25:33Z
+WARC-Payload-Digest: sha1:3I42H3S6NNFQ2MSVX7XZKYAYSCX5QBYJ
+WARC-Concurrent-To: <urn:uuid:57ae185c-119b-11f0-9959-0242ac110002>
+WARC-Block-Digest: sha1:Z2KY3GW6NBD56UF2WABJGY7ZVXCK37FS
+Content-Type: application/http; msgtype=request
+Content-Length: 436
+
+GET https://www.iana.org/_img/2022/iana-logo-header-notext.svg HTTP/1.1
+Host: www.iana.org
+User-Agent: Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/118.1.59.120 Safari/537.36
+Accept: */*
+Sec-Gpc: 1
+Accept-Language: en-US,en;q=0.5
+Sec-Fetch-Site: same-origin
+Sec-Fetch-Mode: no-cors
+Sec-Fetch-Dest: empty
+Referer: https://www.iana.org/help/example-domains
+Accept-Encoding: gzip, deflate, br
+
+----------------------------------------
+Member bytes 1461915-1472626
+
+Record bytes 2560780-2572009
+
+WARC/1.0
+WARC-Type: response
+WARC-Record-ID: <urn:uuid:553901cc-119b-11f0-866b-0242ac110002>
+WARC-Target-URI: https://www.iana.org/_css/2025.01/iana_website.css
+WARC-Date: 2025-04-04T21:25:29Z
+WARC-IP-Address: 192.0.33.8
+Content-Type: application/http; msgtype=response
+Content-Length: 10809
+WARC-Payload-Digest: sha1:7FNZBOTLLBLC5KKMBBVCFOPRDPOMVZYZ
+WARC-Block-Digest: sha1:QN7S4UL2IBEQO2QYRUTWLJMBLTITGWK7
+
+HTTP/1.1 200 OK
+Date: Fri, 04 Apr 2025 21:25:10 GMT
+Server: Apache
+Vary: Accept-Encoding
+Last-Modified: Tue, 01 Apr 2025 22:45:46 GMT
+X-Frame-Options: DENY
+X-Content-Type-Options: nosniff
+Referrer-Policy: same-origin
+Cross-Origin-Opener-Policy: same-origin
+Expires: Fri, 04 Apr 2025 21:28:11 GMT
+X-Content-Type-Options: nosniff
+Age: 1638
+Content-Encoding: br
+Cache-Control: public, s-maxage=86402, max-age=604814
+Content-Security-Policy: upgrade-insecure-requests; default-src 'self' https://*.iana.org; script-src 'self' 'unsafe-inline' 'unsafe-eval' https://www.google.com https://cse.google.com https://clients1.google.com; style-src 'self' 'unsafe-inline' https://www.google.com; child-src 'self' https://www.youtube.com https://clients1.google.com https://cse.google.com https://www.google.com/; img-src 'self' https://data.iana.org https://www.iana.org https://www.google.com https://www.googleapis.com https://clients1.google.com https://*.gstatic.com;
+Content-Length: 9732
+Content-Type: text/css
+Strict-Transport-Security: max-age=48211200; preload
+
+----------------------------------------
+Member bytes 1472626-1473224
+
+Record bytes 2572013-2572912
+
+WARC/1.0
+WARC-Type: request
+WARC-Record-ID: <urn:uuid:721f070a-0f99-45a7-9319-0601f379531d>
+WARC-Target-URI: https://www.iana.org/_css/2025.01/iana_website.css
+WARC-Date: 2025-04-04T21:25:29Z
+WARC-Payload-Digest: sha1:3I42H3S6NNFQ2MSVX7XZKYAYSCX5QBYJ
+WARC-Concurrent-To: <urn:uuid:553901cc-119b-11f0-866b-0242ac110002>
+WARC-Block-Digest: sha1:AZKXIUMNR6UXQT642NID4GQ75QZEKOOK
+Content-Type: application/http; msgtype=request
+Content-Length: 443
+
+GET https://www.iana.org/_css/2025.01/iana_website.css HTTP/1.1
+Host: www.iana.org
+User-Agent: Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/118.1.59.120 Safari/537.36
+Accept: text/css,*/*;q=0.1
+Sec-Gpc: 1
+Accept-Language: en-US,en;q=0.5
+Sec-Fetch-Site: same-origin
+Sec-Fetch-Mode: no-cors
+Sec-Fetch-Dest: style
+Referer: https://www.iana.org/help/example-domains
+Accept-Encoding: gzip, deflate, br
+
+----------------------------------------
+Member bytes 1473224-1475166
+
+Record bytes 2572916-2575438
+
+WARC/1.0
+WARC-Type: response
+WARC-Record-ID: <urn:uuid:54f838a4-119b-11f0-b277-0242ac110002>
+WARC-Target-URI: https://www.iana.org/help/example-domains
+WARC-Date: 2025-04-04T21:25:28Z
+WARC-IP-Address: 192.0.33.8
+Content-Type: application/http; msgtype=response
+Content-Length: 2112
+WARC-Payload-Digest: sha1:5SHFQDKQP7R5BR47DX4Y4O35ZKPOL7TS
+WARC-Block-Digest: sha1:Y456VJ5NVXB5LQLIDX553FL4ZMLWRDLB
+
+HTTP/1.1 200 OK
+Date: Fri, 04 Apr 2025 20:47:53 GMT
+Server: Apache
+X-Content-Type-Options: nosniff
+Vary: Accept-Encoding
+Last-Modified: Wed, 06 Mar 2024 16:51:21 GMT
+X-Frame-Options: DENY
+X-Content-Type-Options: nosniff
+Referrer-Policy: same-origin
+Cross-Origin-Opener-Policy: same-origin
+Cache-Control: public, max-age=3600
+Expires: Fri, 04 Apr 2025 21:47:53 GMT
+Content-Encoding: br
+Content-Security-Policy: upgrade-insecure-requests; default-src 'self' https://*.iana.org; script-src 'self' 'unsafe-inline' 'unsafe-eval' https://www.google.com https://cse.google.com https://clients1.google.com; style-src 'self' 'unsafe-inline' https://www.google.com; child-src 'self' https://www.youtube.com https://clients1.google.com https://cse.google.com https://www.google.com/; img-src 'self' https://data.iana.org https://www.iana.org https://www.google.com https://www.googleapis.com https://clients1.google.com https://*.gstatic.com;
+Age: 2256
+Content-Length: 1037
+Content-Type: text/html; charset=UTF-8
+Strict-Transport-Security: max-age=48211200; preload
+
+----------------------------------------
+Member bytes 1475166-1475789
+
+Record bytes 2575442-2576396
+
+WARC/1.0
+WARC-Type: request
+WARC-Record-ID: <urn:uuid:8dbaf36e-9581-42be-b0a3-29be53a6fd99>
+WARC-Target-URI: https://www.iana.org/help/example-domains
+WARC-Date: 2025-04-04T21:25:28Z
+WARC-Payload-Digest: sha1:3I42H3S6NNFQ2MSVX7XZKYAYSCX5QBYJ
+WARC-Concurrent-To: <urn:uuid:54f838a4-119b-11f0-b277-0242ac110002>
+WARC-Block-Digest: sha1:LYSNESEVFRUKG5LTE3ILG67JTSC7FI2H
+Content-Type: application/http; msgtype=request
+Content-Length: 507
+
+GET https://www.iana.org/help/example-domains HTTP/1.1
+Host: www.iana.org
+User-Agent: Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/118.1.59.120 Safari/537.36
+Upgrade-Insecure-Requests: 1
+Accept: text/html,application/xhtml+xml,application/xml;q=0.9,image/avif,image/webp,image/apng,*/*;q=0.8
+Sec-Gpc: 1
+Accept-Language: en-US,en;q=0.5
+Sec-Fetch-Site: none
+Sec-Fetch-Mode: navigate
+Sec-Fetch-User: ?1
+Sec-Fetch-Dest: document
+Accept-Encoding: gzip, deflate, br
+
+----------------------------------------
+Member bytes 1475789-1476929
+
+Record bytes 2576400-2578450
+
+WARC/1.0
+WARC-Type: response
+WARC-Record-ID: <urn:uuid:5525ccf6-119b-11f0-977b-0242ac110002>
+WARC-Target-URI: https://example.com/favicon.ico
+WARC-Date: 2025-04-04T21:25:29Z
+WARC-IP-Address: 96.7.128.175
+Content-Type: application/http; msgtype=response
+Content-Length: 1648
+WARC-Payload-Digest: sha1:JI6OR3QR4CI526JD6TMMNZNV4QPMPQCH
+WARC-Block-Digest: sha1:43C7FCLVEUHIRCK55OY5OSLRPGA6DQ4J
+
+HTTP/1.1 404 Not Found
+Accept-Ranges: bytes
+Content-Type: text/html
+ETag: "84238dfc8092e5d9c0dac8ef93371a07:1736799080.121134"
+Last-Modified: Mon, 13 Jan 2025 20:11:20 GMT
+Server: AkamaiNetStorage
+Content-Length: 1256
+Expires: Fri, 04 Apr 2025 21:25:29 GMT
+Cache-Control: max-age=0, no-cache, no-store
+Pragma: no-cache
+Date: Fri, 04 Apr 2025 21:25:29 GMT
+Connection: keep-alive
+
+----------------------------------------
+Member bytes 1476929-1477522
+
+Record bytes 2578454-2579339
+
+WARC/1.0
+WARC-Type: request
+WARC-Record-ID: <urn:uuid:e7c19e34-28a2-434c-b87b-cf2e604921c7>
+WARC-Target-URI: https://example.com/favicon.ico
+WARC-Date: 2025-04-04T21:25:29Z
+WARC-Payload-Digest: sha1:3I42H3S6NNFQ2MSVX7XZKYAYSCX5QBYJ
+WARC-Concurrent-To: <urn:uuid:5525ccf6-119b-11f0-977b-0242ac110002>
+WARC-Block-Digest: sha1:E4XOEHJ55WYFIO44XYDZJEFP72B5B5MW
+Content-Type: application/http; msgtype=request
+Content-Length: 448
+
+GET https://example.com/favicon.ico HTTP/1.1
+Host: example.com
+User-Agent: Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/118.1.59.120 Safari/537.36
+Accept: image/avif,image/webp,image/apng,image/svg+xml,image/*,*/*;q=0.8
+Sec-Gpc: 1
+Accept-Language: en-US,en;q=0.9
+Sec-Fetch-Site: same-origin
+Sec-Fetch-Mode: no-cors
+Sec-Fetch-Dest: image
+Referer: https://example.com/
+Accept-Encoding: gzip, deflate, br
+
+----------------------------------------
+Member bytes 1477522-1478376
+
+Record bytes 2579343-2580893
+
+WARC/1.0
+WARC-Type: response
+WARC-Record-ID: <urn:uuid:5531bca0-119b-11f0-9959-0242ac110002>
+WARC-Target-URI: https://www.iana.org/_js/iana.js
+WARC-Date: 2025-04-04T21:25:29Z
+WARC-IP-Address: 192.0.33.8
+WARC-Payload-Digest: sha1:N76GSPW7FTLFP2OJF2AXK4RCM2ABX5IN
+WARC-Block-Digest: sha1:WMZVP7F23FXO2R6OEHJ2WHS2ISYG3UPT
+Content-Type: application/http; msgtype=response
+Content-Length: 1149
+
+HTTP/1.1 200 OK
+Date: Fri, 04 Apr 2025 21:25:29 GMT
+Server: Apache
+Vary: Accept-Encoding
+Last-Modified: Fri, 24 Sep 2021 20:20:55 GMT
+X-Frame-Options: DENY
+X-Content-Type-Options: nosniff
+Referrer-Policy: same-origin
+Cross-Origin-Opener-Policy: same-origin
+Expires: Fri, 04 Apr 2025 21:38:04 GMT
+X-Content-Type-Options: nosniff
+Age: 1045
+Content-Type: text/javascript
+Content-Encoding: br
+Cache-Control: public, s-maxage=86402, max-age=604814
+Content-Security-Policy: upgrade-insecure-requests; default-src 'self' https://*.iana.org; script-src 'self' 'unsafe-inline' 'unsafe-eval' https://www.google.com https://cse.google.com https://clients1.google.com; style-src 'self' 'unsafe-inline' https://www.google.com; child-src 'self' https://www.youtube.com https://clients1.google.com https://cse.google.com https://www.google.com/; img-src 'self' https://data.iana.org https://www.iana.org https://www.google.com https://www.googleapis.com https://clients1.google.com https://*.gstatic.com;
+Transfer-Encoding: chunked
+Strict-Transport-Security: max-age=48211200; preload
+
+----------------------------------------
+Member bytes 1478376-1478953
+
+Record bytes 2580897-2581746
+
+WARC/1.0
+WARC-Type: request
+WARC-Record-ID: <urn:uuid:dbe62413-7745-4edc-a6a5-46044f798947>
+WARC-Target-URI: https://www.iana.org/_js/iana.js
+WARC-Date: 2025-04-04T21:25:29Z
+WARC-Payload-Digest: sha1:3I42H3S6NNFQ2MSVX7XZKYAYSCX5QBYJ
+WARC-Concurrent-To: <urn:uuid:5531bca0-119b-11f0-9959-0242ac110002>
+WARC-Block-Digest: sha1:JH3AKOWVFED7DNMSDX3FSKN2OQGUL5PH
+Content-Type: application/http; msgtype=request
+Content-Length: 411
+
+GET https://www.iana.org/_js/iana.js HTTP/1.1
+Host: www.iana.org
+User-Agent: Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/118.1.59.120 Safari/537.36
+Accept: */*
+Sec-Gpc: 1
+Accept-Language: en-US,en;q=0.5
+Sec-Fetch-Site: same-origin
+Sec-Fetch-Mode: no-cors
+Sec-Fetch-Dest: script
+Referer: https://www.iana.org/help/example-domains
+Accept-Encoding: gzip, deflate, br
+
+----------------------------------------

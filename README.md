@@ -188,6 +188,8 @@ Options:
 ...
 ```
 
+See `tests/assets` for sample outputs.
+
 [⇧ Back to top](#contents)
 
 ---

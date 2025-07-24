@@ -443,4 +443,18 @@ Run tests like so:
 uv run pytest
 ```
 
+### Coverage
+
+Run tests with coverage reporting:
+
+```sh
+# Terminal coverage report
+uv run pytest --cov=src/warcbench
+
+# HTML coverage report (opens in browser)
+uv run pytest --cov=src/warcbench --cov-report=html
+```
+
+The HTML report will be generated in the `htmlcov/` directory. Open `htmlcov/index.html` in your browser to view the detailed coverage report.
+
 [⇧ Back to top](#contents)

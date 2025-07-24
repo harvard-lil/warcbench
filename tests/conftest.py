@@ -168,6 +168,13 @@ def sample_match_pairs_json(assets_path: Path):
 
 
 @pytest.fixture
+def sample_pairs_detailed_txt(assets_path: Path):
+    filepath = assets_path / "example.com.wacz.pairs-detailed.txt"
+    with filepath.open("r") as txt_file:
+        return txt_file.read()
+
+
+@pytest.fixture
 def sample_filter_json(assets_path: Path):
     filter_json = defaultdict(dict)
     for file_name in ["example.com.wacz"]:
@@ -181,16 +188,6 @@ def sample_filter_json(assets_path: Path):
 
 
 @pytest.fixture
-def sample_summarize_txt(assets_path: Path):
-    summarize_txt = {}
-    for file_name in ["example.com.warc", "example.com.wacz", "test-crawl.wacz"]:
-        filepath = assets_path / f"{file_name}.summarize.txt"
-        with filepath.open("r") as txt_file:
-            summarize_txt[file_name] = txt_file.read()
-    return summarize_txt
-
-
-@pytest.fixture
 def sample_filter_detailed_txt(assets_path: Path):
     filepath = assets_path / "example.com.wacz.filter-detailed.txt"
     with filepath.open("r") as txt_file:
@@ -198,17 +195,13 @@ def sample_filter_detailed_txt(assets_path: Path):
 
 
 @pytest.fixture
-def sample_pairs_detailed_txt(assets_path: Path):
-    filepath = assets_path / "example.com.wacz.pairs-detailed.txt"
-    with filepath.open("r") as txt_file:
-        return txt_file.read()
-
-
-@pytest.fixture
-def sample_compare_headers_detailed_txt(assets_path: Path):
-    filepath = assets_path / "compare-headers-detailed.txt"
-    with filepath.open("r") as txt_file:
-        return txt_file.read()
+def sample_summarize_txt(assets_path: Path):
+    summarize_txt = {}
+    for file_name in ["example.com.warc", "example.com.wacz", "test-crawl.wacz"]:
+        filepath = assets_path / f"{file_name}.summarize.txt"
+        with filepath.open("r") as txt_file:
+            summarize_txt[file_name] = txt_file.read()
+    return summarize_txt
 
 
 @pytest.fixture
@@ -307,3 +300,10 @@ def complete_compare_headers_json(assets_path: Path):
     filepath = assets_path / "compare-headers.json"
     with filepath.open("r") as json_file:
         return json.loads(json_file.read())
+
+
+@pytest.fixture
+def sample_compare_headers_detailed_txt(assets_path: Path):
+    filepath = assets_path / "compare-headers-detailed.txt"
+    with filepath.open("r") as txt_file:
+        return txt_file.read()

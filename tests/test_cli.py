@@ -517,6 +517,25 @@ def test_filter_records_basic_output(sample_filter_json):
     assert json.loads(result.stdout) == sample_filter_json["example.com.wacz"]["basic"]
 
 
+def test_filter_records_detailed_output(sample_filter_detailed_txt):
+    """Test filter-records with all detailed output options enabled."""
+    runner = CliRunner()
+    result = runner.invoke(
+        cli,
+        [
+            "filter-records",
+            "--output-member-offsets",
+            "--output-record-offsets", 
+            "--output-warc-headers",
+            "--output-http-headers",
+            "--output-http-body",
+            "tests/assets/example.com.wacz",
+        ],
+    )
+    assert result.exit_code == 0, result.output
+    assert result.stdout == sample_filter_detailed_txt
+
+
 def test_filter_records_custom_filters(expected_custom_filter_results):
     runner = CliRunner()
     result = runner.invoke(

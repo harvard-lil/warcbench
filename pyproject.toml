@@ -57,6 +57,7 @@ source = ["src/warcbench"]
 exclude_lines = [
     "pragma: no cover",
     "@(abc\\.)?abstractmethod",
+    "if print_each:",
 ]
 
 [tool.coverage.html]

@@ -403,7 +403,7 @@ WARCbench supports a number of configuration options:
 
 - You can choose whether or not to attempt to split WARC records into headers and content blocks.
 
-- You can choose whether to cache record properties, such as the bytes of headers or content blocks, on the parser object as it proceeds, or to instead consume those bytes lazily on access.
+- You can choose whether to cache record properties (such as the bytes of headers or content blocks) during parsing, or to consume those bytes lazily on access, or both. These features are independent and can be used together.
 
 See `config.py` for details.
 

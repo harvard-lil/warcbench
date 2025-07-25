@@ -16,6 +16,26 @@ from typing import Optional
 
 
 class WARCParser:
+    """
+    A parser for WARC (Web ARChive) files.
+
+    This is the main interface for parsing WARC files. It supports multiple parsing
+    strategies and provides access to records, warnings, and error information.
+
+    Args:
+        file_handle: A file-like object opened in binary mode
+        enable_lazy_loading_of_bytes: Whether to enable on-demand byte access (default: True).
+            When True, attaches file handles to parsed objects so bytes can be read
+            on-demand when accessed. When False, bytes are only accessible if explicitly
+            cached via the cache configuration. Independent of cache settings.
+        parsing_options: Configuration for parsing behavior
+        processors: Configuration for filters, handlers, and callbacks
+        cache: Configuration for what data to cache in memory during parsing.
+            Controls immediate caching of bytes, parsed headers, etc. Independent of
+            enable_lazy_loading_of_bytes. When both are enabled, you get both immediate
+            caching AND on-demand access capabilities.
+    """
+
     def __init__(
         self,
         file_handle,
@@ -80,19 +100,78 @@ class WARCParser:
         return self._parser.unparsable_lines
 
     def parse(self, cache_records=True):
+        """
+        Parse the entire WARC file and optionally cache all records in memory.
+
+        Args:
+            cache_records: If True, store all parsed records in memory for later access
+                via the `records` property. If False, records are only accessible during
+                the parsing process; all processing must be done by record handlers.
+        """
         return self._parser.parse(cache_records)
 
     def iterator(self):
+        """
+        Return an iterator that yields Record objects one at a time.
+
+        Returns:
+            Iterator[Record]: An iterator of WARC record objects
+        """
         return self._parser.iterator()
 
     def get_record_offsets(self, split=False):
+        """
+        Get the byte offsets of all records in the file.
+
+        Args:
+            split: If True, return separate offsets for headers and content blocks.
+                If False, return offsets for complete records.
+
+        Returns:
+            List of tuples containing byte offsets. If split=False, each tuple
+            contains (start, end). If split=True, each tuple contains
+            (header_start, header_end, content_start, content_end).
+        """
         return self._parser.get_record_offsets(split)
 
     def get_approximate_request_response_pairs(self, count_only=False):
+        """
+        Identify and match HTTP request/response pairs in the WARC file.
+        Only approximate: if multiple requests were made to the same Target-URI,
+        matching may be incorrect.
+
+        Args:
+            count_only: If True, return only counts. If False, return detailed
+                information about the pairs.
+
+        Returns:
+            Dict containing information about request/response pairs found.
+            Structure depends on count_only parameter.
+        """
         return self._parser.get_approximate_request_response_pairs(count_only)
 
 
 class WARCGZParser:
+    """
+    A parser for gzipped WARC files.
+
+    This parser handles WARC files that have been compressed with gzip, including those
+    within WACZ files.
+
+    Args:
+        file_handle: A file-like object opened in binary mode
+        enable_lazy_loading_of_bytes: Whether to enable on-demand byte access (default: True).
+            When True, attaches file handles to parsed objects so bytes can be read
+            on-demand when accessed. When False, bytes are only accessible if explicitly
+            cached via the cache configuration. Independent of cache settings.
+        parsing_options: Configuration for parsing behavior
+        processors: Configuration for filters, handlers, and callbacks
+        cache: Configuration for what data to cache in memory during parsing.
+            Controls immediate caching of bytes, parsed headers, etc. Independent of
+            enable_lazy_loading_of_bytes. When both are enabled, you get both immediate
+            caching AND on-demand access capabilities.
+    """
+
     def __init__(
         self,
         file_handle,
@@ -174,16 +253,70 @@ class WARCGZParser:
         return self._parser.records
 
     def parse(self, cache_members=True):
+        """
+        Parse the entire gzipped WARC file and optionally cache all members in memory.
+
+        Args:
+            cache_members: If True, store all parsed gzip members in memory for later
+                access via the `members` property. If False, members are only accessible
+                during the parsing process; all processing must be done by member or
+                record handlers.
+        """
         return self._parser.parse(cache_members)
 
     def iterator(self, yield_type="members"):
+        """
+        Return an iterator that yields either gzip members or WARC records.
+
+        Args:
+            yield_type: Either "members" to yield GzippedMember objects, or "records"
+                to yield Record objects extracted from successfully parsed members.
+
+        Returns:
+            Iterator[GzippedMember] or Iterator[Record]: An iterator of the requested type
+        """
         return self._parser.iterator(yield_type)
 
     def get_member_offsets(self, compressed=True):
+        """
+        Get the byte offsets of all gzip members in the file.
+
+        Args:
+            compressed: If True, return offsets in the compressed file. If False,
+                return offsets as they would appear in the decompressed file.
+
+        Returns:
+            List of tuples containing (start, end) byte offsets for each gzip member.
+        """
         return self._parser.get_member_offsets(compressed)
 
     def get_record_offsets(self, split=False):
+        """
+        Get the byte offsets of all WARC records extracted from gzip members.
+
+        Args:
+            split: If True, return separate offsets for headers and content blocks.
+                If False, return offsets for complete records.
+
+        Returns:
+            List of tuples containing byte offsets. If split=False, each tuple
+            contains (start, end). If split=True, each tuple contains
+            (header_start, header_end, content_start, content_end).
+        """
         return self._parser.get_record_offsets(split)
 
     def get_approximate_request_response_pairs(self, count_only=False):
+        """
+        Identify and match HTTP request/response pairs in the extracted WARC records.
+        Only approximate: if multiple requests were made to the same Target-URI,
+        matching may be incorrect.
+
+        Args:
+            count_only: If True, return only counts. If False, return detailed
+                information about the pairs.
+
+        Returns:
+            Dict containing information about request/response pairs found.
+            Structure depends on count_only parameter.
+        """
         return self._parser.get_approximate_request_response_pairs(count_only)

@@ -1,5 +1,14 @@
 """
 `parsers.warc` module: Classes that slice a WARC into pieces, using different strategies
+
+This module implements a state machine-based parser for WARC files. The parsing process
+follows a sequence of states defined in the STATES dictionary below. See the BaseParser
+class for the state machine implementation and the iterator() method for how states
+transition.
+
+The inheritance pattern allows for different parsing strategies:
+- BaseParser: Abstract base class defining the state machine and common functionality
+- Concrete subclasses: Implement different strategies for finding record boundaries
 """
 
 from abc import ABC, abstractmethod
@@ -35,6 +44,18 @@ STATES = {
 
 
 class BaseParser(ABC):
+    """
+    Abstract base class for WARC parsers implementing a state machine.
+
+    This class provides the core parsing infrastructure including:
+    - State machine implementation for driving the parsing process
+    - Common functionality for filters, handlers, and callbacks
+    - Record caching and iteration capabilities
+
+    Subclasses must implement the `extract_next_record()` method to define
+    how individual WARC records are parsed from the file.
+    """
+
     def __init__(
         self,
         file_handle,
@@ -228,6 +249,11 @@ class BaseParser(ABC):
 
 
 class DelimiterWARCParser(BaseParser):
+    """
+    WARC parser that looks for the WARC record delimiter pattern (\r\n\r\n) to
+    determine where one record ends and the next begins.
+    """
+
     def __init__(
         self,
         file_handle,
@@ -350,6 +376,11 @@ class DelimiterWARCParser(BaseParser):
 
 
 class ContentLengthWARCParser(BaseParser):
+    """
+    WARC parser that reads each WARC header, extracts the Content-Length value,
+    then skips exactly that many bytes to find the next record.
+    """
+
     def extract_next_record(self):
         #
         # Find what looks like the next WARC header record

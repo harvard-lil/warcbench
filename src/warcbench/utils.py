@@ -254,7 +254,36 @@ def archive_resource(datapackage):
 
 @contextmanager
 def python_open_archive(filepath, gunzip=False):
-    """This function uses native Python packages for decompression, It will eventually handle stdin."""
+    """
+    Open a web archive file using native Python packages for decompression.
+
+    Supports WARC, WARC.GZ, and WACZ file formats. This function uses Python's
+    built-in compression libraries, which may be slower than system tools but
+    provides broader compatibility.
+
+    Args:
+        filepath: Path to the archive file (.warc, .warc.gz, or .wacz)
+        gunzip: If True, decompress gzipped archives to provide direct access
+            to WARC content. If False, provide access to compressed content.
+
+    Yields:
+        Tuple[file_handle, FileType]: A tuple containing the opened file handle
+        and a FileType enum indicating whether it's a WARC or GZIPPED_WARC.
+
+    Raises:
+        ValueError: If the file format is not recognized
+        NotImplementedError: If filepath is "-" (stdin not yet supported)
+
+    Example:
+        ```python
+        from warcbench.utils import python_open_archive
+        from warcbench import WARCParser
+
+        with python_open_archive('example.wacz', gunzip=True) as (file, file_type):
+            parser = WARCParser(file)
+            parser.parse()
+        ```
+    """
     if filepath.lower().endswith(".wacz"):
         with (
             open(filepath, "rb") as wacz_file,
@@ -288,7 +317,37 @@ def python_open_archive(filepath, gunzip=False):
 
 @contextmanager
 def system_open_archive(filepath, gunzip=False):
-    """This function uses tempfiles generated with system unzip and gunzip, for speed. It will eventually handle stdin."""
+    """
+    Open a web archive file using system tools for decompression.
+
+    Supports WARC, WARC.GZ, and WACZ file formats. This function uses system
+    unzip and gunzip commands for faster decompression than Python's built-in
+    libraries, but requires these tools to be installed.
+
+    Args:
+        filepath: Path to the archive file (.warc, .warc.gz, or .wacz)
+        gunzip: If True, decompress gzipped archives to provide direct access
+            to WARC content. If False, provide access to compressed content.
+
+    Yields:
+        Tuple[file_handle, FileType]: A tuple containing the opened file handle
+        and a FileType enum indicating whether it's a WARC or GZIPPED_WARC.
+
+    Raises:
+        RuntimeError: If required system tools (unzip, gunzip) are not installed
+        ValueError: If the file format is not recognized
+        NotImplementedError: If filepath is "-" (stdin not yet supported)
+
+    Example:
+        ```python
+        from warcbench.utils import system_open_archive
+        from warcbench import WARCGZParser
+
+        with system_open_archive('example.wacz') as (file, file_type):
+            parser = WARCGZParser(file)
+            parser.parse()
+        ```
+    """
     if not shutil.which("unzip"):
         raise RuntimeError("Unzip must be installed.")
 

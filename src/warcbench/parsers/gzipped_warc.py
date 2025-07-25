@@ -1,5 +1,14 @@
 """
 `parsers.gzipped_warc` module: Classes that slice a gzipped WARC into pieces, using different strategies
+
+This module implements a state machine-based parser for gzipped WARC files. The parsing process
+follows a sequence of states defined in the STATES dictionary below. See the BaseParser
+class for the state machine implementation and the iterator() method for how states
+transition.
+
+The inheritance pattern allows for different parsing strategies:
+- BaseParser: Abstract base class defining the state machine and common functionality
+- Concrete subclasses: Implement different strategies for parsing gzipped WARC records
 """
 
 from abc import ABC, abstractmethod
@@ -44,6 +53,18 @@ STATES = {
 
 
 class BaseParser(ABC):
+    """
+    Abstract base class for gzipped WARC parsers implementing a state machine.
+
+    This class provides the core parsing infrastructure including:
+    - State machine implementation for driving the parsing process
+    - Common functionality for filters, handlers, and callbacks
+    - Member and record caching and iteration capabilities
+
+    Subclasses must implement the `locate_members()` and `extract_next_member()` methods
+    to define how gzipped WARC records are located and read from the file.
+    """
+
     def __init__(
         self,
         file_handle,
@@ -265,6 +286,11 @@ class BaseParser(ABC):
 
 
 class GzippedWARCMemberParser(BaseParser):
+    """
+    Gzipped WARC parser that works with individual gzip members without decompressing
+    the entire file at once.
+    """
+
     def __init__(
         self,
         file_handle,
@@ -480,6 +506,11 @@ class GzippedWARCMemberParser(BaseParser):
 
 
 class GzippedWARCDecompressingParser(BaseParser):
+    """
+    Gzipped WARC parser that decompresses the entire file first, then processes
+    the uncompressed WARC records.
+    """
+
     def __init__(
         self,
         file_handle,

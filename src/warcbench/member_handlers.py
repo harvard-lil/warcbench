@@ -4,6 +4,41 @@
 
 
 def get_member_offsets(compressed=True, append_to=None, print_each=True):
+    """
+    A handler that extracts and optionally prints byte offsets of gzip members.
+
+    This handler works specifically with GzippedMember objects from WARCGZParser.
+    It can extract offsets either for the compressed gzip member boundaries
+    or the equivalent positions in the decompressed data.
+
+    Args:
+        compressed: If True, extract offsets in the compressed file. If False,
+            extract offsets as they would appear in the decompressed file.
+        append_to: Optional list to append offset tuples to.
+        print_each: If True, print offset information for each member.
+
+    Returns:
+        Callable[[GzippedMember], None]: A handler function that can be passed to
+        WARCGZParser processors as a member_handler.
+
+    Example:
+        ```python
+        compressed_offsets = []
+        uncompressed_offsets = []
+
+        handlers = [
+            get_member_offsets(compressed=True, append_to=compressed_offsets, print_each=False),
+            get_member_offsets(compressed=False, append_to=uncompressed_offsets, print_each=False)
+        ]
+
+        parser = WARCGZParser(
+            file,
+            processors=WARCGZProcessorConfig(member_handlers=handlers)
+        )
+        parser.parse()
+        ```
+    """
+
     def f(member):
         if compressed:
             offsets = (member.start, member.end)

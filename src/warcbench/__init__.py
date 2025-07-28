@@ -12,8 +12,11 @@ from warcbench.config import (
     WARCCachingConfig,
     WARCGZCachingConfig,
 )
-from typing import Optional, Union
+from typing import Optional, Union, List, Tuple, Iterator, Any, TYPE_CHECKING, Dict
 from io import BufferedReader
+
+if TYPE_CHECKING:
+    from warcbench.models import Record, UnparsableLine, GzippedMember
 
 
 class WARCParser:
@@ -82,26 +85,26 @@ class WARCParser:
                 )
 
     @property
-    def warnings(self):
+    def warnings(self) -> List[str]:
         return self._parser.warnings
 
     @property
-    def error(self):
+    def error(self) -> Optional[str]:
         return self._parser.error
 
     @property
-    def current_record(self):
+    def current_record(self) -> Optional["Record"]:
         return self._parser.current_record
 
     @property
-    def records(self):
+    def records(self) -> List["Record"]:
         return self._parser.records
 
     @property
-    def unparsable_lines(self):
+    def unparsable_lines(self) -> List["UnparsableLine"]:
         return self._parser.unparsable_lines
 
-    def parse(self, cache_records=True):
+    def parse(self, cache_records: bool = True) -> None:
         """
         Parse the entire WARC file and optionally cache all records in memory.
 
@@ -112,7 +115,7 @@ class WARCParser:
         """
         return self._parser.parse(cache_records)
 
-    def iterator(self):
+    def iterator(self) -> Iterator["Record"]:
         """
         Return an iterator that yields Record objects one at a time.
 
@@ -121,7 +124,9 @@ class WARCParser:
         """
         return self._parser.iterator()
 
-    def get_record_offsets(self, split=False):
+    def get_record_offsets(
+        self, split: bool = False
+    ) -> Union[List[Tuple[int, int]], List[Tuple[int, int, int, int]]]:
         """
         Get the byte offsets of all records in the file.
 
@@ -136,7 +141,9 @@ class WARCParser:
         """
         return self._parser.get_record_offsets(split)
 
-    def get_approximate_request_response_pairs(self, count_only=False):
+    def get_approximate_request_response_pairs(
+        self, count_only: bool = False
+    ) -> Dict[str, Any]:
         """
         Identify and match HTTP request/response pairs in the WARC file.
         Only approximate: if multiple requests were made to the same Target-URI,
@@ -236,26 +243,26 @@ class WARCGZParser:
                 )
 
     @property
-    def warnings(self):
+    def warnings(self) -> List[str]:
         return self._parser.warnings
 
     @property
-    def error(self):
+    def error(self) -> Optional[str]:
         return self._parser.error
 
     @property
-    def current_member(self):
+    def current_member(self) -> Optional["GzippedMember"]:
         return self._parser.current_member
 
     @property
-    def members(self):
+    def members(self) -> List["GzippedMember"]:
         return self._parser.members
 
     @property
-    def records(self):
+    def records(self) -> List["Record"]:
         return self._parser.records
 
-    def parse(self, cache_members=True):
+    def parse(self, cache_members: bool = True) -> None:
         """
         Parse the entire gzipped WARC file and optionally cache all members in memory.
 
@@ -267,7 +274,9 @@ class WARCGZParser:
         """
         return self._parser.parse(cache_members)
 
-    def iterator(self, yield_type="members"):
+    def iterator(
+        self, yield_type: str = "members"
+    ) -> Union[Iterator["GzippedMember"], Iterator["Record"]]:
         """
         Return an iterator that yields either gzip members or WARC records.
 
@@ -280,7 +289,9 @@ class WARCGZParser:
         """
         return self._parser.iterator(yield_type)
 
-    def get_member_offsets(self, compressed=True):
+    def get_member_offsets(
+        self, compressed: bool = True
+    ) -> List[Tuple[Optional[int], Optional[int]]]:
         """
         Get the byte offsets of all gzip members in the file.
 
@@ -293,7 +304,9 @@ class WARCGZParser:
         """
         return self._parser.get_member_offsets(compressed)
 
-    def get_record_offsets(self, split=False):
+    def get_record_offsets(
+        self, split: bool = False
+    ) -> Union[List[Tuple[int, int]], List[Tuple[int, int, int, int]]]:
         """
         Get the byte offsets of all WARC records extracted from gzip members.
 
@@ -308,7 +321,9 @@ class WARCGZParser:
         """
         return self._parser.get_record_offsets(split)
 
-    def get_approximate_request_response_pairs(self, count_only=False):
+    def get_approximate_request_response_pairs(
+        self, count_only: bool = False
+    ) -> Dict[str, Any]:
         """
         Identify and match HTTP request/response pairs in the extracted WARC records.
         Only approximate: if multiple requests were made to the same Target-URI,

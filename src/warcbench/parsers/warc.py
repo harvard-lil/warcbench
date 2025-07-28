@@ -15,7 +15,7 @@ from abc import ABC, abstractmethod
 from io import BufferedReader
 import logging
 import os
-from typing import List, Optional
+from typing import List, Optional, Iterator, Union, Tuple, Any, Dict
 
 from warcbench.exceptions import AttributeNotInitializedError, SplitRecordsRequiredError
 from warcbench.models import Record, Header, ContentBlock, UnparsableLine
@@ -96,7 +96,7 @@ class BaseParser(ABC):
             self._unparsable_lines = None
 
     @property
-    def records(self):
+    def records(self) -> List[Record]:
         if self._records is None:
             raise AttributeNotInitializedError(
                 "Call parser.parse(cache_members=True) to load records into RAM and populate parser.records, "
@@ -105,7 +105,7 @@ class BaseParser(ABC):
         return self._records
 
     @property
-    def unparsable_lines(self):
+    def unparsable_lines(self) -> List[UnparsableLine]:
         if self._unparsable_lines is None:
             raise AttributeNotInitializedError(
                 "Pass cache_unparsable_lines=True to WARCParser() to store UnparsableLines "
@@ -113,7 +113,7 @@ class BaseParser(ABC):
             )
         return self._unparsable_lines
 
-    def parse(self, cache_records):
+    def parse(self, cache_records: bool) -> None:
         if cache_records:
             self._records = []
 
@@ -122,14 +122,14 @@ class BaseParser(ABC):
             if cache_records:
                 self._records.append(record)  # type: ignore[union-attr]
 
-    def iterator(self):
+    def iterator(self) -> Iterator[Record]:
         yielded = 0
         self.file_handle.seek(0)
 
         while self.state != STATES["END"]:
             if self.state == STATES["YIELD_CURRENT_RECORD"]:
                 yielded = yielded + 1
-                yield self.current_record
+                yield self.current_record  # type: ignore[misc]
                 self.current_record = None
 
                 if (
@@ -151,7 +151,9 @@ class BaseParser(ABC):
                     )
                 self.state = transition_func()
 
-    def get_record_offsets(self, split):
+    def get_record_offsets(
+        self, split: bool
+    ) -> Union[List[Tuple[int, int]], List[Tuple[int, int, int, int]]]:
         records = self._records if self._records else self.iterator()
 
         if split:
@@ -171,7 +173,9 @@ class BaseParser(ABC):
 
         return [(record.start, record.end) for record in records]
 
-    def get_approximate_request_response_pairs(self, count_only):
+    def get_approximate_request_response_pairs(
+        self, count_only: bool
+    ) -> Dict[str, Any]:
         """
         Recommended: use with cache_parsed_headers=True.
         """

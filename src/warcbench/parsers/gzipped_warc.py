@@ -140,7 +140,7 @@ class BaseParser(ABC):
     def parse(self, cache_members):
         if cache_members:
             self._members = []
-        
+
         iterator = self.iterator(yield_type="members")
         for member in iterator:
             if cache_members:

@@ -1,6 +1,7 @@
 """
 `patterns` module: Common sequences of bytes expected in WARC files
 """
+
 from typing import Union
 
 CRLF = b"\r\n"

@@ -8,7 +8,7 @@ import io
 from pathlib import Path
 import re
 import sys
-from typing import List, Dict, Any, Union, Optional, Tuple, TYPE_CHECKING
+from typing import List, Dict, Any, Union, Optional, Tuple, TYPE_CHECKING, cast
 
 if TYPE_CHECKING:
     from warcbench.models import Record
@@ -322,7 +322,7 @@ def get_warc_response_handler(pairs, file1, file2):
                 _, record1, record2 = self.pairs[self.path]
 
                 # Extract target URI for template
-                target_uri = record1.header.get_field("WARC-Target-URI", decode=True)  # type: ignore[union-attr]
+                target_uri = cast(str, record1.header.get_field("WARC-Target-URI", decode=True))  # type: ignore[union-attr]
 
                 self.send_response(200)
                 self.send_header("Content-type", "text/html")
@@ -403,7 +403,7 @@ def get_warc_response_handler(pairs, file1, file2):
                 status = 200  # Default to 200, in case no HTTP status is successfully parsed in the record
 
                 header_lines = (
-                    record.get_http_header_block()
+                    record.get_http_header_block()  # type: ignore[union-attr]
                     .decode("utf-8", errors="replace")
                     .splitlines()
                 )
@@ -427,7 +427,7 @@ def get_warc_response_handler(pairs, file1, file2):
                 self.end_headers()
 
                 # The HTTP body
-                self.wfile.write(record.get_http_body_block())
+                self.wfile.write(record.get_http_body_block())  # type: ignore[arg-type]
                 return
 
             self.send_error(404, "File not found")

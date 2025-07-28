@@ -1,6 +1,7 @@
 """
 `patterns` module: Common sequences of bytes expected in WARC files
 """
+from typing import Union
 
 CRLF = b"\r\n"
 WARC_VERSIONS = [b"WARC/1.0\r\n", b"WARC/1.1\r\n"]
@@ -12,7 +13,7 @@ CONTENT_LENGTH_PATTERN = rb"Content-Length:\s*(\d+)"
 CONTENT_TYPE_PATTERN = rb"Content-Type:\s*(.*)((\r\n)|$)"
 
 
-def get_warc_named_field_pattern(field_name):
+def get_warc_named_field_pattern(field_name: str) -> bytes:
     """
     Get a regular expression for finding and extracting the value of any particular "warc named field"
     present in a bytestring of unparsed WARC headers.
@@ -21,7 +22,7 @@ def get_warc_named_field_pattern(field_name):
     return b"WARC-" + bytes(field_name, "utf-8") + rb":\s*(.*)((\r\n)|$)"
 
 
-def get_http_verb_pattern(verb):
+def get_http_verb_pattern(verb: str) -> bytes:
     """
     Get a regular expression for finding and extracting an HTTP verb from the request line of
     a bytestring of unparsed HTTP headers.
@@ -30,7 +31,7 @@ def get_http_verb_pattern(verb):
     return bytes(f"({verb})", "utf-8") + rb"\s+.*HTTP/.*((\r\n)|$)"
 
 
-def get_http_status_pattern(status_code):
+def get_http_status_pattern(status_code: Union[str, int]) -> bytes:
     """
     Get a regular expression for finding and extracting the value of any HTTP status code
     present in the status line of a bytestring of unparsed HTTP headers.
@@ -38,7 +39,7 @@ def get_http_status_pattern(status_code):
     return rb"HTTP/1.1\s*" + bytes(f"({status_code})", "utf-8")
 
 
-def get_http_header_pattern(header_name):
+def get_http_header_pattern(header_name: str) -> bytes:
     """
     Get a regular expression for finding and extracting the value of any HTTP
     present in a bytestring of unparsed HTTP headers.

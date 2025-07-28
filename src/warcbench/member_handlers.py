@@ -2,8 +2,15 @@
 `member_handlers` module: Functions that return helper functions that take a GzippedMember and return None
 """
 
+from typing import Optional, List, Tuple, Callable
+from warcbench.models import GzippedMember
 
-def get_member_offsets(compressed=True, append_to=None, print_each=True):
+
+def get_member_offsets(
+    compressed: bool = True,
+    append_to: Optional[List[Tuple[Optional[int], Optional[int]]]] = None,
+    print_each: bool = True,
+) -> Callable[[GzippedMember], None]:
     """
     A handler that extracts and optionally prints byte offsets of gzip members.
 
@@ -39,7 +46,8 @@ def get_member_offsets(compressed=True, append_to=None, print_each=True):
         ```
     """
 
-    def f(member):
+    def f(member: GzippedMember) -> None:
+        offsets: Tuple[Optional[int], Optional[int]]
         if compressed:
             offsets = (member.start, member.end)
         else:

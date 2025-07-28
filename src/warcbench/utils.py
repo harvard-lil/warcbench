@@ -207,7 +207,12 @@ def find_pattern_in_bytes(pattern, data, case_insensitive=True):
     return re.search(pattern, data, re.IGNORECASE if case_insensitive else 0)
 
 
-def is_target_in_bytes(extracted, target, case_insensitive=True, exact_match=False):
+def is_target_in_bytes(
+    extracted: bytes,
+    target: str,
+    case_insensitive: bool = True,
+    exact_match: bool = False,
+) -> bool:
     """
     Matches the target bytes against the passed in bytestring.
     """

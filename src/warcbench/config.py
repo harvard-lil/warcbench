@@ -8,7 +8,7 @@ The configuration classes follow a hierarchy:
 """
 
 from dataclasses import dataclass
-from typing import Optional, List, Callable, TYPE_CHECKING
+from typing import Optional, List, Callable, TYPE_CHECKING, Union
 
 if TYPE_CHECKING:
     from warcbench.models import (
@@ -16,7 +16,10 @@ if TYPE_CHECKING:
         UnparsableLine,
         GzippedMember,
     )  # pragma: no cover
-    from warcbench.parsers.warc import BaseParser  # pragma: no cover
+    from warcbench.parsers.warc import BaseParser as WARCBaseParser  # pragma: no cover
+    from warcbench.parsers.gzipped_warc import (
+        BaseParser as WARCGZBaseParser,
+    )  # pragma: no cover
 
 
 #
@@ -137,7 +140,9 @@ class BaseProcessorConfig:
 
     record_filters: Optional[List[Callable[["Record"], bool]]] = None
     record_handlers: Optional[List[Callable[["Record"], None]]] = None
-    parser_callbacks: Optional[List[Callable[["BaseParser"], None]]] = None
+    parser_callbacks: Optional[
+        List[Callable[[Union["WARCBaseParser", "WARCGZBaseParser"]], None]]
+    ] = None
 
 
 @dataclass

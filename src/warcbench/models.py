@@ -7,9 +7,8 @@ from __future__ import annotations
 from abc import ABC
 from collections import defaultdict
 from dataclasses import dataclass, field
-import io
 import logging
-from typing import Optional, List
+from typing import Optional, List, IO
 
 from warcbench.patterns import CRLF, CONTENT_LENGTH_PATTERN
 from warcbench.utils import (
@@ -20,6 +19,7 @@ from warcbench.utils import (
     decompress,
 )
 from warcbench.filters import record_content_type_filter
+from warcbench.exceptions import SplitRecordsRequiredError
 
 logger = logging.getLogger(__name__)
 
@@ -35,7 +35,7 @@ class ByteRange(ABC):
     start: int
     end: int
     _bytes: Optional[bytes] = field(repr=False, default=None)
-    _file_handle: Optional[io.BufferedReader] = field(repr=False, default=None)
+    _file_handle: Optional[IO[bytes]] = field(repr=False, default=None)
 
     def __post_init__(self):
         self.length = self.end - self.start
@@ -96,6 +96,13 @@ class Record(ByteRange):
         Search for the content length in the header, and compare it against the number of bytes
         detected when the WARC file was parsed.
         """
+        if self.header is None:
+            raise SplitRecordsRequiredError("check_content_length", "parsed headers")
+        if self.content_block is None:
+            raise SplitRecordsRequiredError(
+                "check_content_length", "parsed content blocks"
+            )
+
         match = find_pattern_in_bytes(CONTENT_LENGTH_PATTERN, self.header.bytes)
 
         if match:
@@ -111,6 +118,8 @@ class Record(ByteRange):
         """
         If this WARC record describes an HTTP exchange, extract the HTTP headers of that exchange.
         """
+        if self.content_block is None:
+            raise SplitRecordsRequiredError("get_http_header_block")
         # We expect WARC records that describe HTTP exchanges to have a Content-Type that contains "application/http".
         # http://iipc.github.io/warc-specifications/specifications/warc-format/warc-1.1/#content-type
         if record_content_type_filter("http")(self) and self.content_block.bytes.find(
@@ -122,6 +131,8 @@ class Record(ByteRange):
         """
         If this WARC record describes an HTTP exchange, extract the HTTP body of that exchange (if any).
         """
+        if self.content_block is None:
+            raise SplitRecordsRequiredError("get_http_body_block")
         # We expect WARC records that describe HTTP exchanges to have a Content-Type that contains "application/http".
         # http://iipc.github.io/warc-specifications/specifications/warc-format/warc-1.1/#content-type
         if record_content_type_filter("http")(self) and self.content_block.bytes.find(
@@ -132,6 +143,8 @@ class Record(ByteRange):
                 return parts[1]
 
     def get_decompressed_http_body(self):
+        if self.content_block is None:
+            raise SplitRecordsRequiredError("get_decompressed_http_body")
         if record_content_type_filter("http")(self) and self.content_block.bytes.find(
             CRLF * 2
         ):
@@ -162,7 +175,7 @@ class Header(ByteRange):
     @classmethod
     def parse_bytes_into_fields(cls, data):
         # Line folding is not supported https://github.com/iipc/warc-specifications/issues/74
-        headers = defaultdict(list)
+        headers: defaultdict[bytes, List[Optional[bytes]]] = defaultdict(list)
         for line in data.split(CRLF):
             if line:
                 split = line.split(b":", 1)
@@ -251,9 +264,7 @@ class GzippedMember(ByteRange):
     > contents of an individual WARC record.
     """
 
-    _uncompressed_file_handle: Optional[io.BufferedReader] = field(
-        repr=False, default=None
-    )
+    _uncompressed_file_handle: Optional[IO[bytes]] = field(repr=False, default=None)
     _uncompressed_bytes: Optional[bytes] = field(repr=False, default=None)
 
     # If the gzip file were decompressed in its entirety, where this member's
@@ -271,7 +282,8 @@ class GzippedMember(ByteRange):
 
     def __post_init__(self):
         super().__post_init__()
-        self.uncompressed_length = self.uncompressed_end - self.uncompressed_start
+        if self.uncompressed_end is not None and self.uncompressed_start is not None:
+            self.uncompressed_length = self.uncompressed_end - self.uncompressed_start
 
     @property
     def uncompressed_bytes(self):
@@ -285,7 +297,7 @@ class GzippedMember(ByteRange):
             return bytes(data)
         return self._uncompressed_bytes
 
-    def iterator(self, compressed=True, chunk_size=1024):
+    def iterator(self, chunk_size=1024, *, compressed=True):
         """
         Returns an iterator that yields the bytes in chunks.
         """

@@ -2,6 +2,8 @@
 `record_handlers` module: Functions that return helper functions that take a Record and return None
 """
 
+from typing import Union, Tuple, cast
+
 
 def get_record_offsets(split=False, append_to=None, print_each=True):
     """
@@ -26,6 +28,7 @@ def get_record_offsets(split=False, append_to=None, print_each=True):
     """
 
     def f(record):
+        offsets: Union[Tuple[int, int], Tuple[int, int, int, int]]
         if split:
             offsets = (
                 record.header.start,
@@ -41,9 +44,10 @@ def get_record_offsets(split=False, append_to=None, print_each=True):
 
         if print_each:
             if split:
-                print(f"Record bytes {offsets[0]}-{offsets[3]}")
-                print(f"Header bytes {offsets[0]}-{offsets[1]}")
-                print(f"Content bytes {offsets[2]}-{offsets[3]}")
+                split_offsets = cast(Tuple[int, int, int, int], offsets)
+                print(f"Record bytes {split_offsets[0]}-{split_offsets[3]}")
+                print(f"Header bytes {split_offsets[0]}-{split_offsets[1]}")
+                print(f"Content bytes {split_offsets[2]}-{split_offsets[3]}")
             else:
                 print(f"Record bytes {offsets[0]}-{offsets[1]}")
             print()

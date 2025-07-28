@@ -48,6 +48,7 @@ dev = [
 ]
 lint = [
     "ruff>=0.9.8",
+    "mypy>=1.13.0",
 ]
 
 [tool.coverage.run]

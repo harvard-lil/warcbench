@@ -1,6 +1,7 @@
 import click
 from collections import defaultdict
 import json
+from typing import DefaultDict, List, Any
 
 from warcbench.member_handlers import get_member_offsets
 from warcbench.record_handlers import (
@@ -101,7 +102,7 @@ def inspect(
     ctx.obj["RECORD_HEADERS"] = record_headers
     ctx.obj["RECORD_HTTP_HEADERS"] = record_http_headers
 
-    data = defaultdict(list)
+    data: DefaultDict[str, List[Any]] = defaultdict(list)
     member_handlers = []
     if ctx.obj["MEMBER_OFFSETS"]:
         member_handlers.append(

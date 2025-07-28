@@ -15,6 +15,7 @@ from abc import ABC, abstractmethod
 import logging
 import os
 from tempfile import NamedTemporaryFile
+from typing import List, Optional, Deque, Tuple
 
 from warcbench.exceptions import AttributeNotInitializedError, DecompressionError
 from warcbench.models import (
@@ -104,13 +105,13 @@ class BaseParser(ABC):
         self.cache = cache
         self.processors = processors
 
-        self.warnings = []
+        self.warnings: List[str] = []
         self.error = None
-        self.current_member = None
-        self.current_offsets = None
+        self.current_member: Optional[GzippedMember] = None
+        self.current_offsets: Optional[Tuple[Tuple[int, int], Tuple[int, int]]] = None
 
-        self._offsets = None
-        self._members = None
+        self._offsets: Optional[Deque[Tuple[Tuple[int, int], Tuple[int, int]]]] = None
+        self._members: Optional[List[GzippedMember]] = None
 
     @property
     def members(self):
@@ -136,12 +137,13 @@ class BaseParser(ABC):
         ]
 
     def parse(self, cache_members):
-        iterator = self.iterator(yield_type="members")
         if cache_members:
             self._members = []
+        
+        iterator = self.iterator(yield_type="members")
         for member in iterator:
             if cache_members:
-                self._members.append(member)
+                self._members.append(member)  # type: ignore[union-attr]
 
     def iterator(self, yield_type):
         yielded = 0
@@ -149,6 +151,11 @@ class BaseParser(ABC):
 
         while self.state != STATES["END"]:
             if self.state == STATES["YIELD_CURRENT_MEMBER"]:
+                if self.current_member is None:
+                    raise RuntimeError(
+                        "Parser logic error: YIELD_CURRENT_MEMBER state with no current member."
+                    )
+
                 if yield_type == "members":
                     yielded = yielded + 1
                     yield self.current_member
@@ -175,6 +182,10 @@ class BaseParser(ABC):
                 self.state = STATES["FIND_NEXT_MEMBER"]
             else:
                 transition_func = self.transitions[self.state]
+                if not transition_func:
+                    raise RuntimeError(
+                        f"Parser logic error: {self.state} has no transition function."
+                    )
                 self.state = transition_func()
 
     def get_member_offsets(self, compressed):
@@ -219,6 +230,11 @@ class BaseParser(ABC):
     #
 
     def find_next_member(self):
+        if self._offsets is None:
+            raise RuntimeError(
+                "Parser logic error: find_next_member called before offsets located."
+            )
+
         try:
             self.current_offsets = self._offsets.popleft()
             return STATES["EXTRACT_NEXT_MEMBER"]
@@ -226,11 +242,16 @@ class BaseParser(ABC):
             return STATES["RUN_PARSER_CALLBACKS"]
 
     def check_member_against_filters(self):
+        if self.current_member is None:
+            raise RuntimeError(
+                "Parser logic error: check_member_against_filters called with no current member."
+            )
+
         retained = True
 
         if self.processors.member_filters:
-            for f in self.processors.member_filters:
-                if not f(self.current_member):
+            for member_filter in self.processors.member_filters:
+                if not member_filter(self.current_member):
                     retained = False
                     logger.debug(
                         f"Skipping member at {self.current_member.start}-{self.current_member.end} due to member filter."
@@ -238,9 +259,10 @@ class BaseParser(ABC):
                     break
 
         if self.processors.record_filters:
-            for f in self.processors.record_filters:
-                if not self.current_member.uncompressed_warc_record or not f(
-                    self.current_member.uncompressed_warc_record
+            for record_filter in self.processors.record_filters:
+                if (
+                    not self.current_member.uncompressed_warc_record
+                    or not record_filter(self.current_member.uncompressed_warc_record)
                 ):
                     retained = False
                     logger.debug(
@@ -253,6 +275,11 @@ class BaseParser(ABC):
         return STATES["FIND_NEXT_MEMBER"]
 
     def run_member_handlers(self):
+        if self.current_member is None:
+            raise RuntimeError(
+                "Parser logic error: run_member_handlers called with no current member."
+            )
+
         if self.processors.member_handlers:
             for f in self.processors.member_handlers:
                 f(self.current_member)
@@ -260,6 +287,11 @@ class BaseParser(ABC):
         return STATES["RUN_RECORD_HANDLERS"]
 
     def run_record_handlers(self):
+        if self.current_member is None:
+            raise RuntimeError(
+                "Parser logic error: run_record_handlers called with no current member."
+            )
+
         if (
             self.processors.record_handlers
             and self.current_member.uncompressed_warc_record
@@ -352,6 +384,11 @@ class GzippedWARCMemberParser(BaseParser):
         return STATES["FIND_NEXT_MEMBER"]
 
     def extract_next_member(self):
+        if self.current_offsets is None:
+            raise RuntimeError(
+                "Parser logic error: extract_next_member called with no current offsets."
+            )
+
         #
         # The raw bytes of the still-gzipped record
         #
@@ -555,6 +592,11 @@ class GzippedWARCDecompressingParser(BaseParser):
         return STATES["FIND_NEXT_MEMBER"]
 
     def extract_next_member(self):
+        if self.current_offsets is None:
+            raise RuntimeError(
+                "Parser logic error: extract_next_member called with no current offsets."
+            )
+
         #
         # The raw bytes of the still-gzipped record
         #
@@ -572,6 +614,10 @@ class GzippedWARCDecompressingParser(BaseParser):
             self.file_handle.seek(member.start)
             member._bytes = self.file_handle.read(member.length)
         if self.cache.member_uncompressed_bytes:
+            if member.uncompressed_start is None:
+                raise RuntimeError(
+                    "Parser logic error: attempted to access uncompressed bytes without recording uncompressed start/end."
+                )
             self.uncompressed_file_handle.seek(member.uncompressed_start)
             member._uncompressed_bytes = self.uncompressed_file_handle.read(
                 member.uncompressed_length
@@ -675,7 +721,7 @@ class GzippedWARCDecompressingParser(BaseParser):
         else:
             record_length = member.uncompressed_length - len(CRLF * 2)
             if self.cache.record_bytes:
-                record_bytes = bytearray
+                record_bytes = bytearray()
                 record_bytes.extend(self.uncompressed_file_handle.read(record_length))
             else:
                 self.uncompressed_file_handle.read(record_length)

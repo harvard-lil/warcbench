@@ -14,8 +14,12 @@ import re
 import shutil
 import subprocess
 import tempfile
+from typing import Deque, DefaultDict, List, Tuple, TYPE_CHECKING
 import zipfile
 import zlib
+
+if TYPE_CHECKING:
+    from warcbench.models import Record
 
 from warcbench.exceptions import DecodingException
 from warcbench.patterns import CRLF, CONTENT_LENGTH_PATTERN, WARC_VERSIONS
@@ -395,11 +399,11 @@ def decompress_and_get_gzip_file_member_offsets(file, outputfile=None, chunk_siz
 
 
 def find_matching_request_response_pairs(records, count_only=False):
-    unpaired_requests_by_uri = defaultdict(deque)
-    unpaired_responses_by_uri = defaultdict(deque)
-    pairs_by_uri = defaultdict(list)
-    lone_requests_by_uri = defaultdict(list)
-    lone_responses_by_uri = defaultdict(list)
+    unpaired_requests_by_uri: DefaultDict[str, Deque["Record"]] = defaultdict(deque)
+    unpaired_responses_by_uri: DefaultDict[str, Deque["Record"]] = defaultdict(deque)
+    pairs_by_uri: DefaultDict[str, List[Tuple["Record", "Record"]]] = defaultdict(list)
+    lone_requests_by_uri: DefaultDict[str, List["Record"]] = defaultdict(list)
+    lone_responses_by_uri: DefaultDict[str, List["Record"]] = defaultdict(list)
     counts = {"pairs": 0, "lone_requests": 0, "lone_responses": 0}
 
     for record in records:

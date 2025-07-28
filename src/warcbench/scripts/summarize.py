@@ -1,6 +1,7 @@
 import click
 from collections import Counter
 import json
+from typing import Dict, Any
 from urllib.parse import urlparse
 
 from warcbench.filters import record_content_type_filter
@@ -45,7 +46,7 @@ def summarize(ctx, filepath):
     """
     ctx.obj["FILEPATH"] = filepath
 
-    summary_data = {
+    summary_data: Dict[str, Any] = {
         "record_count": 0,
         "record_types": Counter(),
         "domains": Counter(),

@@ -14,8 +14,9 @@ The inheritance pattern allows for different parsing strategies:
 from abc import ABC, abstractmethod
 import logging
 import os
+from typing import List, Optional
 
-from warcbench.exceptions import AttributeNotInitializedError
+from warcbench.exceptions import AttributeNotInitializedError, SplitRecordsRequiredError
 from warcbench.models import Record, Header, ContentBlock, UnparsableLine
 from warcbench.patterns import CRLF, WARC_VERSIONS
 from warcbench.utils import (
@@ -81,12 +82,13 @@ class BaseParser(ABC):
         self.cache = cache
         self.processors = processors
 
-        self.warnings = []
-        self.error = None
-        self.current_record = None
+        self.warnings: List[str] = []
+        self.error: Optional[str] = None
+        self.current_record: Optional[Record] = None
 
-        self._records = None
+        self._records: Optional[List[Record]] = None
 
+        self._unparsable_lines: Optional[List[UnparsableLine]]
         if cache.unparsable_lines:
             self._unparsable_lines = []
         else:
@@ -111,12 +113,13 @@ class BaseParser(ABC):
         return self._unparsable_lines
 
     def parse(self, cache_records):
-        iterator = self.iterator()
         if cache_records:
             self._records = []
+
+        iterator = self.iterator()
         for record in iterator:
             if cache_records:
-                self._records.append(record)
+                self._records.append(record)  # type: ignore[union-attr]
 
     def iterator(self):
         yielded = 0
@@ -141,6 +144,10 @@ class BaseParser(ABC):
                 self.state = STATES["FIND_NEXT_RECORD"]
             else:
                 transition_func = self.transitions[self.state]
+                if not transition_func:
+                    raise RuntimeError(
+                        f"Parser logic error: {self.state} has no transition function."
+                    )
                 self.state = transition_func()
 
     def get_record_offsets(self, split):
@@ -153,10 +160,10 @@ class BaseParser(ABC):
                 )
             return [
                 (
-                    record.header.start,
-                    record.header.end,
-                    record.content_block.start,
-                    record.content_block.end,
+                    record.header.start,  # type: ignore[union-attr]
+                    record.header.end,  # type: ignore[union-attr]
+                    record.content_block.start,  # type: ignore[union-attr]
+                    record.content_block.end,  # type: ignore[union-attr]
                 )
                 for record in records
             ]
@@ -215,6 +222,11 @@ class BaseParser(ABC):
                 return STATES["RUN_PARSER_CALLBACKS"]
 
     def check_record_against_filters(self):
+        if self.current_record is None:
+            raise RuntimeError(
+                "Parser logic error: check_record_against_filters called with no current record."
+            )
+
         retained = True
         if self.processors.record_filters:
             for f in self.processors.record_filters:
@@ -230,6 +242,11 @@ class BaseParser(ABC):
         return STATES["FIND_NEXT_RECORD"]
 
     def run_record_handlers(self):
+        if self.current_record is None:
+            raise RuntimeError(
+                "Parser logic error: run_record_handlers called with no current record."
+            )
+
         if self.processors.record_handlers:
             for f in self.processors.record_handlers:
                 f(self.current_record)

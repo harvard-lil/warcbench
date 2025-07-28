@@ -1,6 +1,7 @@
 import click
 from collections import defaultdict
 import json
+from typing import Any, DefaultDict
 
 from warcbench import WARCParser, WARCGZParser
 from warcbench.config import WARCParsingConfig, WARCGZParsingConfig
@@ -35,7 +36,9 @@ def compare_parsers(ctx, filepath, output_offsets):
         open_archive = system_open_archive
 
     try:
-        data = defaultdict(lambda: defaultdict(dict))
+        data: DefaultDict[str, DefaultDict[str, Any]] = defaultdict(
+            lambda: defaultdict(dict)
+        )
 
         #
         # Parse
@@ -195,8 +198,10 @@ def compare_parsers(ctx, filepath, output_offsets):
 
         if ctx.obj["OUT"] == "json":
             if not ctx.obj["OUTPUT_OFFSETS"]:
-                data.get("record", {}).pop("offsets", None)
-                data.get("member", {}).pop("offsets", None)
+                if "record" in data:
+                    data["record"].pop("offsets", None)
+                if "member" in data:
+                    data["member"].pop("offsets", None)
             click.echo(json.dumps(data))
         else:
             click.echo("PARSERS")
@@ -247,4 +252,4 @@ def compare_parsers(ctx, filepath, output_offsets):
                 click.echo()
 
     except (ValueError, RuntimeError) as e:
-        raise click.ClickException(e)
+        raise click.ClickException(str(e))

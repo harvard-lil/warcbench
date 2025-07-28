@@ -12,7 +12,7 @@ from warcbench.config import (
     WARCCachingConfig,
     WARCGZCachingConfig,
 )
-from typing import Optional
+from typing import Optional, Union
 
 
 class WARCParser:
@@ -53,6 +53,7 @@ class WARCParser:
             processors = WARCProcessorConfig()
 
         # Initialize the appropriate parser
+        self._parser: Union[DelimiterWARCParser, ContentLengthWARCParser]
         match parsing_options.style:
             case "delimiter":
                 self._parser = DelimiterWARCParser(
@@ -198,6 +199,7 @@ class WARCGZParser:
             )
 
         # Initialize the appropriate parser
+        self._parser: Union[GzippedWARCMemberParser, GzippedWARCDecompressingParser]
         match parsing_options.style:
             case "split_gzip_members":
                 if parsing_options.decompression_style == "member":

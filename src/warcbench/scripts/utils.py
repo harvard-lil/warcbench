@@ -8,7 +8,10 @@ import io
 from pathlib import Path
 import re
 import sys
-from typing import List, Optional
+from typing import List, Dict, Any, Union, Optional, Tuple, TYPE_CHECKING
+
+if TYPE_CHECKING:
+    from warcbench.models import Record
 
 from warcbench import WARCParser, WARCGZParser
 from warcbench.config import WARCCachingConfig, WARCGZCachingConfig
@@ -26,8 +29,25 @@ from warcbench.config import WARCProcessorConfig, WARCGZProcessorConfig
 def dynamically_import(module_name, module_path):
     # Create a module specification
     spec = importlib.util.spec_from_file_location(module_name, module_path)
+
+    # spec can be None when:
+    # - module_path points to a directory instead of a file
+    # - module_path has invalid format in some edge cases
+    if spec is None:
+        raise ImportError(
+            f"Could not load spec for module {module_name} from {module_path}"
+        )
+
     # Create a new module based on the specification
     module = importlib.util.module_from_spec(spec)
+
+    # spec.loader can be None for:
+    # - Namespace packages (which legitimately have loader=None)
+    # - Edge cases where the import system can't determine a proper loader
+    # Without this check, we'd get AttributeError instead of a clear error message
+    if spec.loader is None:
+        raise ImportError(f"No loader found for module {module_name}")
+
     # Execute the module in its own namespace
     spec.loader.exec_module(module)
     return module
@@ -99,7 +119,7 @@ def output_record(output_to, gzip=False):
 
 
 def format_record_data_for_output(data):
-    records = []
+    records: List[Dict[str, Any]] = []
 
     if "member_offsets" in data:
         if not records:
@@ -191,6 +211,10 @@ def get_warc_response_handler(pairs, file1, file2):
         return data
 
     class WARCResponseHandler(BaseHTTPRequestHandler):
+        # WARCResponseHandler.pairs will be set dynamically when the factory function,
+        # get_warc_response_handler, is called.
+        pairs: Dict[str, Tuple[int, "Record", "Record"]]
+
         def do_GET(self):
             if self.path == "/":
                 #
@@ -297,6 +321,9 @@ def get_warc_response_handler(pairs, file1, file2):
                 #
                 _, record1, record2 = self.pairs[self.path]
 
+                # Extract target URI for template
+                target_uri = record1.header.get_field("WARC-Target-URI", decode=True)  # type: ignore[union-attr]
+
                 self.send_response(200)
                 self.send_header("Content-type", "text/html")
                 self.end_headers()
@@ -325,7 +352,7 @@ def get_warc_response_handler(pairs, file1, file2):
                     </head>
                     <body>
                       <a href="/"><- Back to index</a>
-                      <h1>Target-URI <small>{record1.header.get_field("WARC-Target-URI", decode=True)}</h1>
+                      <h1>Target-URI <small>{target_uri}</h1>
                       <div class="records">
                         <div class="record">
                           <h2>{file1}</h2>
@@ -366,7 +393,10 @@ def get_warc_response_handler(pairs, file1, file2):
                 # The WARC record's HTTP headers and body, re-assembled into an HTTP response
                 #
                 pair = self.pairs[self.path[:-2]]
-                record = pair[int(self.path[-2:-1])]
+
+                _, record1, record2 = pair
+                record_num = int(self.path[-2:-1])
+                record = record1 if record_num == 1 else record2
 
                 # The HTTP Headers
 
@@ -450,6 +480,7 @@ def open_and_invoke(
             #
             # Initialize parser
             #
+            parser: Union[WARCParser, WARCGZParser]
             if file_type == FileType.WARC:
                 if (
                     processor_config
@@ -484,7 +515,7 @@ def open_and_invoke(
 
             return getattr(parser, invoke_method)(*invoke_args, **invoke_kwargs)
     except (ValueError, NotImplementedError, RuntimeError) as e:
-        raise click.ClickException(e)
+        raise click.ClickException(str(e))
 
 
 def open_and_parse(

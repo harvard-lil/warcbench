@@ -65,7 +65,7 @@ class WARCParsingConfig(BaseParsingConfig):
     parsing_chunk_size: int = 1024
     check_content_lengths: bool = False
 
-    def __post_init__(self):
+    def __post_init__(self) -> None:
         if self.check_content_lengths and self.style == "content_length":
             raise ValueError(
                 "Checking content lengths is only meaningful when parsing in delimiter mode."
@@ -102,7 +102,7 @@ class WARCGZParsingConfig(BaseParsingConfig):
     decompression_style: str = "file"
     decompress_chunk_size: int = 1024
 
-    def __post_init__(self):
+    def __post_init__(self) -> None:
         if (
             not self.decompress_and_parse_members
             and self.decompression_style != "member"

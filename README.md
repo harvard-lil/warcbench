@@ -461,4 +461,14 @@ uv run pytest --cov=src/warcbench --cov-report=html
 
 The HTML report will be generated in the `htmlcov/` directory. Open `htmlcov/index.html` in your browser to view the detailed coverage report.
 
+### Type checking
+
+Run type checking with mypy:
+
+```sh
+uv run mypy
+```
+
+The mypy configuration is defined in `mypy.ini` and covers the `warcbench` package with reasonable strictness settings.
+
 [⇧ Back to top](#contents)

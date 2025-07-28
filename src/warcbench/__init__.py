@@ -13,6 +13,7 @@ from warcbench.config import (
     WARCGZCachingConfig,
 )
 from typing import Optional, Union
+from io import BufferedReader
 
 
 class WARCParser:
@@ -38,8 +39,8 @@ class WARCParser:
 
     def __init__(
         self,
-        file_handle,
-        enable_lazy_loading_of_bytes=True,
+        file_handle: BufferedReader,
+        enable_lazy_loading_of_bytes: bool = True,
         parsing_options: Optional[WARCParsingConfig] = None,
         processors: Optional[WARCProcessorConfig] = None,
         cache: Optional[WARCCachingConfig] = None,
@@ -175,8 +176,8 @@ class WARCGZParser:
 
     def __init__(
         self,
-        file_handle,
-        enable_lazy_loading_of_bytes=True,
+        file_handle: BufferedReader,
+        enable_lazy_loading_of_bytes: bool = True,
         parsing_options: Optional[WARCGZParsingConfig] = None,
         processors: Optional[WARCGZProcessorConfig] = None,
         cache: Optional[WARCGZCachingConfig] = None,

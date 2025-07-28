@@ -12,6 +12,7 @@ The inheritance pattern allows for different parsing strategies:
 """
 
 from abc import ABC, abstractmethod
+from io import BufferedReader
 import logging
 import os
 from typing import List, Optional
@@ -59,8 +60,8 @@ class BaseParser(ABC):
 
     def __init__(
         self,
-        file_handle,
-        enable_lazy_loading_of_bytes,
+        file_handle: BufferedReader,
+        enable_lazy_loading_of_bytes: bool,
         parsing_options: WARCParsingConfig,
         processors: WARCProcessorConfig,
         cache: WARCCachingConfig,
@@ -273,8 +274,8 @@ class DelimiterWARCParser(BaseParser):
 
     def __init__(
         self,
-        file_handle,
-        enable_lazy_loading_of_bytes,
+        file_handle: BufferedReader,
+        enable_lazy_loading_of_bytes: bool,
         parsing_options: WARCParsingConfig,
         processors: WARCProcessorConfig,
         cache: WARCCachingConfig,
@@ -462,7 +463,7 @@ class ContentLengthWARCParser(BaseParser):
             data = bytearray()
             data.extend(header_bytes)
             data.extend(b"\n")
-            data.extend(content_bytes)
+            data.extend(content_bytes)  # type: ignore[arg-type]
             record._bytes = bytes(data)
         if self.enable_lazy_loading_of_bytes:
             record._file_handle = self.file_handle

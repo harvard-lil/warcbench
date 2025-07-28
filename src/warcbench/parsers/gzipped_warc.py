@@ -12,6 +12,7 @@ The inheritance pattern allows for different parsing strategies:
 """
 
 from abc import ABC, abstractmethod
+from io import BufferedReader
 import logging
 import os
 from tempfile import NamedTemporaryFile
@@ -68,8 +69,8 @@ class BaseParser(ABC):
 
     def __init__(
         self,
-        file_handle,
-        enable_lazy_loading_of_bytes,
+        file_handle: BufferedReader,
+        enable_lazy_loading_of_bytes: bool,
         parsing_options: WARCGZParsingConfig,
         processors: WARCGZProcessorConfig,
         cache: WARCGZCachingConfig,
@@ -325,8 +326,8 @@ class GzippedWARCMemberParser(BaseParser):
 
     def __init__(
         self,
-        file_handle,
-        enable_lazy_loading_of_bytes,
+        file_handle: BufferedReader,
+        enable_lazy_loading_of_bytes: bool,
         parsing_options: WARCGZParsingConfig,
         processors: WARCGZProcessorConfig,
         cache: WARCGZCachingConfig,
@@ -550,8 +551,8 @@ class GzippedWARCDecompressingParser(BaseParser):
 
     def __init__(
         self,
-        file_handle,
-        enable_lazy_loading_of_bytes,
+        file_handle: BufferedReader,
+        enable_lazy_loading_of_bytes: bool,
         parsing_options: WARCGZParsingConfig,
         processors: WARCGZProcessorConfig,
         cache: WARCGZCachingConfig,

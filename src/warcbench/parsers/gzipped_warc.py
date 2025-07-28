@@ -16,7 +16,7 @@ from io import BufferedReader
 import logging
 import os
 from tempfile import NamedTemporaryFile
-from typing import List, Optional, Deque, Tuple
+from typing import List, Optional, Deque, Tuple, Iterator, Union, Any, Dict, cast
 
 from warcbench.exceptions import AttributeNotInitializedError, DecompressionError
 from warcbench.models import (
@@ -107,7 +107,7 @@ class BaseParser(ABC):
         self.processors = processors
 
         self.warnings: List[str] = []
-        self.error = None
+        self.error: Optional[str] = None
         self.current_member: Optional[GzippedMember] = None
         self.current_offsets: Optional[Tuple[Tuple[int, int], Tuple[int, int]]] = None
 
@@ -115,7 +115,7 @@ class BaseParser(ABC):
         self._members: Optional[List[GzippedMember]] = None
 
     @property
-    def members(self):
+    def members(self) -> List[GzippedMember]:
         if self._members is None:
             raise AttributeNotInitializedError(
                 "Call parser.parse(cache_members=True) to load members into RAM and populate parser.members, "
@@ -124,7 +124,7 @@ class BaseParser(ABC):
         return self._members
 
     @property
-    def records(self):
+    def records(self) -> List["Record"]:
         if self._members is None:
             raise AttributeNotInitializedError(
                 "Call parser.parse(cache_members=True) to load records into RAM and populate parser.records, "
@@ -137,16 +137,18 @@ class BaseParser(ABC):
             if member.uncompressed_warc_record
         ]
 
-    def parse(self, cache_members):
+    def parse(self, cache_members: bool) -> None:
         if cache_members:
             self._members = []
 
-        iterator = self.iterator(yield_type="members")
+        iterator = cast(Iterator[GzippedMember], self.iterator(yield_type="members"))
         for member in iterator:
             if cache_members:
                 self._members.append(member)  # type: ignore[union-attr]
 
-    def iterator(self, yield_type):
+    def iterator(
+        self, yield_type: str
+    ) -> Union[Iterator[GzippedMember], Iterator["Record"]]:
         yielded = 0
         self.file_handle.seek(0)
 
@@ -189,9 +191,13 @@ class BaseParser(ABC):
                     )
                 self.state = transition_func()
 
-    def get_member_offsets(self, compressed):
+    def get_member_offsets(
+        self, compressed: bool
+    ) -> List[Tuple[Optional[int], Optional[int]]]:
         members = (
-            self._members if self._members else self.iterator(yield_type="members")
+            self._members
+            if self._members
+            else cast(Iterator[GzippedMember], self.iterator(yield_type="members"))
         )
         if compressed:
             return [(member.start, member.end) for member in members]
@@ -199,8 +205,14 @@ class BaseParser(ABC):
             (member.uncompressed_start, member.uncompressed_end) for member in members
         ]
 
-    def get_record_offsets(self, split):
-        records = self.records if self._members else self.iterator(yield_type="records")
+    def get_record_offsets(
+        self, split: bool
+    ) -> Union[List[Tuple[int, int]], List[Tuple[int, int, int, int]]]:
+        records = (
+            self.records
+            if self._members
+            else cast(Iterator["Record"], self.iterator(yield_type="records"))
+        )
 
         if split:
             if not self.parsing_options.split_records:
@@ -209,21 +221,27 @@ class BaseParser(ABC):
                 )
             return [
                 (
-                    record.header.start,
-                    record.header.end,
-                    record.content_block.start,
-                    record.content_block.end,
+                    record.header.start,  # type: ignore[union-attr]
+                    record.header.end,  # type: ignore[union-attr]
+                    record.content_block.start,  # type: ignore[union-attr]
+                    record.content_block.end,  # type: ignore[union-attr]
                 )
                 for record in records
             ]
 
         return [(record.start, record.end) for record in records]
 
-    def get_approximate_request_response_pairs(self, count_only):
+    def get_approximate_request_response_pairs(
+        self, count_only: bool
+    ) -> Dict[str, Any]:
         """
         Recommended: use with cache.parsed_headers=True.
         """
-        records = self.records if self._members else self.iterator(yield_type="records")
+        records = (
+            self.records
+            if self._members
+            else cast(Iterator["Record"], self.iterator(yield_type="records"))
+        )
         return find_matching_request_response_pairs(records, count_only)
 
     #
@@ -363,7 +381,9 @@ class GzippedWARCMemberParser(BaseParser):
         )
         self.decompress_and_parse_members = parsing_options.decompress_and_parse_members
 
-    def get_record_offsets(self, split):
+    def get_record_offsets(
+        self, split: bool
+    ) -> Union[List[Tuple[int, int]], List[Tuple[int, int, int, int]]]:
         if not self.decompress_and_parse_members:
             raise ValueError(
                 "Record offsets are only available when the parser is initialized with decompress_and_parse_members=True."

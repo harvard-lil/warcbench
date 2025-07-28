@@ -322,7 +322,10 @@ def get_warc_response_handler(pairs, file1, file2):
                 _, record1, record2 = self.pairs[self.path]
 
                 # Extract target URI for template
-                target_uri = cast(str, record1.header.get_field("WARC-Target-URI", decode=True))  # type: ignore[union-attr]
+                target_uri = cast(
+                    str,
+                    record1.header.get_field("WARC-Target-URI", decode=True),  # type: ignore[union-attr]
+                )
 
                 self.send_response(200)
                 self.send_header("Content-type", "text/html")

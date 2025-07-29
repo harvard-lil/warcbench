@@ -18,7 +18,7 @@ from warcbench.scripts.utils import (
 )
 
 # Typing imports
-from typing import Any, DefaultDict, List
+from typing import Any
 
 
 @click.command(short_help="Get detailed record metadata.")
@@ -106,7 +106,7 @@ def inspect(
     ctx.obj["RECORD_HEADERS"] = record_headers
     ctx.obj["RECORD_HTTP_HEADERS"] = record_http_headers
 
-    data: DefaultDict[str, List[Any]] = defaultdict(list)
+    data: defaultdict[str, list[Any]] = defaultdict(list)
     member_handlers = []
     if ctx.obj["MEMBER_OFFSETS"]:
         member_handlers.append(

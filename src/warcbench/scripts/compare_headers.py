@@ -12,7 +12,7 @@ from warcbench.scripts.utils import CLICachingConfig, get_warc_response_handler
 from warcbench.utils import FileType, python_open_archive, system_open_archive
 
 # Typing imports
-from typing import Any, Dict, Generator, List, Union, TYPE_CHECKING, cast
+from typing import Any, Generator, Union, TYPE_CHECKING, cast
 
 if TYPE_CHECKING:
     from warcbench.models import Record
@@ -210,7 +210,7 @@ def compare_headers(
     # Collect record info
 
     def collect_records(path, gunzip):
-        records: Dict[str, Union[List["Record"], OrderedDict[str, List["Record"]]]] = {}
+        records: dict[str, Union[list["Record"], OrderedDict[str, list["Record"]]]] = {}
         with open_archive(path, gunzip) as (file, file_type):
             cache_config = CLICachingConfig(
                 parsed_headers=True,
@@ -241,7 +241,7 @@ def compare_headers(
                 )
                 if record_type == "warcinfo":
                     records.setdefault(record_type, [])
-                    cast(List["Record"], records[record_type]).append(record)
+                    cast(list["Record"], records[record_type]).append(record)
                 else:
                     records.setdefault(record_type, OrderedDict())
                     target = cast(
@@ -249,9 +249,9 @@ def compare_headers(
                         record.header.get_field("WARC-Target-URI", "", decode=True),  # type: ignore[union-attr]
                     )
                     cast(
-                        OrderedDict[str, List["Record"]], records[record_type]
+                        OrderedDict[str, list["Record"]], records[record_type]
                     ).setdefault(target, [])
-                    cast(OrderedDict[str, List["Record"]], records[record_type])[
+                    cast(OrderedDict[str, list["Record"]], records[record_type])[
                         target
                     ].append(record)
         return records
@@ -315,7 +315,7 @@ def compare_headers(
                             unique_records2.append(record2)
 
     if ctx.obj["OUT"] == "json":
-        output: Dict[str, Any] = {}
+        output: dict[str, Any] = {}
 
         if output_summary:
             output["summary"] = {

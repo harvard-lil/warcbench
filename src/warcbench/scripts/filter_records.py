@@ -33,7 +33,7 @@ from warcbench.scripts.utils import (
 )
 
 # Typing imports
-from typing import Any, Callable, Dict, List, Tuple, TYPE_CHECKING
+from typing import Any, Callable, TYPE_CHECKING
 
 if TYPE_CHECKING:
     from warcbench.models import GzippedMember, Record
@@ -226,7 +226,7 @@ def filter_records(
     # Collect filters and handlers
     #
 
-    built_in_filters: Dict[str, Callable[..., Callable[["Record"], bool]]] = {
+    built_in_filters: dict[str, Callable[..., Callable[["Record"], bool]]] = {
         "filter_by_http_header": http_header_filter,
         "filter_by_http_verb": http_verb_filter,
         "filter_by_http_status_code": http_status_filter,
@@ -237,11 +237,11 @@ def filter_records(
         "filter_by_warc_named_field": warc_named_field_filter,
     }
 
-    filters: List[Tuple[Callable[..., Callable[["Record"], bool]], List[Any]]] = []
-    member_handlers: List[Callable[["GzippedMember"], None]] = []
-    record_handlers: List[Callable[["Record"], None]] = []
+    filters: list[tuple[Callable[..., Callable[["Record"], bool]], list[Any]]] = []
+    member_handlers: list[Callable[["GzippedMember"], None]] = []
+    record_handlers: list[Callable[["Record"], None]] = []
 
-    data: Dict[str, Any] = {"count": None, "record_info": defaultdict(list)}
+    data: dict[str, Any] = {"count": None, "record_info": defaultdict(list)}
 
     # Handle output options
     if extract_to_warc and extract_to_gzipped_warc:

@@ -9,7 +9,7 @@ from warcbench.config import WARCParsingConfig, WARCGZParsingConfig
 from warcbench.utils import FileType, python_open_archive, system_open_archive
 
 # Typing imports
-from typing import Any, DefaultDict
+from typing import Any
 
 
 @click.command(short_help="Compare all available parsing strategies.")
@@ -40,7 +40,7 @@ def compare_parsers(ctx, filepath, output_offsets):
         open_archive = system_open_archive
 
     try:
-        data: DefaultDict[str, DefaultDict[str, Any]] = defaultdict(
+        data: defaultdict[str, defaultdict[str, Any]] = defaultdict(
             lambda: defaultdict(dict)
         )
 

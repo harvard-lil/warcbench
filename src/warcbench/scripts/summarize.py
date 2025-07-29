@@ -11,7 +11,7 @@ from warcbench.scripts.utils import CLICachingConfig, CLIProcessorConfig, open_a
 from warcbench.utils import find_pattern_in_bytes
 
 # Typing imports
-from typing import Any, Dict
+from typing import Any
 
 
 @click.command(short_help="Summarize the contents of an archive.")
@@ -50,7 +50,7 @@ def summarize(ctx, filepath):
     """
     ctx.obj["FILEPATH"] = filepath
 
-    summary_data: Dict[str, Any] = {
+    summary_data: dict[str, Any] = {
         "record_count": 0,
         "record_types": Counter(),
         "domains": Counter(),

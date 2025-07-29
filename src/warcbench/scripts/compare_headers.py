@@ -1,17 +1,21 @@
+# Standard library imports
 import click
 from collections import OrderedDict
 import difflib
 from http.server import HTTPServer
 import json
 import socket
-from typing import Dict, Any, Union, List, TYPE_CHECKING, cast, Iterator
 
-if TYPE_CHECKING:
-    from warcbench.models import Record
-
+# Warcbench imports
 from warcbench import WARCParser, WARCGZParser
 from warcbench.scripts.utils import CLICachingConfig, get_warc_response_handler
 from warcbench.utils import FileType, python_open_archive, system_open_archive
+
+# Typing imports
+from typing import Any, Dict, Iterator, List, Union, TYPE_CHECKING, cast
+
+if TYPE_CHECKING:
+    from warcbench.models import Record
 
 
 @click.command(short_help="Compare the record headers of two archives.")

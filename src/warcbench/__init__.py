@@ -1,32 +1,34 @@
-from warcbench.parsers import (
-    DelimiterWARCParser,
-    ContentLengthWARCParser,
-    GzippedWARCMemberParser,
-    GzippedWARCDecompressingParser,
-)
+# Warcbench imports
 from warcbench.config import (
-    WARCParsingConfig,
-    WARCGZParsingConfig,
-    WARCProcessorConfig,
-    WARCGZProcessorConfig,
     WARCCachingConfig,
     WARCGZCachingConfig,
+    WARCGZParsingConfig,
+    WARCParsingConfig,
+    WARCGZProcessorConfig,
+    WARCProcessorConfig,
+)
+from warcbench.parsers import (
+    ContentLengthWARCParser,
+    DelimiterWARCParser,
+    GzippedWARCDecompressingParser,
+    GzippedWARCMemberParser,
 )
 from warcbench.utils import ArchiveFileHandle
 
+# Typing imports
 from typing import (
-    Optional,
-    Union,
-    List,
-    Tuple,
-    Iterator,
     Any,
-    TYPE_CHECKING,
     Dict,
+    Iterator,
+    List,
+    Optional,
+    Tuple,
+    TYPE_CHECKING,
+    Union,
 )
 
 if TYPE_CHECKING:
-    from warcbench.models import Record, UnparsableLine, GzippedMember
+    from warcbench.models import GzippedMember, Record, UnparsableLine
 
 
 class WARCParser:

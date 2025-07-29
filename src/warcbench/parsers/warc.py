@@ -11,24 +11,29 @@ The inheritance pattern allows for different parsing strategies:
 - Concrete subclasses: Implement different strategies for finding record boundaries
 """
 
+# Standard library imports
 from abc import ABC, abstractmethod
 import logging
 import os
-from typing import List, Optional, Iterator, Union, Tuple, Any, Dict
 
+# Warcbench imports
+from warcbench.config import WARCCachingConfig, WARCParsingConfig, WARCProcessorConfig
 from warcbench.exceptions import AttributeNotInitializedError
-from warcbench.models import Record, Header, ContentBlock, UnparsableLine
+from warcbench.models import ContentBlock, Header, Record, UnparsableLine
 from warcbench.patterns import CRLF, WARC_VERSIONS
 from warcbench.utils import (
-    skip_leading_whitespace,
+    ArchiveFileHandle,
     advance_to_next_line,
-    find_next_delimiter,
-    find_next_header_end,
     find_content_length_in_bytes,
     find_matching_request_response_pairs,
-    ArchiveFileHandle,
+    find_next_delimiter,
+    find_next_header_end,
+    preserve_cursor_position,
+    skip_leading_whitespace,
 )
-from warcbench.config import WARCCachingConfig, WARCProcessorConfig, WARCParsingConfig
+
+# Typing imports
+from typing import Any, Dict, Iterator, List, Optional, Tuple, Union
 
 logger = logging.getLogger(__name__)
 

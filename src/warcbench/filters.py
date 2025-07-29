@@ -2,17 +2,22 @@
 `filters` module: Functions that return helper functions that take a Record and return True/False
 """
 
+# Standard library imports
 import operator
-from typing import Callable, Union, Dict, TYPE_CHECKING
+
+# Warcbench imports
 from warcbench.patterns import (
-    get_warc_named_field_pattern,
-    get_http_verb_pattern,
-    get_http_status_pattern,
-    get_http_header_pattern,
     CONTENT_LENGTH_PATTERN,
     CONTENT_TYPE_PATTERN,
+    get_http_header_pattern,
+    get_http_status_pattern,
+    get_http_verb_pattern,
+    get_warc_named_field_pattern,
 )
 from warcbench.utils import find_pattern_in_bytes, is_target_in_bytes
+
+# Typing imports
+from typing import Callable, Dict, Union, TYPE_CHECKING
 
 if TYPE_CHECKING:
     from warcbench.models import Record

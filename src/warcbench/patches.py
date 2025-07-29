@@ -2,10 +2,13 @@
 `patches` module: If we get up to any funny business, we do it here.
 """
 
+# Standard library imports
 from collections import deque
-import logging
-from typing import Any, Deque, Tuple, Optional, BinaryIO, Protocol, TYPE_CHECKING
 import io
+import logging
+
+# Typing imports
+from typing import Any, BinaryIO, Deque, Optional, Protocol, Tuple, TYPE_CHECKING
 
 if TYPE_CHECKING:
     from warcbench.utils import ArchiveFileHandle

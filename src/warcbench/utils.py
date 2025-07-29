@@ -2,10 +2,12 @@
 `utils` module: Every project has one.
 """
 
+# Standard library imports
 import brotli
-from contextlib import contextmanager
 from collections import defaultdict, deque
+from contextlib import contextmanager
 from enum import Enum
+from io import BufferedReader
 import json
 import logging
 import os
@@ -14,34 +16,37 @@ import re
 import shutil
 import subprocess
 import tempfile
-from typing import (
-    Deque,
-    DefaultDict,
-    List,
-    Tuple,
-    TYPE_CHECKING,
-    Union,
-    Dict,
-    Any,
-    Iterable,
-    cast,
-    Optional,
-    Generator,
-    TextIO,
-    IO,
-)
 import zipfile
 import zlib
-from io import BufferedReader
 
+# Warcbench imports
 from warcbench.exceptions import DecodingException
 from warcbench.patterns import CRLF, CONTENT_LENGTH_PATTERN, WARC_VERSIONS
 from warcbench.patches import patched_gzip
 
+# Typing imports
+from typing import (
+    Any,
+    Deque,
+    DefaultDict,
+    Dict,
+    Generator,
+    IO,
+    Iterable,
+    List,
+    Optional,
+    TextIO,
+    Tuple,
+    TYPE_CHECKING,
+    Union,
+    cast,
+)
+
 if TYPE_CHECKING:
-    from warcbench.models import Record
     from gzip import GzipFile
     from tempfile import _TemporaryFileWrapper
+    
+    from warcbench.models import Record
     from warcbench.patches import EnhancedGzipFile
 
 # Type alias for the various file handle types that our archive functions can return

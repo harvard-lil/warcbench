@@ -11,33 +11,37 @@ The inheritance pattern allows for different parsing strategies:
 - Concrete subclasses: Implement different strategies for parsing gzipped WARC records
 """
 
+# Standard library imports
 from abc import ABC, abstractmethod
 import logging
 import os
 from tempfile import NamedTemporaryFile
-from typing import List, Optional, Deque, Tuple, Iterator, Union, Any, Dict, cast
 
+# Warcbench imports
+from warcbench.config import (
+    WARCGZCachingConfig,
+    WARCGZParsingConfig,
+    WARCGZProcessorConfig,
+)
 from warcbench.exceptions import AttributeNotInitializedError, DecompressionError
 from warcbench.models import (
-    GzippedMember,
-    Record,
-    Header,
     ContentBlock,
+    GzippedMember,
+    Header,
+    Record,
 )
 from warcbench.patches import patched_gzip
 from warcbench.patterns import CRLF, WARC_VERSIONS
 from warcbench.utils import (
-    find_next_header_end,
-    find_content_length_in_bytes,
-    decompress_and_get_gzip_file_member_offsets,
-    find_matching_request_response_pairs,
     ArchiveFileHandle,
+    decompress_and_get_gzip_file_member_offsets,
+    find_content_length_in_bytes,
+    find_matching_request_response_pairs,
+    find_next_header_end,
 )
-from warcbench.config import (
-    WARCGZCachingConfig,
-    WARCGZProcessorConfig,
-    WARCGZParsingConfig,
-)
+
+# Typing imports
+from typing import Any, Deque, Dict, Iterator, List, Optional, Tuple, Union, cast
 
 logger = logging.getLogger(__name__)
 

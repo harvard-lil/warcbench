@@ -1,20 +1,23 @@
+# Standard library imports
 import base64
 import click
-import html
 from dataclasses import dataclass
+import html
 from http.server import BaseHTTPRequestHandler
 import importlib.util
 import io
 from pathlib import Path
 import re
 import sys
-from typing import List, Dict, Any, Union, Optional, Tuple, TYPE_CHECKING, cast
 
-if TYPE_CHECKING:
-    from warcbench.models import Record
-
+# Warcbench imports
 from warcbench import WARCParser, WARCGZParser
-from warcbench.config import WARCCachingConfig, WARCGZCachingConfig
+from warcbench.config import (
+    WARCCachingConfig,
+    WARCGZCachingConfig,
+    WARCGZProcessorConfig,
+    WARCProcessorConfig,
+)
 from warcbench.exceptions import DecodingException
 from warcbench.patches import patched_gzip
 from warcbench.patterns import CRLF
@@ -23,7 +26,12 @@ from warcbench.utils import (
     python_open_archive,
     system_open_archive,
 )
-from warcbench.config import WARCProcessorConfig, WARCGZProcessorConfig
+
+# Typing imports
+from typing import Any, Dict, List, Optional, Tuple, Union, TYPE_CHECKING, cast
+
+if TYPE_CHECKING:
+    from warcbench.models import Record
 
 
 def dynamically_import(module_name, module_path):

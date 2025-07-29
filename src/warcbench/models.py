@@ -4,24 +4,28 @@
 
 from __future__ import annotations
 
+# Standard library imports
 from abc import ABC
+import builtins
 from collections import defaultdict
 from dataclasses import dataclass, field
 import logging
-from typing import Optional, List, Generator, Dict, Union
-import builtins
 
+# Warcbench imports
+from warcbench.exceptions import SplitRecordsRequiredError
+from warcbench.filters import record_content_type_filter
 from warcbench.patterns import CRLF, CONTENT_LENGTH_PATTERN
 from warcbench.utils import (
-    find_pattern_in_bytes,
-    yield_bytes_from_file,
-    get_encodings_from_http_headers,
+    ArchiveFileHandle,
     concatenate_chunked_http_response,
     decompress,
-    ArchiveFileHandle,
+    find_pattern_in_bytes,
+    get_encodings_from_http_headers,
+    yield_bytes_from_file,
 )
-from warcbench.filters import record_content_type_filter
-from warcbench.exceptions import SplitRecordsRequiredError
+
+# Typing imports
+from typing import Dict, Generator, List, Optional, Union
 
 logger = logging.getLogger(__name__)
 

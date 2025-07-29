@@ -1,9 +1,10 @@
+# Standard library imports
 import click
 from collections import defaultdict
 import json
 import sys
-from typing import Dict, Any, List, Tuple, Callable
 
+# Warcbench imports
 from warcbench.filters import (
     http_header_filter,
     http_response_content_type_filter,
@@ -15,22 +16,25 @@ from warcbench.filters import (
     warc_named_field_filter,
 )
 from warcbench.member_handlers import get_member_offsets
-from warcbench.models import Record, GzippedMember
+from warcbench.models import GzippedMember, Record
 from warcbench.record_handlers import (
-    get_record_offsets,
     get_record_headers,
-    get_record_http_headers,
     get_record_http_body,
+    get_record_http_headers,
+    get_record_offsets,
 )
 from warcbench.scripts.utils import (
     CLICachingConfig,
     CLIProcessorConfig,
-    open_and_parse,
     dynamically_import,
-    output_record,
-    output,
     format_record_data_for_output,
+    open_and_parse,
+    output,
+    output_record,
 )
+
+# Typing imports
+from typing import Any, Callable, Dict, List, Tuple
 
 
 class PathOrStdout(click.Path):

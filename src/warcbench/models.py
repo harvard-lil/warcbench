@@ -233,11 +233,11 @@ class Header(ByteRange):
     ]:
         key: Union[str, builtins.bytes]
         if decode:
-            key = field_name  # str key for decoded (str) dict
+            key = field_name
         else:
-            key = bytes(field_name, "utf-8")  # bytes key for raw (bytes) dict
+            key = bytes(field_name, "utf-8")
 
-        # Type ignore needed because mypy gets upset we are calling get with str and bytes
+        # Type ignore needed because mypy gets upset we are calling `get` with str and bytes
         # even though that is correct: we always use the right type because of `decode`.
         field = self.get_parsed_fields(decode=decode).get(key)  # type: ignore[arg-type]
 

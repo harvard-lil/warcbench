@@ -41,7 +41,17 @@ from warcbench.utils import (
 )
 
 # Typing imports
-from typing import Any, Deque, Dict, Iterator, List, Optional, Tuple, Union, cast
+from typing import (
+    Any,
+    Deque,
+    Dict,
+    Generator,
+    List,
+    Optional,
+    Tuple,
+    Union,
+    cast,
+)
 
 logger = logging.getLogger(__name__)
 
@@ -145,14 +155,16 @@ class BaseParser(ABC):
         if cache_members:
             self._members = []
 
-        iterator = cast(Iterator[GzippedMember], self.iterator(yield_type="members"))
+        iterator = cast(
+            Generator[GzippedMember, None, None], self.iterator(yield_type="members")
+        )
         for member in iterator:
             if cache_members:
                 self._members.append(member)  # type: ignore[union-attr]
 
     def iterator(
         self, yield_type: str
-    ) -> Union[Iterator[GzippedMember], Iterator["Record"]]:
+    ) -> Union[Generator[GzippedMember, None, None], Generator["Record", None, None]]:
         yielded = 0
         self.file_handle.seek(0)
 
@@ -201,7 +213,10 @@ class BaseParser(ABC):
         members = (
             self._members
             if self._members
-            else cast(Iterator[GzippedMember], self.iterator(yield_type="members"))
+            else cast(
+                Generator[GzippedMember, None, None],
+                self.iterator(yield_type="members"),
+            )
         )
         if compressed:
             return [(member.start, member.end) for member in members]
@@ -215,7 +230,9 @@ class BaseParser(ABC):
         records = (
             self.records
             if self._members
-            else cast(Iterator["Record"], self.iterator(yield_type="records"))
+            else cast(
+                Generator["Record", None, None], self.iterator(yield_type="records")
+            )
         )
 
         if split:
@@ -244,7 +261,9 @@ class BaseParser(ABC):
         records = (
             self.records
             if self._members
-            else cast(Iterator["Record"], self.iterator(yield_type="records"))
+            else cast(
+                Generator["Record", None, None], self.iterator(yield_type="records")
+            )
         )
         return find_matching_request_response_pairs(records, count_only)
 
@@ -252,7 +271,7 @@ class BaseParser(ABC):
     # Internal methods
     #
 
-    def find_next_member(self):
+    def find_next_member(self) -> str:
         if self._offsets is None:
             raise RuntimeError(
                 "Parser logic error: find_next_member called before offsets located."
@@ -264,7 +283,7 @@ class BaseParser(ABC):
         except IndexError:
             return STATES["RUN_PARSER_CALLBACKS"]
 
-    def check_member_against_filters(self):
+    def check_member_against_filters(self) -> str:
         if self.current_member is None:
             raise RuntimeError(
                 "Parser logic error: check_member_against_filters called with no current member."
@@ -297,7 +316,7 @@ class BaseParser(ABC):
             return STATES["RUN_MEMBER_HANDLERS"]
         return STATES["FIND_NEXT_MEMBER"]
 
-    def run_member_handlers(self):
+    def run_member_handlers(self) -> str:
         if self.current_member is None:
             raise RuntimeError(
                 "Parser logic error: run_member_handlers called with no current member."
@@ -309,7 +328,7 @@ class BaseParser(ABC):
 
         return STATES["RUN_RECORD_HANDLERS"]
 
-    def run_record_handlers(self):
+    def run_record_handlers(self) -> str:
         if self.current_member is None:
             raise RuntimeError(
                 "Parser logic error: run_record_handlers called with no current member."
@@ -324,7 +343,7 @@ class BaseParser(ABC):
 
         return STATES["YIELD_CURRENT_MEMBER"]
 
-    def run_parser_callbacks(self):
+    def run_parser_callbacks(self) -> str:
         if self.processors.parser_callbacks:
             for f in self.processors.parser_callbacks:
                 f(self)
@@ -332,11 +351,11 @@ class BaseParser(ABC):
         return STATES["END"]
 
     @abstractmethod
-    def locate_members(self):
+    def locate_members(self) -> str:
         pass
 
     @abstractmethod
-    def extract_next_member(self):
+    def extract_next_member(self) -> str:
         pass
 
 
@@ -394,7 +413,7 @@ class GzippedWARCMemberParser(BaseParser):
             )
         return super().get_record_offsets(split)
 
-    def locate_members(self):
+    def locate_members(self) -> str:
         """
         Read through the entire gzip file and locate the boundaries of its members.
         """
@@ -408,7 +427,7 @@ class GzippedWARCMemberParser(BaseParser):
             )
         return STATES["FIND_NEXT_MEMBER"]
 
-    def extract_next_member(self):
+    def extract_next_member(self) -> str:
         if self.current_offsets is None:
             raise RuntimeError(
                 "Parser logic error: extract_next_member called with no current offsets."
@@ -595,12 +614,14 @@ class GzippedWARCDecompressingParser(BaseParser):
         self.enable_lazy_loading_of_bytes = enable_lazy_loading_of_bytes
         self.uncompressed_file_handle = NamedTemporaryFile("w+b", delete=False)
 
-    def iterator(self, *args, **kwargs):
-        for obj in super().iterator(*args, **kwargs):
+    def iterator(
+        self, yield_type: str
+    ) -> Union[Generator[GzippedMember, None, None], Generator["Record", None, None]]:
+        for obj in super().iterator(yield_type):
             yield obj
         os.remove(self.uncompressed_file_handle.name)
 
-    def locate_members(self):
+    def locate_members(self) -> str:
         """
         Read through the entire gzip file and locate the boundaries of its members.
         Store the uncompressed data in a tempfile, for further processing.
@@ -616,7 +637,7 @@ class GzippedWARCDecompressingParser(BaseParser):
             )
         return STATES["FIND_NEXT_MEMBER"]
 
-    def extract_next_member(self):
+    def extract_next_member(self) -> str:
         if self.current_offsets is None:
             raise RuntimeError(
                 "Parser logic error: extract_next_member called with no current offsets."

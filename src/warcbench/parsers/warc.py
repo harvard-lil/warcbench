@@ -28,12 +28,11 @@ from warcbench.utils import (
     find_matching_request_response_pairs,
     find_next_delimiter,
     find_next_header_end,
-    preserve_cursor_position,
     skip_leading_whitespace,
 )
 
 # Typing imports
-from typing import Any, Dict, Iterator, List, Optional, Tuple, Union
+from typing import Any, Dict, Generator, List, Optional, Tuple, Union
 
 logger = logging.getLogger(__name__)
 
@@ -127,7 +126,7 @@ class BaseParser(ABC):
             if cache_records:
                 self._records.append(record)  # type: ignore[union-attr]
 
-    def iterator(self) -> Iterator[Record]:
+    def iterator(self) -> Generator[Record, None, None]:
         yielded = 0
         self.file_handle.seek(0)
 

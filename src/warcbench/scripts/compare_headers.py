@@ -12,7 +12,7 @@ from warcbench.scripts.utils import CLICachingConfig, get_warc_response_handler
 from warcbench.utils import FileType, python_open_archive, system_open_archive
 
 # Typing imports
-from typing import Any, Dict, Iterator, List, Union, TYPE_CHECKING, cast
+from typing import Any, Dict, Generator, List, Union, TYPE_CHECKING, cast
 
 if TYPE_CHECKING:
     from warcbench.models import Record
@@ -229,7 +229,8 @@ def compare_headers(
                     file, cache=cache_config.to_warc_gz_config()
                 )
                 iterator = cast(
-                    Iterator["Record"], warcgz_parser.iterator(yield_type="records")
+                    Generator["Record", None, None],
+                    warcgz_parser.iterator(yield_type="records"),
                 )
 
             for record in iterator:

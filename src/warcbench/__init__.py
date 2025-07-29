@@ -19,7 +19,7 @@ from warcbench.utils import ArchiveFileHandle
 from typing import (
     Any,
     Dict,
-    Iterator,
+    Generator,
     List,
     Optional,
     Tuple,
@@ -127,12 +127,12 @@ class WARCParser:
         """
         return self._parser.parse(cache_records)
 
-    def iterator(self) -> Iterator["Record"]:
+    def iterator(self) -> Generator["Record", None, None]:
         """
         Return an iterator that yields Record objects one at a time.
 
         Returns:
-            Iterator[Record]: An iterator of WARC record objects
+            Generator[Record, None, None]: A generator of WARC record objects
         """
         return self._parser.iterator()
 
@@ -288,7 +288,7 @@ class WARCGZParser:
 
     def iterator(
         self, yield_type: str = "members"
-    ) -> Union[Iterator["GzippedMember"], Iterator["Record"]]:
+    ) -> Union[Generator["GzippedMember", None, None], Generator["Record", None, None]]:
         """
         Return an iterator that yields either gzip members or WARC records.
 
@@ -297,7 +297,7 @@ class WARCGZParser:
                 to yield Record objects extracted from successfully parsed members.
 
         Returns:
-            Iterator[GzippedMember] or Iterator[Record]: An iterator of the requested type
+            Generator[GzippedMember, None, None] or Generator[Record, None, None]: A generator of the requested type
         """
         return self._parser.iterator(yield_type)
 

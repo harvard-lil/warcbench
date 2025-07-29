@@ -32,7 +32,7 @@ from warcbench.utils import (
 )
 
 # Typing imports
-from typing import Any, Dict, Generator, List, Optional, Tuple, Union
+from typing import Any, Generator
 
 logger = logging.getLogger(__name__)
 
@@ -87,20 +87,20 @@ class BaseParser(ABC):
         self.cache = cache
         self.processors = processors
 
-        self.warnings: List[str] = []
-        self.error: Optional[str] = None
-        self.current_record: Optional[Record] = None
+        self.warnings: list[str] = []
+        self.error: str | None = None
+        self.current_record: Record | None = None
 
-        self._records: Optional[List[Record]] = None
+        self._records: list[Record] | None = None
 
-        self._unparsable_lines: Optional[List[UnparsableLine]]
+        self._unparsable_lines: list[UnparsableLine] | None
         if cache.unparsable_lines:
             self._unparsable_lines = []
         else:
             self._unparsable_lines = None
 
     @property
-    def records(self) -> List[Record]:
+    def records(self) -> list[Record]:
         if self._records is None:
             raise AttributeNotInitializedError(
                 "Call parser.parse(cache_members=True) to load records into RAM and populate parser.records, "
@@ -109,7 +109,7 @@ class BaseParser(ABC):
         return self._records
 
     @property
-    def unparsable_lines(self) -> List[UnparsableLine]:
+    def unparsable_lines(self) -> list[UnparsableLine]:
         if self._unparsable_lines is None:
             raise AttributeNotInitializedError(
                 "Pass cache_unparsable_lines=True to WARCParser() to store UnparsableLines "
@@ -157,7 +157,7 @@ class BaseParser(ABC):
 
     def get_record_offsets(
         self, split: bool
-    ) -> Union[List[Tuple[int, int]], List[Tuple[int, int, int, int]]]:
+    ) -> list[tuple[int, int]] | list[tuple[int, int, int, int]]:
         records = self._records if self._records else self.iterator()
 
         if split:
@@ -179,7 +179,7 @@ class BaseParser(ABC):
 
     def get_approximate_request_response_pairs(
         self, count_only: bool
-    ) -> Dict[str, Any]:
+    ) -> dict[str, Any]:
         """
         Recommended: use with cache_parsed_headers=True.
         """

@@ -25,7 +25,7 @@ from warcbench.utils import (
 )
 
 # Typing imports
-from typing import Dict, Generator, List, Optional, Union
+from typing import Generator
 
 logger = logging.getLogger(__name__)
 
@@ -40,8 +40,8 @@ class ByteRange(ABC):
 
     start: int
     end: int
-    _bytes: Optional[builtins.bytes] = field(repr=False, default=None)
-    _file_handle: Optional[ArchiveFileHandle] = field(repr=False, default=None)
+    _bytes: builtins.bytes | None = field(repr=False, default=None)
+    _file_handle: ArchiveFileHandle | None = field(repr=False, default=None)
 
     def __post_init__(self) -> None:
         self.length = self.end - self.start
@@ -89,9 +89,9 @@ class Record(ByteRange):
     Comprises a WARC record header and a WARC record content block.
     """
 
-    header: Optional[Header] = None
-    content_block: Optional[ContentBlock] = None
-    content_length_check_result: Optional[int] = None
+    header: Header | None = None
+    content_block: ContentBlock | None = None
+    content_length_check_result: int | None = None
 
     def check_content_length(self) -> None:
         """
@@ -120,7 +120,7 @@ class Record(ByteRange):
         else:
             self.content_length_check_result = False
 
-    def get_http_header_block(self) -> Optional[builtins.bytes]:
+    def get_http_header_block(self) -> builtins.bytes | None:
         """
         If this WARC record describes an HTTP exchange, extract the HTTP headers of that exchange.
         """
@@ -134,7 +134,7 @@ class Record(ByteRange):
             return self.content_block.bytes.split(CRLF * 2)[0]
         return None
 
-    def get_http_body_block(self) -> Optional[builtins.bytes]:
+    def get_http_body_block(self) -> builtins.bytes | None:
         """
         If this WARC record describes an HTTP exchange, extract the HTTP body of that exchange (if any).
         """
@@ -150,7 +150,7 @@ class Record(ByteRange):
                 return parts[1]
         return None
 
-    def get_decompressed_http_body(self) -> Optional[builtins.bytes]:
+    def get_decompressed_http_body(self) -> builtins.bytes | None:
         if self.content_block is None:
             raise SplitRecordsRequiredError("get_decompressed_http_body")
         if record_content_type_filter("http")(self) and self.content_block.bytes.find(
@@ -177,17 +177,17 @@ class Header(ByteRange):
     http://iipc.github.io/warc-specifications/specifications/warc-format/warc-1.1/#warc-record-header
     """
 
-    _parsed_fields: Optional[Dict[builtins.bytes, List[Optional[builtins.bytes]]]] = (
-        field(repr=False, default=None)
+    _parsed_fields: dict[builtins.bytes, list[builtins.bytes | None]] | None = field(
+        repr=False, default=None
     )
 
     @classmethod
     def parse_bytes_into_fields(
         cls, data: builtins.bytes
-    ) -> Dict[builtins.bytes, List[Optional[builtins.bytes]]]:
+    ) -> dict[builtins.bytes, list[builtins.bytes | None]]:
         # Line folding is not supported https://github.com/iipc/warc-specifications/issues/74
-        headers: defaultdict[builtins.bytes, List[Optional[builtins.bytes]]] = (
-            defaultdict(list)
+        headers: defaultdict[builtins.bytes, list[builtins.bytes | None]] = defaultdict(
+            list
         )
         for line in data.split(CRLF):
             if line:
@@ -200,18 +200,17 @@ class Header(ByteRange):
 
     def get_parsed_fields(
         self, decode: bool = False
-    ) -> Union[
-        Dict[builtins.bytes, List[Optional[builtins.bytes]]],
-        Dict[str, List[Optional[str]]],
-    ]:
+    ) -> (
+        dict[builtins.bytes, list[builtins.bytes | None]] | dict[str, list[str | None]]
+    ):
         if self._parsed_fields is None:
             data = self.parse_bytes_into_fields(self.bytes)
         else:
             data = self._parsed_fields
         if decode:
-            decoded_data: Dict[str, List[Optional[str]]] = {}
+            decoded_data: dict[str, list[str | None]] = {}
             for field, value_list in data.items():
-                decoded_values: List[Optional[str]] = []
+                decoded_values: list[str | None] = []
                 for value in value_list:
                     if value:
                         decoded_values.append(value.decode("utf-8", errors="replace"))
@@ -225,13 +224,11 @@ class Header(ByteRange):
     def get_field(
         self,
         field_name: str,
-        fallback: Union[str, builtins.bytes, None] = None,
+        fallback: str | builtins.bytes | None = None,
         decode: bool = False,
         return_multiple_values: bool = False,
-    ) -> Union[
-        str, builtins.bytes, None, List[Optional[str]], List[Optional[builtins.bytes]]
-    ]:
-        key: Union[str, builtins.bytes]
+    ) -> str | builtins.bytes | None | list[str | None] | list[builtins.bytes | None]:
+        key: str | builtins.bytes
         if decode:
             key = field_name
         else:
@@ -293,23 +290,23 @@ class GzippedMember(ByteRange):
     > contents of an individual WARC record.
     """
 
-    _uncompressed_file_handle: Optional[ArchiveFileHandle] = field(
+    _uncompressed_file_handle: ArchiveFileHandle | None = field(
         repr=False, default=None
     )
-    _uncompressed_bytes: Optional[builtins.bytes] = field(repr=False, default=None)
+    _uncompressed_bytes: builtins.bytes | None = field(repr=False, default=None)
 
     # If the gzip file were decompressed in its entirety, where this member's
     # uncompressed data would begin and end in the resulting file.
-    uncompressed_start: Optional[int] = None
-    uncompressed_end: Optional[int] = None
+    uncompressed_start: int | None = None
+    uncompressed_end: int | None = None
 
     # If this member is decompressed and successfully parsed into a WARC record,
     # the Record object.
-    uncompressed_warc_record: Optional[Record] = None
+    uncompressed_warc_record: Record | None = None
 
     # If this member is decompressed and does not seem to comprise a WARC record,
     # the raw uncompressed bytes.
-    uncompressed_non_warc_data: Optional[builtins.bytes] = None
+    uncompressed_non_warc_data: builtins.bytes | None = None
 
     def __post_init__(self) -> None:
         super().__post_init__()

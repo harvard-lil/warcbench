@@ -8,7 +8,7 @@ import io
 import logging
 
 # Typing imports
-from typing import Any, BinaryIO, Deque, Optional, Protocol, Tuple, TYPE_CHECKING
+from typing import Any, BinaryIO, Optional, Protocol, TYPE_CHECKING
 
 if TYPE_CHECKING:
     from warcbench.utils import ArchiveFileHandle
@@ -28,7 +28,7 @@ _OrigReader = gzip._GzipReader
 
 class MemberOffsetTrackingGzipReader(_OrigReader):
     def __init__(self, *args: Any, **kwargs: Any) -> None:
-        self.offsets: Deque[Tuple[Tuple[int, int], Tuple[int, int]]] = deque()
+        self.offsets: deque[tuple[tuple[int, int], tuple[int, int]]] = deque()
         self.current_member_start_offset: int = 0
         self.current_member_uncompressed_start_offset: int = 0
         return super().__init__(*args, **kwargs)
@@ -135,13 +135,13 @@ class EnhancedGzipFile(Protocol):
 
     def decompress_and_get_member_offsets(
         self, outputfile: Optional["ArchiveFileHandle"] = None, chunk_size: int = 1024
-    ) -> Deque[Tuple[Tuple[int, int], Tuple[int, int]]]: ...
+    ) -> deque[tuple[tuple[int, int], tuple[int, int]]]: ...
 
 
 class MemberOffsetTrackingGzipFile(gzip.GzipFile):
     def decompress_and_get_member_offsets(
-        self, outputfile: Optional[BinaryIO] = None, chunk_size: int = 1024
-    ) -> Deque[Tuple[Tuple[int, int], Tuple[int, int]]]:
+        self, outputfile: BinaryIO | None = None, chunk_size: int = 1024
+    ) -> deque[tuple[tuple[int, int], tuple[int, int]]]:
         """
         This is a custom LIL method, that calls our patched file-reading
         logic, and then reports the boundaries of the "members" of the file.

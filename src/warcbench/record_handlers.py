@@ -2,10 +2,16 @@
 `record_handlers` module: Functions that return helper functions that take a Record and return None
 """
 
-from typing import Union, Tuple, cast
+from typing import Union, Tuple, cast, Callable, Optional, List
+
+from warcbench.models import Record
 
 
-def get_record_offsets(split=False, append_to=None, print_each=True):
+def get_record_offsets(
+    split: bool = False,
+    append_to: Optional[List[Union[Tuple[int, int], Tuple[int, int, int, int]]]] = None,
+    print_each: bool = True,
+) -> Callable[[Record], None]:
     """
     A handler that extracts and optionally prints byte offsets of WARC records.
 
@@ -27,14 +33,14 @@ def get_record_offsets(split=False, append_to=None, print_each=True):
         ```
     """
 
-    def f(record):
+    def f(record: Record) -> None:
         offsets: Union[Tuple[int, int], Tuple[int, int, int, int]]
         if split:
             offsets = (
-                record.header.start,
-                record.header.end,
-                record.content_block.start,
-                record.content_block.end,
+                record.header.start,  # type: ignore[union-attr]
+                record.header.end,  # type: ignore[union-attr]
+                record.content_block.start,  # type: ignore[union-attr]
+                record.content_block.end,  # type: ignore[union-attr]
             )
         else:
             offsets = (record.start, record.end)
@@ -55,7 +61,11 @@ def get_record_offsets(split=False, append_to=None, print_each=True):
     return f
 
 
-def get_record_headers(decode_utf8=True, append_to=None, print_each=True):
+def get_record_headers(
+    decode_utf8: bool = True,
+    append_to: Optional[List[Union[str, bytes, None]]] = None,
+    print_each: bool = True,
+) -> Callable[[Record], None]:
     """
     A handler that extracts and optionally prints WARC record headers.
 
@@ -76,10 +86,11 @@ def get_record_headers(decode_utf8=True, append_to=None, print_each=True):
         ```
     """
 
-    def f(record):
+    def f(record: Record) -> None:
         if record.header:
             data = record.header.bytes
             if append_to is not None:
+                header: Union[str, bytes]
                 if decode_utf8:
                     header = data.decode("utf-8", errors="replace")
                 else:
@@ -88,6 +99,7 @@ def get_record_headers(decode_utf8=True, append_to=None, print_each=True):
 
             if print_each:
                 for header_line in data.split(b"\r\n"):
+                    line: Union[str, bytes]
                     if decode_utf8:
                         line = header_line.decode("utf-8", errors="replace")
                     else:
@@ -106,7 +118,9 @@ def get_record_headers(decode_utf8=True, append_to=None, print_each=True):
     return f
 
 
-def get_record_content(append_to=None, print_each=False):
+def get_record_content(
+    append_to: Optional[List[Optional[bytes]]] = None, print_each: bool = False
+) -> Callable[[Record], None]:
     """
     A handler that extracts and optionally prints WARC record content blocks.
 
@@ -126,7 +140,7 @@ def get_record_content(append_to=None, print_each=False):
         ```
     """
 
-    def f(record):
+    def f(record: Record) -> None:
         if record.content_block:
             data = record.content_block.bytes
             if append_to is not None:
@@ -146,7 +160,11 @@ def get_record_content(append_to=None, print_each=False):
     return f
 
 
-def get_record_http_headers(decode="ascii", append_to=None, print_each=True):
+def get_record_http_headers(
+    decode: str = "ascii",
+    append_to: Optional[List[Optional[str]]] = None,
+    print_each: bool = True,
+) -> Callable[[Record], None]:
     """
     A handler that extracts and optionally prints HTTP headers from WARC records.
 
@@ -169,14 +187,14 @@ def get_record_http_headers(decode="ascii", append_to=None, print_each=True):
         ```
     """
 
-    def f(record):
+    def f(record: Record) -> None:
         header_block = record.get_http_header_block()
         if header_block:
             if append_to is not None:
                 if decode:
                     headers = header_block.decode(decode)
                 else:
-                    headers = record.header
+                    headers = record.header  # type: ignore[assignment]
                 append_to.append(headers)
 
             if print_each:
@@ -184,7 +202,7 @@ def get_record_http_headers(decode="ascii", append_to=None, print_each=True):
                     if decode:
                         line = header_line.decode(decode)
                     else:
-                        line = header_line
+                        line = header_line  # type: ignore[assignment]
                     if line:
                         print(line)
                 print()
@@ -202,7 +220,9 @@ def get_record_http_headers(decode="ascii", append_to=None, print_each=True):
     return f
 
 
-def get_record_http_body(append_to=None, print_each=False):
+def get_record_http_body(
+    append_to: Optional[List[Optional[bytes]]] = None, print_each: bool = False
+) -> Callable[[Record], None]:
     """
     A handler that extracts and optionally prints HTTP body content from WARC records.
 
@@ -224,7 +244,7 @@ def get_record_http_body(append_to=None, print_each=False):
         ```
     """
 
-    def f(record):
+    def f(record: Record) -> None:
         body = record.get_http_body_block()
         if body:
             if append_to is not None:
@@ -247,7 +267,7 @@ def get_record_http_body(append_to=None, print_each=False):
     return f
 
 
-def print_separator(separator="-" * 40):
+def print_separator(separator: str = "-" * 40) -> Callable[[Record], None]:
     """
     A utility handler that prints a separator line between records.
 
@@ -272,7 +292,7 @@ def print_separator(separator="-" * 40):
         ```
     """
 
-    def f(record):
+    def f(record: Record) -> None:
         print(separator)
 
     return f

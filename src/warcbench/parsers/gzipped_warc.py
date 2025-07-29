@@ -43,15 +43,13 @@ from warcbench.utils import (
 # Typing imports
 from typing import (
     Any,
-    Deque,
-    Dict,
     Generator,
-    List,
-    Optional,
-    Tuple,
-    Union,
+    TYPE_CHECKING,
     cast,
 )
+
+if TYPE_CHECKING:
+    from collections import deque
 
 logger = logging.getLogger(__name__)
 
@@ -120,16 +118,16 @@ class BaseParser(ABC):
         self.cache = cache
         self.processors = processors
 
-        self.warnings: List[str] = []
-        self.error: Optional[str] = None
-        self.current_member: Optional[GzippedMember] = None
-        self.current_offsets: Optional[Tuple[Tuple[int, int], Tuple[int, int]]] = None
+        self.warnings: list[str] = []
+        self.error: str | None = None
+        self.current_member: GzippedMember | None = None
+        self.current_offsets: tuple[tuple[int, int], tuple[int, int]] | None = None
 
-        self._offsets: Optional[Deque[Tuple[Tuple[int, int], Tuple[int, int]]]] = None
-        self._members: Optional[List[GzippedMember]] = None
+        self._offsets: deque[tuple[tuple[int, int], tuple[int, int]]] | None = None
+        self._members: list[GzippedMember] | None = None
 
     @property
-    def members(self) -> List[GzippedMember]:
+    def members(self) -> list[GzippedMember]:
         if self._members is None:
             raise AttributeNotInitializedError(
                 "Call parser.parse(cache_members=True) to load members into RAM and populate parser.members, "
@@ -138,7 +136,7 @@ class BaseParser(ABC):
         return self._members
 
     @property
-    def records(self) -> List["Record"]:
+    def records(self) -> list["Record"]:
         if self._members is None:
             raise AttributeNotInitializedError(
                 "Call parser.parse(cache_members=True) to load records into RAM and populate parser.records, "
@@ -163,8 +161,8 @@ class BaseParser(ABC):
                 self._members.append(member)  # type: ignore[union-attr]
 
     def iterator(
-        self, yield_type: str
-    ) -> Union[Generator[GzippedMember, None, None], Generator["Record", None, None]]:
+        self, yield_type: str = "members"
+    ) -> Generator[GzippedMember, None, None] | Generator["Record", None, None]:
         yielded = 0
         self.file_handle.seek(0)
 
@@ -208,8 +206,8 @@ class BaseParser(ABC):
                 self.state = transition_func()
 
     def get_member_offsets(
-        self, compressed: bool
-    ) -> List[Tuple[Optional[int], Optional[int]]]:
+        self, compressed: bool = True
+    ) -> list[tuple[int | None, int | None]]:
         members = (
             self._members
             if self._members
@@ -225,8 +223,8 @@ class BaseParser(ABC):
         ]
 
     def get_record_offsets(
-        self, split: bool
-    ) -> Union[List[Tuple[int, int]], List[Tuple[int, int, int, int]]]:
+        self, split: bool = False
+    ) -> list[tuple[int, int]] | list[tuple[int, int, int, int]]:
         records = (
             self.records
             if self._members
@@ -254,7 +252,7 @@ class BaseParser(ABC):
 
     def get_approximate_request_response_pairs(
         self, count_only: bool
-    ) -> Dict[str, Any]:
+    ) -> dict[str, Any]:
         """
         Recommended: use with cache.parsed_headers=True.
         """
@@ -405,8 +403,8 @@ class GzippedWARCMemberParser(BaseParser):
         self.decompress_and_parse_members = parsing_options.decompress_and_parse_members
 
     def get_record_offsets(
-        self, split: bool
-    ) -> Union[List[Tuple[int, int]], List[Tuple[int, int, int, int]]]:
+        self, split: bool = False
+    ) -> list[tuple[int, int]] | list[tuple[int, int, int, int]]:
         if not self.decompress_and_parse_members:
             raise ValueError(
                 "Record offsets are only available when the parser is initialized with decompress_and_parse_members=True."
@@ -615,8 +613,8 @@ class GzippedWARCDecompressingParser(BaseParser):
         self.uncompressed_file_handle = NamedTemporaryFile("w+b", delete=False)
 
     def iterator(
-        self, yield_type: str
-    ) -> Union[Generator[GzippedMember, None, None], Generator["Record", None, None]]:
+        self, yield_type: str = "members"
+    ) -> Generator[GzippedMember, None, None] | Generator["Record", None, None]:
         for obj in super().iterator(yield_type):
             yield obj
         os.remove(self.uncompressed_file_handle.name)

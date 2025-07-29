@@ -42,7 +42,9 @@ from typing import (
 import types
 
 if TYPE_CHECKING:
-    from warcbench.models import Record
+    from warcbench.models import Record, GzippedMember, UnparsableLine
+    from warcbench.parsers.warc import BaseParser as WARCBaseParser
+    from warcbench.parsers.gzipped_warc import BaseParser as WARCGZBaseParser
 
 
 def dynamically_import(module_name: str, module_path: str) -> types.ModuleType:
@@ -647,11 +649,13 @@ class CLIProcessorConfig:
         unparsable_line_handlers: List of functions to handle unparsable lines (WARC only).
     """
 
-    record_filters: Optional[List] = None
-    record_handlers: Optional[List] = None
-    parser_callbacks: Optional[List] = None
-    member_handlers: Optional[List] = None
-    unparsable_line_handlers: Optional[List] = None
+    record_filters: Optional[List[Callable[["Record"], bool]]] = None
+    record_handlers: Optional[List[Callable[["Record"], None]]] = None
+    parser_callbacks: Optional[
+        List[Callable[[Union["WARCBaseParser", "WARCGZBaseParser"]], None]]
+    ] = None
+    member_handlers: Optional[List[Callable[["GzippedMember"], None]]] = None
+    unparsable_line_handlers: Optional[List[Callable[["UnparsableLine"], None]]] = None
 
     def to_warc_config(self) -> WARCProcessorConfig:
         """Convert to WARCProcessorConfig for WARC files."""

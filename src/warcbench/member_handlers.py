@@ -2,8 +2,11 @@
 `member_handlers` module: Functions that return helper functions that take a GzippedMember and return None
 """
 
-from typing import Optional, List, Tuple, Callable
+# Warcbench imports
 from warcbench.models import GzippedMember
+
+# Typing imports
+from typing import Callable, List, Optional, Tuple
 
 
 def get_member_offsets(

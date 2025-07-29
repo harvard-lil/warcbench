@@ -1,20 +1,24 @@
+# Standard library imports
 import click
 from collections import defaultdict
 import json
-from typing import DefaultDict, List, Any
 
+# Warcbench imports
 from warcbench.member_handlers import get_member_offsets
 from warcbench.record_handlers import (
-    get_record_offsets,
     get_record_headers,
     get_record_http_headers,
+    get_record_offsets,
 )
 from warcbench.scripts.utils import (
     CLICachingConfig,
     CLIProcessorConfig,
-    open_and_parse,
     format_record_data_for_output,
+    open_and_parse,
 )
+
+# Typing imports
+from typing import Any, DefaultDict, List
 
 
 @click.command(short_help="Get detailed record metadata.")

@@ -45,7 +45,7 @@ from typing import (
 if TYPE_CHECKING:
     from gzip import GzipFile
     from tempfile import _TemporaryFileWrapper
-    
+
     from warcbench.models import Record
     from warcbench.patches import EnhancedGzipFile
 

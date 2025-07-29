@@ -16,7 +16,6 @@ from warcbench.filters import (
     warc_named_field_filter,
 )
 from warcbench.member_handlers import get_member_offsets
-from warcbench.models import GzippedMember, Record
 from warcbench.record_handlers import (
     get_record_headers,
     get_record_http_body,
@@ -34,7 +33,10 @@ from warcbench.scripts.utils import (
 )
 
 # Typing imports
-from typing import Any, Callable, Dict, List, Tuple
+from typing import Any, Callable, Dict, List, Tuple, TYPE_CHECKING
+
+if TYPE_CHECKING:
+    from warcbench.models import GzippedMember, Record
 
 
 class PathOrStdout(click.Path):
@@ -224,7 +226,7 @@ def filter_records(
     # Collect filters and handlers
     #
 
-    built_in_filters: Dict[str, Callable[..., Callable[[Record], bool]]] = {
+    built_in_filters: Dict[str, Callable[..., Callable[["Record"], bool]]] = {
         "filter_by_http_header": http_header_filter,
         "filter_by_http_verb": http_verb_filter,
         "filter_by_http_status_code": http_status_filter,
@@ -235,9 +237,9 @@ def filter_records(
         "filter_by_warc_named_field": warc_named_field_filter,
     }
 
-    filters: List[Tuple[Callable[..., Callable[[Record], bool]], List[Any]]] = []
-    member_handlers: List[Callable[[GzippedMember], None]] = []
-    record_handlers: List[Callable[[Record], None]] = []
+    filters: List[Tuple[Callable[..., Callable[["Record"], bool]], List[Any]]] = []
+    member_handlers: List[Callable[["GzippedMember"], None]] = []
+    record_handlers: List[Callable[["Record"], None]] = []
 
     data: Dict[str, Any] = {"count": None, "record_info": defaultdict(list)}
 

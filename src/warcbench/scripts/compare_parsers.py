@@ -1,11 +1,15 @@
+# Standard library imports
 import click
 from collections import defaultdict
 import json
-from typing import Any, DefaultDict
 
+# Warcbench imports
 from warcbench import WARCParser, WARCGZParser
 from warcbench.config import WARCParsingConfig, WARCGZParsingConfig
 from warcbench.utils import FileType, python_open_archive, system_open_archive
+
+# Typing imports
+from typing import Any, DefaultDict
 
 
 @click.command(short_help="Compare all available parsing strategies.")

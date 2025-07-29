@@ -8,7 +8,9 @@ The configuration classes follow a hierarchy:
 """
 
 from dataclasses import dataclass
-from typing import Optional, List, Callable, TYPE_CHECKING, Union
+
+# Typing imports
+from typing import Callable, List, Optional, Union, TYPE_CHECKING
 
 if TYPE_CHECKING:
     from warcbench.models import (

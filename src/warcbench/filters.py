@@ -17,7 +17,7 @@ from warcbench.patterns import (
 from warcbench.utils import find_pattern_in_bytes, is_target_in_bytes
 
 # Typing imports
-from typing import Callable, Dict, Union, TYPE_CHECKING
+from typing import Callable, TYPE_CHECKING
 
 if TYPE_CHECKING:
     from warcbench.models import Record
@@ -50,7 +50,7 @@ def record_content_length_filter(
     that matches the target length. Available comparison operators:
     eq (default), lt, le, gt, ge, ne.
     """
-    allowed_operators: Dict[str, Callable[[int, int], bool]] = {
+    allowed_operators: dict[str, Callable[[int, int], bool]] = {
         "lt": operator.lt,
         "le": operator.le,
         "eq": operator.eq,
@@ -160,7 +160,7 @@ def http_verb_filter(verb: str) -> Callable[["Record"], bool]:
     return f
 
 
-def http_status_filter(status_code: Union[str, int]) -> Callable[["Record"], bool]:
+def http_status_filter(status_code: str | int) -> Callable[["Record"], bool]:
     """
     Finds WARC records with a Content-Type of application/http; msgtype=response,
     then filters on HTTP status code.

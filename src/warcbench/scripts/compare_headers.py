@@ -244,7 +244,6 @@ def compare_headers(
                     cast(List["Record"], records[record_type]).append(record)
                 else:
                     records.setdefault(record_type, OrderedDict())
-                    # Get target URI as string for dictionary operations
                     target = cast(
                         str,
                         record.header.get_field("WARC-Target-URI", "", decode=True),  # type: ignore[union-attr]

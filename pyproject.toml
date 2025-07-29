@@ -59,6 +59,7 @@ exclude_lines = [
     "pragma: no cover",
     "@(abc\\.)?abstractmethod",
     "if print_each:",
+    "if TYPE_CHECKING:",
 ]
 
 [tool.coverage.html]

@@ -2,9 +2,6 @@
 `patterns` module: Common sequences of bytes expected in WARC files
 """
 
-# Typing imports
-from typing import Union
-
 CRLF = b"\r\n"
 WARC_VERSIONS = [b"WARC/1.0\r\n", b"WARC/1.1\r\n"]
 
@@ -33,7 +30,7 @@ def get_http_verb_pattern(verb: str) -> bytes:
     return bytes(f"({verb})", "utf-8") + rb"\s+.*HTTP/.*((\r\n)|$)"
 
 
-def get_http_status_pattern(status_code: Union[str, int]) -> bytes:
+def get_http_status_pattern(status_code: str | int) -> bytes:
     """
     Get a regular expression for finding and extracting the value of any HTTP status code
     present in the status line of a bytestring of unparsed HTTP headers.

@@ -6,12 +6,12 @@
 from warcbench.models import GzippedMember
 
 # Typing imports
-from typing import Callable, List, Optional, Tuple
+from typing import Callable
 
 
 def get_member_offsets(
     compressed: bool = True,
-    append_to: Optional[List[Tuple[Optional[int], Optional[int]]]] = None,
+    append_to: list[tuple[int | None, int | None]] | None = None,
     print_each: bool = True,
 ) -> Callable[[GzippedMember], None]:
     """
@@ -50,7 +50,7 @@ def get_member_offsets(
     """
 
     def f(member: GzippedMember) -> None:
-        offsets: Tuple[Optional[int], Optional[int]]
+        offsets: tuple[int | None, int | None]
         if compressed:
             offsets = (member.start, member.end)
         else:

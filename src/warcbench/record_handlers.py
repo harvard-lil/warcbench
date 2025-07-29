@@ -2,14 +2,14 @@
 `record_handlers` module: Functions that return helper functions that take a Record and return None
 """
 
-from typing import Union, Tuple, cast, Callable, Optional, List
+from typing import cast, Callable
 
 from warcbench.models import Record
 
 
 def get_record_offsets(
     split: bool = False,
-    append_to: Optional[List[Union[Tuple[int, int], Tuple[int, int, int, int]]]] = None,
+    append_to: list[tuple[int, int] | tuple[int, int, int, int]] | None = None,
     print_each: bool = True,
 ) -> Callable[[Record], None]:
     """
@@ -34,7 +34,7 @@ def get_record_offsets(
     """
 
     def f(record: Record) -> None:
-        offsets: Union[Tuple[int, int], Tuple[int, int, int, int]]
+        offsets: tuple[int, int] | tuple[int, int, int, int]
         if split:
             offsets = (
                 record.header.start,  # type: ignore[union-attr]
@@ -50,7 +50,7 @@ def get_record_offsets(
 
         if print_each:
             if split:
-                split_offsets = cast(Tuple[int, int, int, int], offsets)
+                split_offsets = cast(tuple[int, int, int, int], offsets)
                 print(f"Record bytes {split_offsets[0]}-{split_offsets[3]}")
                 print(f"Header bytes {split_offsets[0]}-{split_offsets[1]}")
                 print(f"Content bytes {split_offsets[2]}-{split_offsets[3]}")
@@ -63,7 +63,7 @@ def get_record_offsets(
 
 def get_record_headers(
     decode_utf8: bool = True,
-    append_to: Optional[List[Union[str, bytes, None]]] = None,
+    append_to: list[str | bytes | None] | None = None,
     print_each: bool = True,
 ) -> Callable[[Record], None]:
     """
@@ -90,7 +90,7 @@ def get_record_headers(
         if record.header:
             data = record.header.bytes
             if append_to is not None:
-                header: Union[str, bytes]
+                header: str | bytes
                 if decode_utf8:
                     header = data.decode("utf-8", errors="replace")
                 else:
@@ -99,7 +99,7 @@ def get_record_headers(
 
             if print_each:
                 for header_line in data.split(b"\r\n"):
-                    line: Union[str, bytes]
+                    line: str | bytes
                     if decode_utf8:
                         line = header_line.decode("utf-8", errors="replace")
                     else:
@@ -119,7 +119,7 @@ def get_record_headers(
 
 
 def get_record_content(
-    append_to: Optional[List[Optional[bytes]]] = None, print_each: bool = False
+    append_to: list[bytes | None] | None = None, print_each: bool = False
 ) -> Callable[[Record], None]:
     """
     A handler that extracts and optionally prints WARC record content blocks.
@@ -162,7 +162,7 @@ def get_record_content(
 
 def get_record_http_headers(
     decode: str = "ascii",
-    append_to: Optional[List[Optional[str]]] = None,
+    append_to: list[str | None] | None = None,
     print_each: bool = True,
 ) -> Callable[[Record], None]:
     """
@@ -221,7 +221,7 @@ def get_record_http_headers(
 
 
 def get_record_http_body(
-    append_to: Optional[List[Optional[bytes]]] = None, print_each: bool = False
+    append_to: list[bytes | None] | None = None, print_each: bool = False
 ) -> Callable[[Record], None]:
     """
     A handler that extracts and optionally prints HTTP body content from WARC records.

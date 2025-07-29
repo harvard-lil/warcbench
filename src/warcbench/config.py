@@ -10,7 +10,7 @@ The configuration classes follow a hierarchy:
 from dataclasses import dataclass
 
 # Typing imports
-from typing import Callable, List, Optional, Union, TYPE_CHECKING
+from typing import Callable, Union, TYPE_CHECKING
 
 if TYPE_CHECKING:
     from warcbench.models import (
@@ -41,8 +41,8 @@ class BaseParsingConfig:
             or forgo further parsing after identifying record boundaries.
     """
 
-    style: Optional[str] = None
-    stop_after_nth: Optional[int] = None
+    style: str | None = None
+    stop_after_nth: int | None = None
     split_records: bool = True
 
 
@@ -140,11 +140,11 @@ class BaseProcessorConfig:
             object and is called when parsing completes.
     """
 
-    record_filters: Optional[List[Callable[["Record"], bool]]] = None
-    record_handlers: Optional[List[Callable[["Record"], None]]] = None
-    parser_callbacks: Optional[
-        List[Callable[[Union["WARCBaseParser", "WARCGZBaseParser"]], None]]
-    ] = None
+    record_filters: list[Callable[["Record"], bool]] | None = None
+    record_handlers: list[Callable[["Record"], None]] | None = None
+    parser_callbacks: (
+        list[Callable[[Union["WARCBaseParser", "WARCGZBaseParser"]], None]] | None
+    ) = None
 
 
 @dataclass
@@ -161,7 +161,7 @@ class WARCProcessorConfig(BaseProcessorConfig):
             analysis).
     """
 
-    unparsable_line_handlers: Optional[List[Callable[["UnparsableLine"], None]]] = None
+    unparsable_line_handlers: list[Callable[["UnparsableLine"], None]] | None = None
 
 
 @dataclass
@@ -180,8 +180,8 @@ class WARCGZProcessorConfig(BaseProcessorConfig):
             processing (e.g., metadata extraction, validation).
     """
 
-    member_filters: Optional[List[Callable[["GzippedMember"], bool]]] = None
-    member_handlers: Optional[List[Callable[["GzippedMember"], None]]] = None
+    member_filters: list[Callable[["GzippedMember"], bool]] | None = None
+    member_handlers: list[Callable[["GzippedMember"], None]] | None = None
 
 
 #

@@ -20,7 +20,7 @@ jobs:
         uses: astral-sh/setup-uv@v5
       
       - name: Install the project
-        run: uv sync --all-extras --dev
+        run: uv sync --group lint
       
       - name: Run mypy type checking
         run: uv run mypy 

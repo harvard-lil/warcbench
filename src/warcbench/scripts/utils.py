@@ -28,13 +28,24 @@ from warcbench.utils import (
 )
 
 # Typing imports
-from typing import Any, Dict, List, Optional, Tuple, Union, TYPE_CHECKING, cast
+from typing import (
+    Any,
+    Callable,
+    Dict,
+    List,
+    Optional,
+    Tuple,
+    Union,
+    TYPE_CHECKING,
+    cast,
+)
+import types
 
 if TYPE_CHECKING:
     from warcbench.models import Record
 
 
-def dynamically_import(module_name, module_path):
+def dynamically_import(module_name: str, module_path: str) -> types.ModuleType:
     # Create a module specification
     spec = importlib.util.spec_from_file_location(module_name, module_path)
 
@@ -61,10 +72,12 @@ def dynamically_import(module_name, module_path):
     return module
 
 
-def extract_file(basename, extension, decode):
+def extract_file(
+    basename: str, extension: str, decode: bool
+) -> Callable[["Record"], None]:
     """A record-handler for file extraction."""
 
-    def f(record):
+    def f(record: "Record") -> None:
         if decode:
             try:
                 http_body_block = record.get_decompressed_http_body()
@@ -84,7 +97,7 @@ def extract_file(basename, extension, decode):
     return f
 
 
-def output(destination, data_string):
+def output(destination: Union[None, io.IOBase, str], data_string: str) -> None:
     if not destination:
         return
     elif destination is sys.stdout:
@@ -98,12 +111,14 @@ def output(destination, data_string):
             file.write(data_string)
 
 
-def output_record(output_to, gzip=False):
+def output_record(
+    output_to: Union[str, io.IOBase], gzip: bool = False
+) -> Callable[["Record"], None]:
     """
     A record-handler for outputting WARC records
     """
 
-    def f(record):
+    def f(record: "Record") -> None:
         if gzip:
             if output_to is sys.stdout:
                 with patched_gzip.open(sys.stdout.buffer, "wb") as stdout:
@@ -120,13 +135,13 @@ def output_record(output_to, gzip=False):
             elif output_to is sys.stderr:
                 sys.stderr.buffer.write(record.bytes + CRLF * 2)
             else:
-                with open(output_to, "ab") as file:
+                with open(output_to, "ab") as file:  # type: ignore[arg-type]
                     file.write(record.bytes + CRLF * 2)
 
     return f
 
 
-def format_record_data_for_output(data):
+def format_record_data_for_output(data: Dict[str, Any]) -> List[Dict[str, Any]]:
     records: List[Dict[str, Any]] = []
 
     if "member_offsets" in data:
@@ -192,7 +207,9 @@ def format_record_data_for_output(data):
     return records
 
 
-def get_warc_response_handler(pairs, file1, file2):
+def get_warc_response_handler(
+    pairs: Dict[str, Tuple[int, "Record", "Record"]], file1: str, file2: str
+) -> Any:
     """
     Creates an HTTP request handler for initializing an instance of http.server.HTTPServer.
 
@@ -203,14 +220,14 @@ def get_warc_response_handler(pairs, file1, file2):
       and contents in iframes
     """
 
-    def get_warc_record_fields_as_html(record):
+    def get_warc_record_fields_as_html(record: "Record") -> bytes:
         data = bytearray()
         data.extend(b"<p>")
-        for field, values in record.header.get_parsed_fields(decode=True).items():
+        for field, values in record.header.get_parsed_fields(decode=True).items():  # type: ignore[union-attr]
             data.extend(
                 bytes(
                     f"""
-                {field}: {html.escape(values[0]) if values[0] else values[0]}<br>
+                {cast(str, field)}: {html.escape(cast(str, values[0])) if values[0] else values[0]}<br>
             """,
                     "utf-8",
                 )
@@ -223,7 +240,7 @@ def get_warc_response_handler(pairs, file1, file2):
         # get_warc_response_handler, is called.
         pairs: Dict[str, Tuple[int, "Record", "Record"]]
 
-        def do_GET(self):
+        def do_GET(self) -> None:
             if self.path == "/":
                 #
                 # The index page
@@ -448,15 +465,19 @@ def get_warc_response_handler(pairs, file1, file2):
 
 
 def open_and_invoke(
-    ctx,
-    invoke_method,
-    invoke_args=None,
-    invoke_kwargs=None,
-    processor_config=None,
-    cache_records_or_members=False,
-    cache_config=None,
-    extra_parser_kwargs=None,
-):
+    ctx: Any,
+    invoke_method: str,
+    invoke_args: Optional[List[Any]] = None,
+    invoke_kwargs: Optional[Dict[str, Any]] = None,
+    processor_config: Optional[
+        Union[WARCProcessorConfig, WARCGZProcessorConfig, "CLIProcessorConfig"]
+    ] = None,
+    cache_records_or_members: bool = False,
+    cache_config: Optional[
+        Union[WARCCachingConfig, WARCGZCachingConfig, "CLICachingConfig"]
+    ] = None,
+    extra_parser_kwargs: Optional[Dict[str, Any]] = None,
+) -> Any:
     if not invoke_args:
         invoke_args = []
     if not invoke_kwargs:
@@ -508,8 +529,8 @@ def open_and_invoke(
                     processor_config = processor_config.to_warc_config()
                 parser = WARCParser(
                     file,
-                    cache=cache_config,
-                    processors=processor_config,
+                    cache=cast(Optional[WARCCachingConfig], cache_config),
+                    processors=cast(Optional[WARCProcessorConfig], processor_config),
                     **extra_parser_kwargs,
                 )
             elif file_type == FileType.GZIPPED_WARC:
@@ -519,8 +540,8 @@ def open_and_invoke(
                     processor_config = processor_config.to_warc_gz_config()
                 parser = WARCGZParser(
                     file,
-                    cache=cache_config,
-                    processors=processor_config,
+                    cache=cast(Optional[WARCGZCachingConfig], cache_config),
+                    processors=cast(Optional[WARCGZProcessorConfig], processor_config),
                     **extra_parser_kwargs,
                 )
 
@@ -530,12 +551,16 @@ def open_and_invoke(
 
 
 def open_and_parse(
-    ctx,
-    processor_config=None,
-    cache_records_or_members=False,
-    cache_config=None,
-    extra_parser_kwargs=None,
-):
+    ctx: Any,
+    processor_config: Optional[
+        Union[WARCProcessorConfig, WARCGZProcessorConfig, "CLIProcessorConfig"]
+    ] = None,
+    cache_records_or_members: bool = False,
+    cache_config: Optional[
+        Union[WARCCachingConfig, WARCGZCachingConfig, "CLICachingConfig"]
+    ] = None,
+    extra_parser_kwargs: Optional[Dict[str, Any]] = None,
+) -> Any:
     """This function runs the parser, filtering and running record handlers and parser callbacks as necessary."""
     if not extra_parser_kwargs:
         extra_parser_kwargs = {}

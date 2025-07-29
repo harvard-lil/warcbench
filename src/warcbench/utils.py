@@ -467,7 +467,9 @@ def find_matching_request_response_pairs(
     """
     unpaired_requests_by_uri: DefaultDict[bytes, Deque["Record"]] = defaultdict(deque)
     unpaired_responses_by_uri: DefaultDict[bytes, Deque["Record"]] = defaultdict(deque)
-    pairs_by_uri: DefaultDict[bytes, List[Tuple["Record", "Record"]]] = defaultdict(list)
+    pairs_by_uri: DefaultDict[bytes, List[Tuple["Record", "Record"]]] = defaultdict(
+        list
+    )
     lone_requests_by_uri: DefaultDict[bytes, List["Record"]] = defaultdict(list)
     lone_responses_by_uri: DefaultDict[bytes, List["Record"]] = defaultdict(list)
     counts = {"pairs": 0, "lone_requests": 0, "lone_responses": 0}

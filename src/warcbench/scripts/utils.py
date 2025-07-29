@@ -233,7 +233,7 @@ def get_warc_response_handler(
                 )
             )
         data.extend(b"</p>")
-        return data
+        return bytes(data)
 
     class WARCResponseHandler(BaseHTTPRequestHandler):
         # WARCResponseHandler.pairs will be set dynamically when the factory function,

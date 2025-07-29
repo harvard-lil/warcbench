@@ -783,7 +783,7 @@ class GzippedWARCDecompressingParser(BaseParser):
                 start=uncompressed_start, end=uncompressed_start + record_length
             )
             if self.cache.record_bytes:
-                record._bytes = record_bytes
+                record._bytes = bytes(record_bytes)
 
             member.uncompressed_warc_record = record
 

@@ -12,12 +12,11 @@ The inheritance pattern allows for different parsing strategies:
 """
 
 from abc import ABC, abstractmethod
-from io import BufferedReader
 import logging
 import os
 from typing import List, Optional, Iterator, Union, Tuple, Any, Dict
 
-from warcbench.exceptions import AttributeNotInitializedError, SplitRecordsRequiredError
+from warcbench.exceptions import AttributeNotInitializedError
 from warcbench.models import Record, Header, ContentBlock, UnparsableLine
 from warcbench.patterns import CRLF, WARC_VERSIONS
 from warcbench.utils import (
@@ -27,6 +26,7 @@ from warcbench.utils import (
     find_next_header_end,
     find_content_length_in_bytes,
     find_matching_request_response_pairs,
+    ArchiveFileHandle,
 )
 from warcbench.config import WARCCachingConfig, WARCProcessorConfig, WARCParsingConfig
 
@@ -60,7 +60,7 @@ class BaseParser(ABC):
 
     def __init__(
         self,
-        file_handle: BufferedReader,
+        file_handle: ArchiveFileHandle,
         enable_lazy_loading_of_bytes: bool,
         parsing_options: WARCParsingConfig,
         processors: WARCProcessorConfig,
@@ -278,7 +278,7 @@ class DelimiterWARCParser(BaseParser):
 
     def __init__(
         self,
-        file_handle: BufferedReader,
+        file_handle: ArchiveFileHandle,
         enable_lazy_loading_of_bytes: bool,
         parsing_options: WARCParsingConfig,
         processors: WARCProcessorConfig,

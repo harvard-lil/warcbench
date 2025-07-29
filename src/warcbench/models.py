@@ -8,7 +8,7 @@ from abc import ABC
 from collections import defaultdict
 from dataclasses import dataclass, field
 import logging
-from typing import Optional, List, IO, Generator, Dict, Union, Any
+from typing import Optional, List, Generator, Dict, Union
 import builtins
 
 from warcbench.patterns import CRLF, CONTENT_LENGTH_PATTERN
@@ -18,6 +18,7 @@ from warcbench.utils import (
     get_encodings_from_http_headers,
     concatenate_chunked_http_response,
     decompress,
+    ArchiveFileHandle,
 )
 from warcbench.filters import record_content_type_filter
 from warcbench.exceptions import SplitRecordsRequiredError
@@ -36,7 +37,7 @@ class ByteRange(ABC):
     start: int
     end: int
     _bytes: Optional[builtins.bytes] = field(repr=False, default=None)
-    _file_handle: Optional[IO[builtins.bytes]] = field(repr=False, default=None)
+    _file_handle: Optional[ArchiveFileHandle] = field(repr=False, default=None)
 
     def __post_init__(self) -> None:
         self.length = self.end - self.start
@@ -159,7 +160,7 @@ class Record(ByteRange):
                         compressed_data = concatenate_chunked_http_response(parts[1])
                     else:
                         compressed_data = parts[1]
-                    return decompress(compressed_data, encodings)  # type: ignore[no-any-return]
+                    return decompress(compressed_data, encodings)
                 else:
                     return parts[1]
         return None
@@ -288,7 +289,7 @@ class GzippedMember(ByteRange):
     > contents of an individual WARC record.
     """
 
-    _uncompressed_file_handle: Optional[IO[builtins.bytes]] = field(
+    _uncompressed_file_handle: Optional[ArchiveFileHandle] = field(
         repr=False, default=None
     )
     _uncompressed_bytes: Optional[builtins.bytes] = field(repr=False, default=None)
@@ -364,8 +365,8 @@ class GzippedMember(ByteRange):
                 )
                 for chunk in yield_bytes_from_file(
                     self._uncompressed_file_handle,
-                    self.uncompressed_start,
-                    self.uncompressed_end,
+                    self.uncompressed_start,  # type: ignore[arg-type]
+                    self.uncompressed_end,  # type: ignore[arg-type]
                     chunk_size,
                 ):
                     yield chunk

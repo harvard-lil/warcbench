@@ -12,8 +12,18 @@ from warcbench.config import (
     WARCCachingConfig,
     WARCGZCachingConfig,
 )
-from typing import Optional, Union, List, Tuple, Iterator, Any, TYPE_CHECKING, Dict
-from io import BufferedReader
+from warcbench.utils import ArchiveFileHandle
+
+from typing import (
+    Optional,
+    Union,
+    List,
+    Tuple,
+    Iterator,
+    Any,
+    TYPE_CHECKING,
+    Dict,
+)
 
 if TYPE_CHECKING:
     from warcbench.models import Record, UnparsableLine, GzippedMember
@@ -42,7 +52,7 @@ class WARCParser:
 
     def __init__(
         self,
-        file_handle: BufferedReader,
+        file_handle: ArchiveFileHandle,
         enable_lazy_loading_of_bytes: bool = True,
         parsing_options: Optional[WARCParsingConfig] = None,
         processors: Optional[WARCProcessorConfig] = None,
@@ -183,7 +193,7 @@ class WARCGZParser:
 
     def __init__(
         self,
-        file_handle: BufferedReader,
+        file_handle: ArchiveFileHandle,
         enable_lazy_loading_of_bytes: bool = True,
         parsing_options: Optional[WARCGZParsingConfig] = None,
         processors: Optional[WARCGZProcessorConfig] = None,

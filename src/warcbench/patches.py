@@ -4,8 +4,12 @@
 
 from collections import deque
 import logging
-from typing import Any, Deque, Tuple, Optional, BinaryIO
+from typing import Any, Deque, Tuple, Optional, BinaryIO, Protocol, TYPE_CHECKING
 import io
+
+if TYPE_CHECKING:
+    from warcbench.utils import ArchiveFileHandle
+
 
 logger = logging.getLogger(__name__)
 
@@ -121,6 +125,14 @@ class MemberOffsetTrackingGzipReader(_OrigReader):
 
 
 gzip._GzipReader = MemberOffsetTrackingGzipReader  # type: ignore[misc]
+
+
+class EnhancedGzipFile(Protocol):
+    """Protocol/type-checking for our monkey-patched GzipFile."""
+
+    def decompress_and_get_member_offsets(
+        self, outputfile: Optional["ArchiveFileHandle"] = None, chunk_size: int = 1024
+    ) -> Deque[Tuple[Tuple[int, int], Tuple[int, int]]]: ...
 
 
 class MemberOffsetTrackingGzipFile(gzip.GzipFile):

@@ -4,7 +4,7 @@ import difflib
 from http.server import HTTPServer
 import json
 import socket
-from typing import Dict, Any, Union, List, TYPE_CHECKING, cast
+from typing import Dict, Any, Union, List, TYPE_CHECKING, cast, Iterator
 
 if TYPE_CHECKING:
     from warcbench.models import Record
@@ -224,16 +224,26 @@ def compare_headers(
                 warcgz_parser = WARCGZParser(
                     file, cache=cache_config.to_warc_gz_config()
                 )
-                iterator = warcgz_parser.iterator(yield_type="records")
+                iterator = cast(
+                    Iterator["Record"], warcgz_parser.iterator(yield_type="records")
+                )
 
             for record in iterator:
-                record_type = record.header.get_field("WARC-Type", decode=True)
+                # Get record type as string for dictionary operations
+                record_type = cast(
+                    str,
+                    record.header.get_field("WARC-Type", decode=True),  # type: ignore[union-attr]
+                )
                 if record_type == "warcinfo":
                     records.setdefault(record_type, [])
                     cast(List["Record"], records[record_type]).append(record)
                 else:
                     records.setdefault(record_type, OrderedDict())
-                    target = record.header.get_field("WARC-Target-URI", "", decode=True)
+                    # Get target URI as string for dictionary operations
+                    target = cast(
+                        str,
+                        record.header.get_field("WARC-Target-URI", "", decode=True),  # type: ignore[union-attr]
+                    )
                     cast(
                         OrderedDict[str, List["Record"]], records[record_type]
                     ).setdefault(target, [])

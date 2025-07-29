@@ -191,7 +191,7 @@ class BaseParser(ABC):
     # Internal Methods
     #
 
-    def find_warc_header(self):
+    def find_warc_header(self) -> str:
         skip_leading_whitespace(self.file_handle)
         for warc_version in WARC_VERSIONS:
             header_found = self.file_handle.peek(len(warc_version)).startswith(
@@ -202,7 +202,7 @@ class BaseParser(ABC):
         self.error = "No WARC header found."
         return STATES["RUN_PARSER_CALLBACKS"]
 
-    def find_next_record(self):
+    def find_next_record(self) -> str:
         while True:
             initial_position = self.file_handle.tell()
             for warc_version in WARC_VERSIONS:
@@ -231,7 +231,7 @@ class BaseParser(ABC):
             else:
                 return STATES["RUN_PARSER_CALLBACKS"]
 
-    def check_record_against_filters(self):
+    def check_record_against_filters(self) -> str:
         if self.current_record is None:
             raise RuntimeError(
                 "Parser logic error: check_record_against_filters called with no current record."
@@ -251,7 +251,7 @@ class BaseParser(ABC):
             return STATES["RUN_RECORD_HANDLERS"]
         return STATES["FIND_NEXT_RECORD"]
 
-    def run_record_handlers(self):
+    def run_record_handlers(self) -> str:
         if self.current_record is None:
             raise RuntimeError(
                 "Parser logic error: run_record_handlers called with no current record."
@@ -263,7 +263,7 @@ class BaseParser(ABC):
 
         return STATES["YIELD_CURRENT_RECORD"]
 
-    def run_parser_callbacks(self):
+    def run_parser_callbacks(self) -> str:
         if self.processors.parser_callbacks:
             for f in self.processors.parser_callbacks:
                 f(self)
@@ -271,7 +271,7 @@ class BaseParser(ABC):
         return STATES["END"]
 
     @abstractmethod
-    def extract_next_record(self):
+    def extract_next_record(self) -> str:
         pass
 
 
@@ -323,7 +323,7 @@ class DelimiterWARCParser(BaseParser):
             cache=cache,
         )
 
-    def extract_next_record(self):
+    def extract_next_record(self) -> str:
         start = self.file_handle.tell()
         stop = find_next_delimiter(
             self.file_handle, self.parsing_options.parsing_chunk_size
@@ -408,7 +408,7 @@ class ContentLengthWARCParser(BaseParser):
     then skips exactly that many bytes to find the next record.
     """
 
-    def extract_next_record(self):
+    def extract_next_record(self) -> str:
         #
         # Find what looks like the next WARC header record
         #

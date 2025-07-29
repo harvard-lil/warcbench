@@ -469,6 +469,6 @@ Run type checking with mypy:
 uv run mypy
 ```
 
-The mypy configuration is defined in `mypy.ini` and covers the `warcbench` package with reasonable strictness settings.
+The mypy configuration is defined in `mypy.ini`.
 
 [⇧ Back to top](#contents)

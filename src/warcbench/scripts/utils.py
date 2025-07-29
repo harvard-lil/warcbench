@@ -31,10 +31,6 @@ from warcbench.utils import (
 from typing import (
     Any,
     Callable,
-    Dict,
-    List,
-    Optional,
-    Tuple,
     Union,
     TYPE_CHECKING,
     cast,
@@ -99,7 +95,7 @@ def extract_file(
     return f
 
 
-def output(destination: Union[None, io.IOBase, str], data_string: str) -> None:
+def output(destination: None | io.IOBase | str, data_string: str) -> None:
     if not destination:
         return
     elif destination is sys.stdout:
@@ -114,7 +110,7 @@ def output(destination: Union[None, io.IOBase, str], data_string: str) -> None:
 
 
 def output_record(
-    output_to: Union[str, io.IOBase], gzip: bool = False
+    output_to: str | io.IOBase, gzip: bool = False
 ) -> Callable[["Record"], None]:
     """
     A record-handler for outputting WARC records
@@ -143,8 +139,8 @@ def output_record(
     return f
 
 
-def format_record_data_for_output(data: Dict[str, Any]) -> List[Dict[str, Any]]:
-    records: List[Dict[str, Any]] = []
+def format_record_data_for_output(data: dict[str, Any]) -> list[dict[str, Any]]:
+    records: list[dict[str, Any]] = []
 
     if "member_offsets" in data:
         if not records:
@@ -210,7 +206,7 @@ def format_record_data_for_output(data: Dict[str, Any]) -> List[Dict[str, Any]]:
 
 
 def get_warc_response_handler(
-    pairs: Dict[str, Tuple[int, "Record", "Record"]], file1: str, file2: str
+    pairs: dict[str, tuple[int, "Record", "Record"]], file1: str, file2: str
 ) -> Any:
     """
     Creates an HTTP request handler for initializing an instance of http.server.HTTPServer.
@@ -240,7 +236,7 @@ def get_warc_response_handler(
     class WARCResponseHandler(BaseHTTPRequestHandler):
         # WARCResponseHandler.pairs will be set dynamically when the factory function,
         # get_warc_response_handler, is called.
-        pairs: Dict[str, Tuple[int, "Record", "Record"]]
+        pairs: dict[str, tuple[int, "Record", "Record"]]
 
         def do_GET(self) -> None:
             if self.path == "/":
@@ -469,16 +465,16 @@ def get_warc_response_handler(
 def open_and_invoke(
     ctx: Any,
     invoke_method: str,
-    invoke_args: Optional[List[Any]] = None,
-    invoke_kwargs: Optional[Dict[str, Any]] = None,
-    processor_config: Optional[
-        Union[WARCProcessorConfig, WARCGZProcessorConfig, "CLIProcessorConfig"]
-    ] = None,
+    invoke_args: list[Any] | None = None,
+    invoke_kwargs: dict[str, Any] | None = None,
+    processor_config: Union[
+        WARCProcessorConfig, WARCGZProcessorConfig, "CLIProcessorConfig"
+    ]
+    | None = None,
     cache_records_or_members: bool = False,
-    cache_config: Optional[
-        Union[WARCCachingConfig, WARCGZCachingConfig, "CLICachingConfig"]
-    ] = None,
-    extra_parser_kwargs: Optional[Dict[str, Any]] = None,
+    cache_config: Union[WARCCachingConfig, WARCGZCachingConfig, "CLICachingConfig"]
+    | None = None,
+    extra_parser_kwargs: dict[str, Any] | None = None,
 ) -> Any:
     if not invoke_args:
         invoke_args = []
@@ -531,8 +527,8 @@ def open_and_invoke(
                     processor_config = processor_config.to_warc_config()
                 parser = WARCParser(
                     file,
-                    cache=cast(Optional[WARCCachingConfig], cache_config),
-                    processors=cast(Optional[WARCProcessorConfig], processor_config),
+                    cache=cast(WARCCachingConfig | None, cache_config),
+                    processors=cast(WARCProcessorConfig | None, processor_config),
                     **extra_parser_kwargs,
                 )
             elif file_type == FileType.GZIPPED_WARC:
@@ -542,8 +538,8 @@ def open_and_invoke(
                     processor_config = processor_config.to_warc_gz_config()
                 parser = WARCGZParser(
                     file,
-                    cache=cast(Optional[WARCGZCachingConfig], cache_config),
-                    processors=cast(Optional[WARCGZProcessorConfig], processor_config),
+                    cache=cast(WARCGZCachingConfig | None, cache_config),
+                    processors=cast(WARCGZProcessorConfig | None, processor_config),
                     **extra_parser_kwargs,
                 )
 
@@ -554,14 +550,14 @@ def open_and_invoke(
 
 def open_and_parse(
     ctx: Any,
-    processor_config: Optional[
-        Union[WARCProcessorConfig, WARCGZProcessorConfig, "CLIProcessorConfig"]
-    ] = None,
+    processor_config: Union[
+        WARCProcessorConfig, WARCGZProcessorConfig, "CLIProcessorConfig"
+    ]
+    | None = None,
     cache_records_or_members: bool = False,
-    cache_config: Optional[
-        Union[WARCCachingConfig, WARCGZCachingConfig, "CLICachingConfig"]
-    ] = None,
-    extra_parser_kwargs: Optional[Dict[str, Any]] = None,
+    cache_config: Union[WARCCachingConfig, WARCGZCachingConfig, "CLICachingConfig"]
+    | None = None,
+    extra_parser_kwargs: dict[str, Any] | None = None,
 ) -> Any:
     """This function runs the parser, filtering and running record handlers and parser callbacks as necessary."""
     if not extra_parser_kwargs:
@@ -649,13 +645,13 @@ class CLIProcessorConfig:
         unparsable_line_handlers: List of functions to handle unparsable lines (WARC only).
     """
 
-    record_filters: Optional[List[Callable[["Record"], bool]]] = None
-    record_handlers: Optional[List[Callable[["Record"], None]]] = None
-    parser_callbacks: Optional[
-        List[Callable[[Union["WARCBaseParser", "WARCGZBaseParser"]], None]]
-    ] = None
-    member_handlers: Optional[List[Callable[["GzippedMember"], None]]] = None
-    unparsable_line_handlers: Optional[List[Callable[["UnparsableLine"], None]]] = None
+    record_filters: list[Callable[["Record"], bool]] | None = None
+    record_handlers: list[Callable[["Record"], None]] | None = None
+    parser_callbacks: (
+        list[Callable[[Union["WARCBaseParser", "WARCGZBaseParser"]], None]] | None
+    ) = None
+    member_handlers: list[Callable[["GzippedMember"], None]] | None = None
+    unparsable_line_handlers: list[Callable[["UnparsableLine"], None]] | None = None
 
     def to_warc_config(self) -> WARCProcessorConfig:
         """Convert to WARCProcessorConfig for WARC files."""

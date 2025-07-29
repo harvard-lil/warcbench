@@ -355,7 +355,7 @@ def get_warc_response_handler(pairs, file1, file2):
                     </head>
                     <body>
                       <a href="/"><- Back to index</a>
-                      <h1>Target-URI <small>{target_uri}</h1>
+                      <h1>Target-URI <small>{target_uri}</small></h1>
                       <div class="records">
                         <div class="record">
                           <h2>{file1}</h2>

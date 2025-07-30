@@ -24,7 +24,10 @@ A tool for exploring, analyzing, transforming, recombining, and extracting data 
 To install WARCbench, use Pip:
 
 ```sh
-# Using HTTPS...
+# From PyPI (recommended):
+pip install warcbench
+
+# Or directly from GitHub using HTTPS...
 pip install git+https://github.com/harvard-lil/warcbench.git
 
 # ...or SSH:
@@ -228,7 +231,7 @@ from warcbench import WARCGZParser
 
 # Instantiate a parser, passing in a file handle along with any other config
 with open('example.com.warc.gz', 'rb') as warcgz_file:
-    parser = `WARCGZParser(warcgz_file)
+    parser = WARCGZParser(warcgz_file)
 
     # Iterate lazily over each record in the WARC...
     for record in parser.iterator(yield_type="records"):

@@ -1,12 +1,17 @@
+# Standard library imports
 import click
 from collections import Counter
 import json
 from urllib.parse import urlparse
 
+# Warcbench imports
 from warcbench.filters import record_content_type_filter
-from warcbench.patterns import get_warc_named_field_pattern, CONTENT_TYPE_PATTERN
+from warcbench.patterns import CONTENT_TYPE_PATTERN, get_warc_named_field_pattern
 from warcbench.scripts.utils import CLICachingConfig, CLIProcessorConfig, open_and_parse
 from warcbench.utils import find_pattern_in_bytes
+
+# Typing imports
+from typing import Any
 
 
 @click.command(short_help="Summarize the contents of an archive.")
@@ -45,7 +50,7 @@ def summarize(ctx, filepath):
     """
     ctx.obj["FILEPATH"] = filepath
 
-    summary_data = {
+    summary_data: dict[str, Any] = {
         "record_count": 0,
         "record_types": Counter(),
         "domains": Counter(),

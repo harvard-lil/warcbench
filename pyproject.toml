@@ -48,6 +48,7 @@ dev = [
 ]
 lint = [
     "ruff>=0.9.8",
+    "mypy>=1.13.0",
 ]
 
 [tool.coverage.run]
@@ -58,6 +59,7 @@ exclude_lines = [
     "pragma: no cover",
     "@(abc\\.)?abstractmethod",
     "if print_each:",
+    "if TYPE_CHECKING:",
 ]
 
 [tool.coverage.html]

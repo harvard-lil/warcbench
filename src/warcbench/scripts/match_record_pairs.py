@@ -178,7 +178,7 @@ def match_record_pairs(
         # if that's wrong and there are decoding errors.
         key = uri_strs["latin1"]
         if key not in data["by_uri"]:
-            data["by_uri"][uri_strs["latin1"]] = {
+            data["by_uri"][key] = {
                 "uri-latin1": uri_strs["latin1"],
                 "uri-utf-8-replace": uri_strs["utf-8-replace"],
                 "uri-base64-ascii": uri_strs["base64-ascii"],

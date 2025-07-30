@@ -4,22 +4,28 @@
 
 from __future__ import annotations
 
+# Standard library imports
 from abc import ABC
+import builtins
 from collections import defaultdict
 from dataclasses import dataclass, field
-import io
 import logging
-from typing import Optional, List
 
+# Warcbench imports
+from warcbench.exceptions import SplitRecordsRequiredError
+from warcbench.filters import record_content_type_filter
 from warcbench.patterns import CRLF, CONTENT_LENGTH_PATTERN
 from warcbench.utils import (
-    find_pattern_in_bytes,
-    yield_bytes_from_file,
-    get_encodings_from_http_headers,
+    ArchiveFileHandle,
     concatenate_chunked_http_response,
     decompress,
+    find_pattern_in_bytes,
+    get_encodings_from_http_headers,
+    yield_bytes_from_file,
 )
-from warcbench.filters import record_content_type_filter
+
+# Typing imports
+from typing import Generator
 
 logger = logging.getLogger(__name__)
 
@@ -34,14 +40,14 @@ class ByteRange(ABC):
 
     start: int
     end: int
-    _bytes: Optional[bytes] = field(repr=False, default=None)
-    _file_handle: Optional[io.BufferedReader] = field(repr=False, default=None)
+    _bytes: builtins.bytes | None = field(repr=False, default=None)
+    _file_handle: ArchiveFileHandle | None = field(repr=False, default=None)
 
-    def __post_init__(self):
+    def __post_init__(self) -> None:
         self.length = self.end - self.start
 
     @property
-    def bytes(self):
+    def bytes(self) -> builtins.bytes:
         """
         Load all the bytes into memory and return them as a bytestring.
         """
@@ -52,7 +58,7 @@ class ByteRange(ABC):
             return bytes(data)
         return self._bytes
 
-    def iterator(self, chunk_size=1024):
+    def iterator(self, chunk_size: int = 1024) -> Generator[builtins.bytes, None, None]:
         """
         Returns an iterator that yields the bytes in chunks.
         """
@@ -83,11 +89,11 @@ class Record(ByteRange):
     Comprises a WARC record header and a WARC record content block.
     """
 
-    header: Optional[Header] = None
-    content_block: Optional[ContentBlock] = None
-    content_length_check_result: Optional[int] = None
+    header: Header | None = None
+    content_block: ContentBlock | None = None
+    content_length_check_result: int | None = None
 
-    def check_content_length(self):
+    def check_content_length(self) -> None:
         """
         Valid WARC record headers include a Content-Length field that specifies the number of bytes
         in the record's content block.
@@ -96,6 +102,13 @@ class Record(ByteRange):
         Search for the content length in the header, and compare it against the number of bytes
         detected when the WARC file was parsed.
         """
+        if self.header is None:
+            raise SplitRecordsRequiredError("check_content_length", "parsed headers")
+        if self.content_block is None:
+            raise SplitRecordsRequiredError(
+                "check_content_length", "parsed content blocks"
+            )
+
         match = find_pattern_in_bytes(CONTENT_LENGTH_PATTERN, self.header.bytes)
 
         if match:
@@ -107,21 +120,26 @@ class Record(ByteRange):
         else:
             self.content_length_check_result = False
 
-    def get_http_header_block(self):
+    def get_http_header_block(self) -> builtins.bytes | None:
         """
         If this WARC record describes an HTTP exchange, extract the HTTP headers of that exchange.
         """
+        if self.content_block is None:
+            raise SplitRecordsRequiredError("get_http_header_block")
         # We expect WARC records that describe HTTP exchanges to have a Content-Type that contains "application/http".
         # http://iipc.github.io/warc-specifications/specifications/warc-format/warc-1.1/#content-type
         if record_content_type_filter("http")(self) and self.content_block.bytes.find(
             CRLF * 2
         ):
             return self.content_block.bytes.split(CRLF * 2)[0]
+        return None
 
-    def get_http_body_block(self):
+    def get_http_body_block(self) -> builtins.bytes | None:
         """
         If this WARC record describes an HTTP exchange, extract the HTTP body of that exchange (if any).
         """
+        if self.content_block is None:
+            raise SplitRecordsRequiredError("get_http_body_block")
         # We expect WARC records that describe HTTP exchanges to have a Content-Type that contains "application/http".
         # http://iipc.github.io/warc-specifications/specifications/warc-format/warc-1.1/#content-type
         if record_content_type_filter("http")(self) and self.content_block.bytes.find(
@@ -130,8 +148,11 @@ class Record(ByteRange):
             parts = self.content_block.bytes.split(CRLF * 2, 1)
             if len(parts) == 2:
                 return parts[1]
+        return None
 
-    def get_decompressed_http_body(self):
+    def get_decompressed_http_body(self) -> builtins.bytes | None:
+        if self.content_block is None:
+            raise SplitRecordsRequiredError("get_decompressed_http_body")
         if record_content_type_filter("http")(self) and self.content_block.bytes.find(
             CRLF * 2
         ):
@@ -146,6 +167,7 @@ class Record(ByteRange):
                     return decompress(compressed_data, encodings)
                 else:
                     return parts[1]
+        return None
 
 
 @dataclass
@@ -155,14 +177,18 @@ class Header(ByteRange):
     http://iipc.github.io/warc-specifications/specifications/warc-format/warc-1.1/#warc-record-header
     """
 
-    _parsed_fields: Optional[defaultdict[bytes, List[Optional[bytes]]]] = field(
+    _parsed_fields: dict[builtins.bytes, list[builtins.bytes | None]] | None = field(
         repr=False, default=None
     )
 
     @classmethod
-    def parse_bytes_into_fields(cls, data):
+    def parse_bytes_into_fields(
+        cls, data: builtins.bytes
+    ) -> dict[builtins.bytes, list[builtins.bytes | None]]:
         # Line folding is not supported https://github.com/iipc/warc-specifications/issues/74
-        headers = defaultdict(list)
+        headers: defaultdict[builtins.bytes, list[builtins.bytes | None]] = defaultdict(
+            list
+        )
         for line in data.split(CRLF):
             if line:
                 split = line.split(b":", 1)
@@ -172,15 +198,19 @@ class Header(ByteRange):
                     headers[split[0]].append(split[1].strip())
         return dict(headers)
 
-    def get_parsed_fields(self, decode=False):
+    def get_parsed_fields(
+        self, decode: bool = False
+    ) -> (
+        dict[builtins.bytes, list[builtins.bytes | None]] | dict[str, list[str | None]]
+    ):
         if self._parsed_fields is None:
             data = self.parse_bytes_into_fields(self.bytes)
         else:
             data = self._parsed_fields
         if decode:
-            decoded_data = {}
+            decoded_data: dict[str, list[str | None]] = {}
             for field, value_list in data.items():
-                decoded_values = []
+                decoded_values: list[str | None] = []
                 for value in value_list:
                     if value:
                         decoded_values.append(value.decode("utf-8", errors="replace"))
@@ -192,13 +222,22 @@ class Header(ByteRange):
             return data
 
     def get_field(
-        self, field_name, fallback=None, decode=False, return_multiple_values=False
-    ):
+        self,
+        field_name: str,
+        fallback: str | builtins.bytes | None = None,
+        decode: bool = False,
+        return_multiple_values: bool = False,
+    ) -> str | builtins.bytes | None | list[str | None] | list[builtins.bytes | None]:
+        key: str | builtins.bytes
         if decode:
             key = field_name
         else:
             key = bytes(field_name, "utf-8")
-        field = self.get_parsed_fields(decode=decode).get(key)
+
+        # Type ignore needed because mypy gets upset we are calling `get` with str and bytes
+        # even though that is correct: we always use the right type because of `decode`.
+        field = self.get_parsed_fields(decode=decode).get(key)  # type: ignore[arg-type]
+
         if field is None:
             return fallback
         if return_multiple_values:
@@ -251,30 +290,31 @@ class GzippedMember(ByteRange):
     > contents of an individual WARC record.
     """
 
-    _uncompressed_file_handle: Optional[io.BufferedReader] = field(
+    _uncompressed_file_handle: ArchiveFileHandle | None = field(
         repr=False, default=None
     )
-    _uncompressed_bytes: Optional[bytes] = field(repr=False, default=None)
+    _uncompressed_bytes: builtins.bytes | None = field(repr=False, default=None)
 
     # If the gzip file were decompressed in its entirety, where this member's
     # uncompressed data would begin and end in the resulting file.
-    uncompressed_start: Optional[int] = None
-    uncompressed_end: Optional[int] = None
+    uncompressed_start: int | None = None
+    uncompressed_end: int | None = None
 
     # If this member is decompressed and successfully parsed into a WARC record,
     # the Record object.
-    uncompressed_warc_record: Optional[Record] = None
+    uncompressed_warc_record: Record | None = None
 
     # If this member is decompressed and does not seem to comprise a WARC record,
     # the raw uncompressed bytes.
-    uncompressed_non_warc_data: Optional[bytes] = None
+    uncompressed_non_warc_data: builtins.bytes | None = None
 
-    def __post_init__(self):
+    def __post_init__(self) -> None:
         super().__post_init__()
-        self.uncompressed_length = self.uncompressed_end - self.uncompressed_start
+        if self.uncompressed_end is not None and self.uncompressed_start is not None:
+            self.uncompressed_length = self.uncompressed_end - self.uncompressed_start
 
     @property
-    def uncompressed_bytes(self):
+    def uncompressed_bytes(self) -> builtins.bytes:
         """
         Load all the bytes into memory and return them as a bytestring.
         """
@@ -285,7 +325,9 @@ class GzippedMember(ByteRange):
             return bytes(data)
         return self._uncompressed_bytes
 
-    def iterator(self, compressed=True, chunk_size=1024):
+    def iterator(
+        self, chunk_size: int = 1024, *, compressed: bool = True
+    ) -> Generator[builtins.bytes, None, None]:
         """
         Returns an iterator that yields the bytes in chunks.
         """
@@ -324,8 +366,8 @@ class GzippedMember(ByteRange):
                 )
                 for chunk in yield_bytes_from_file(
                     self._uncompressed_file_handle,
-                    self.uncompressed_start,
-                    self.uncompressed_end,
+                    self.uncompressed_start,  # type: ignore[arg-type]
+                    self.uncompressed_end,  # type: ignore[arg-type]
                     chunk_size,
                 ):
                     yield chunk

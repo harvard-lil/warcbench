@@ -1,19 +1,24 @@
+# Standard library imports
 import click
 from collections import defaultdict
 import json
 
+# Warcbench imports
 from warcbench.member_handlers import get_member_offsets
 from warcbench.record_handlers import (
-    get_record_offsets,
     get_record_headers,
     get_record_http_headers,
+    get_record_offsets,
 )
 from warcbench.scripts.utils import (
     CLICachingConfig,
     CLIProcessorConfig,
-    open_and_parse,
     format_record_data_for_output,
+    open_and_parse,
 )
+
+# Typing imports
+from typing import Any
 
 
 @click.command(short_help="Get detailed record metadata.")
@@ -101,7 +106,7 @@ def inspect(
     ctx.obj["RECORD_HEADERS"] = record_headers
     ctx.obj["RECORD_HTTP_HEADERS"] = record_http_headers
 
-    data = defaultdict(list)
+    data: defaultdict[str, list[Any]] = defaultdict(list)
     member_handlers = []
     if ctx.obj["MEMBER_OFFSETS"]:
         member_handlers.append(

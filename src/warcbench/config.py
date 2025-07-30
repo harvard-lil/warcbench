@@ -8,7 +8,9 @@ The configuration classes follow a hierarchy:
 """
 
 from dataclasses import dataclass
-from typing import Optional, List, Callable, TYPE_CHECKING
+
+# Typing imports
+from typing import Callable, Union, TYPE_CHECKING
 
 if TYPE_CHECKING:
     from warcbench.models import (
@@ -16,7 +18,10 @@ if TYPE_CHECKING:
         UnparsableLine,
         GzippedMember,
     )  # pragma: no cover
-    from warcbench.parsers.warc import BaseParser  # pragma: no cover
+    from warcbench.parsers.warc import BaseParser as WARCBaseParser  # pragma: no cover
+    from warcbench.parsers.gzipped_warc import (
+        BaseParser as WARCGZBaseParser,
+    )  # pragma: no cover
 
 
 #
@@ -36,8 +41,8 @@ class BaseParsingConfig:
             or forgo further parsing after identifying record boundaries.
     """
 
-    style: Optional[str] = None
-    stop_after_nth: Optional[int] = None
+    style: str | None = None
+    stop_after_nth: int | None = None
     split_records: bool = True
 
 
@@ -62,7 +67,7 @@ class WARCParsingConfig(BaseParsingConfig):
     parsing_chunk_size: int = 1024
     check_content_lengths: bool = False
 
-    def __post_init__(self):
+    def __post_init__(self) -> None:
         if self.check_content_lengths and self.style == "content_length":
             raise ValueError(
                 "Checking content lengths is only meaningful when parsing in delimiter mode."
@@ -99,7 +104,7 @@ class WARCGZParsingConfig(BaseParsingConfig):
     decompression_style: str = "file"
     decompress_chunk_size: int = 1024
 
-    def __post_init__(self):
+    def __post_init__(self) -> None:
         if (
             not self.decompress_and_parse_members
             and self.decompression_style != "member"
@@ -135,9 +140,11 @@ class BaseProcessorConfig:
             object and is called when parsing completes.
     """
 
-    record_filters: Optional[List[Callable[["Record"], bool]]] = None
-    record_handlers: Optional[List[Callable[["Record"], None]]] = None
-    parser_callbacks: Optional[List[Callable[["BaseParser"], None]]] = None
+    record_filters: list[Callable[["Record"], bool]] | None = None
+    record_handlers: list[Callable[["Record"], None]] | None = None
+    parser_callbacks: (
+        list[Callable[[Union["WARCBaseParser", "WARCGZBaseParser"]], None]] | None
+    ) = None
 
 
 @dataclass
@@ -154,7 +161,7 @@ class WARCProcessorConfig(BaseProcessorConfig):
             analysis).
     """
 
-    unparsable_line_handlers: Optional[List[Callable[["UnparsableLine"], None]]] = None
+    unparsable_line_handlers: list[Callable[["UnparsableLine"], None]] | None = None
 
 
 @dataclass
@@ -173,8 +180,8 @@ class WARCGZProcessorConfig(BaseProcessorConfig):
             processing (e.g., metadata extraction, validation).
     """
 
-    member_filters: Optional[List[Callable[["GzippedMember"], bool]]] = None
-    member_handlers: Optional[List[Callable[["GzippedMember"], None]]] = None
+    member_filters: list[Callable[["GzippedMember"], bool]] | None = None
+    member_handlers: list[Callable[["GzippedMember"], None]] | None = None
 
 
 #

@@ -1,3 +1,4 @@
+# Standard library imports
 import click
 from collections import OrderedDict
 import difflib
@@ -5,9 +6,16 @@ from http.server import HTTPServer
 import json
 import socket
 
+# Warcbench imports
 from warcbench import WARCParser, WARCGZParser
 from warcbench.scripts.utils import CLICachingConfig, get_warc_response_handler
 from warcbench.utils import FileType, python_open_archive, system_open_archive
+
+# Typing imports
+from typing import Any, Generator, Union, TYPE_CHECKING, cast
+
+if TYPE_CHECKING:
+    from warcbench.models import Record
 
 
 @click.command(short_help="Compare the record headers of two archives.")
@@ -202,7 +210,7 @@ def compare_headers(
     # Collect record info
 
     def collect_records(path, gunzip):
-        records = {}
+        records: dict[str, Union[list["Record"], OrderedDict[str, list["Record"]]]] = {}
         with open_archive(path, gunzip) as (file, file_type):
             cache_config = CLICachingConfig(
                 parsed_headers=True,
@@ -214,22 +222,38 @@ def compare_headers(
             )
 
             if file_type == FileType.WARC:
-                parser = WARCParser(file, cache=cache_config.to_warc_config())
-                iterator = parser.iterator()
+                warc_parser = WARCParser(file, cache=cache_config.to_warc_config())
+                iterator = warc_parser.iterator()
             elif file_type == FileType.GZIPPED_WARC:
-                parser = WARCGZParser(file, cache=cache_config.to_warc_gz_config())
-                iterator = parser.iterator(yield_type="records")
+                warcgz_parser = WARCGZParser(
+                    file, cache=cache_config.to_warc_gz_config()
+                )
+                iterator = cast(
+                    Generator["Record", None, None],
+                    warcgz_parser.iterator(yield_type="records"),
+                )
 
             for record in iterator:
-                record_type = record.header.get_field("WARC-Type", decode=True)
+                # Get record type as string for dictionary operations
+                record_type = cast(
+                    str,
+                    record.header.get_field("WARC-Type", decode=True),  # type: ignore[union-attr]
+                )
                 if record_type == "warcinfo":
                     records.setdefault(record_type, [])
-                    records[record_type].append(record)
+                    cast(list["Record"], records[record_type]).append(record)
                 else:
                     records.setdefault(record_type, OrderedDict())
-                    target = record.header.get_field("WARC-Target-URI", "", decode=True)
-                    records[record_type].setdefault(target, [])
-                    records[record_type][target].append(record)
+                    target = cast(
+                        str,
+                        record.header.get_field("WARC-Target-URI", "", decode=True),  # type: ignore[union-attr]
+                    )
+                    cast(
+                        OrderedDict[str, list["Record"]], records[record_type]
+                    ).setdefault(target, [])
+                    cast(OrderedDict[str, list["Record"]], records[record_type])[
+                        target
+                    ].append(record)
         return records
 
     records1 = collect_records(ctx.obj["FILEPATH1"], ctx.obj["GUNZIP"])
@@ -291,7 +315,7 @@ def compare_headers(
                             unique_records2.append(record2)
 
     if ctx.obj["OUT"] == "json":
-        output = {}
+        output: dict[str, Any] = {}
 
         if output_summary:
             output["summary"] = {

@@ -2,10 +2,12 @@
 `utils` module: Every project has one.
 """
 
+# Standard library imports
 import brotli
-from contextlib import contextmanager
 from collections import defaultdict, deque
+from contextlib import contextmanager
 from enum import Enum
+from io import BufferedReader
 import json
 import logging
 import os
@@ -17,9 +19,36 @@ import tempfile
 import zipfile
 import zlib
 
+# Warcbench imports
 from warcbench.exceptions import DecodingException
 from warcbench.patterns import CRLF, CONTENT_LENGTH_PATTERN, WARC_VERSIONS
 from warcbench.patches import patched_gzip
+
+# Typing imports
+from typing import (
+    Any,
+    Generator,
+    IO,
+    Iterable,
+    Optional,
+    TextIO,
+    TYPE_CHECKING,
+    TypeAlias,
+    Union,
+    cast,
+)
+
+if TYPE_CHECKING:
+    from gzip import GzipFile
+    from tempfile import _TemporaryFileWrapper
+
+    from warcbench.models import Record
+    from warcbench.patches import EnhancedGzipFile
+
+# Type alias for the various file handle types that our archive functions can return
+ArchiveFileHandle: TypeAlias = Union[
+    BufferedReader, "GzipFile", "_TemporaryFileWrapper[bytes]"
+]
 
 logger = logging.getLogger(__name__)
 
@@ -29,7 +58,7 @@ class FileType(Enum):
     WARC = "warc"
 
 
-def skip_leading_whitespace(file_handle):
+def skip_leading_whitespace(file_handle: ArchiveFileHandle) -> None:
     """Advances the cursor to the first non-whitespace byte."""
     while True:
         byte = file_handle.read(1)
@@ -43,7 +72,9 @@ def skip_leading_whitespace(file_handle):
 
 
 @contextmanager
-def preserve_cursor_position(file_handle):
+def preserve_cursor_position(
+    file_handle: ArchiveFileHandle,
+) -> Generator[None, None, None]:
     """
     Saves the original cursor position, and returns the file handle there
     when the context manager exits.
@@ -55,7 +86,9 @@ def preserve_cursor_position(file_handle):
         file_handle.seek(original_position)
 
 
-def advance_to_next_line(file_handle, chunk_size=1024):
+def advance_to_next_line(
+    file_handle: ArchiveFileHandle, chunk_size: int = 1024
+) -> tuple[bool, bool] | None:
     """
     Advance the cursor just past the next newline character.
     Reports if the processed line met either of two special conditions:
@@ -110,7 +143,9 @@ def advance_to_next_line(file_handle, chunk_size=1024):
         last_twoish_bytes_read.extend(chunk[-2:])
 
 
-def find_next_delimiter(file_handle, chunk_size=1024):
+def find_next_delimiter(
+    file_handle: ArchiveFileHandle, chunk_size: int = 1024
+) -> int | None:
     """
     WARC records are supposed to be separated by two newlines (\r\n\r\n).
     Attempt to locate the next boundary. May rarely find a false positive.
@@ -163,7 +198,9 @@ def find_next_delimiter(file_handle, chunk_size=1024):
                 last_line_had_a_break = False
 
 
-def find_next_header_end(file_handle, chunk_size=1024):
+def find_next_header_end(
+    file_handle: ArchiveFileHandle, chunk_size: int = 1024
+) -> int | None:
     """
     WARC record headers are supposed to be separated from their content blocks
     by an empty newline (\r\n). Attempt to find the end of the current header
@@ -183,7 +220,7 @@ def find_next_header_end(file_handle, chunk_size=1024):
                 return file_handle.tell()
 
 
-def find_content_length_in_bytes(bytes):
+def find_content_length_in_bytes(bytes: bytes) -> int | None:
     """
     If a content-length header is present in the passed in bytes, return
     the stated content length as an integer, else return None.
@@ -194,7 +231,9 @@ def find_content_length_in_bytes(bytes):
     return None
 
 
-def find_pattern_in_bytes(pattern, data, case_insensitive=True):
+def find_pattern_in_bytes(
+    pattern: bytes, data: bytes, case_insensitive: bool = True
+) -> re.Match[bytes] | None:
     """
     Search for a regex pattern in the passed in bytes, return the
     re.Match object if found, else return None.
@@ -203,7 +242,12 @@ def find_pattern_in_bytes(pattern, data, case_insensitive=True):
     return re.search(pattern, data, re.IGNORECASE if case_insensitive else 0)
 
 
-def is_target_in_bytes(extracted, target, case_insensitive=True, exact_match=False):
+def is_target_in_bytes(
+    extracted: bytes,
+    target: str,
+    case_insensitive: bool = True,
+    exact_match: bool = False,
+) -> bool:
     """
     Matches the target bytes against the passed in bytestring.
     """
@@ -216,7 +260,12 @@ def is_target_in_bytes(extracted, target, case_insensitive=True, exact_match=Fal
     return target_bytes in extracted_bytes
 
 
-def yield_bytes_from_file(file_handle, start_offset, end_offset, chunk_size=1024):
+def yield_bytes_from_file(
+    file_handle: ArchiveFileHandle,
+    start_offset: int,
+    end_offset: int,
+    chunk_size: int = 1024,
+) -> Generator[bytes, None, None]:
     """
     An iterator that yields bytes from the file handle in chunks.
     """
@@ -236,24 +285,29 @@ def yield_bytes_from_file(file_handle, start_offset, end_offset, chunk_size=1024
 
 
 @contextmanager
-def get_archive_filepath(wacz_file):
-    """This function extracts the path of the archive in a WACZ file, given its filehandle."""
+def get_archive_filepath(
+    wacz_file: str | IO[bytes],
+) -> Generator[str, None, None]:
+    """This function extracts the path of the archive in a WACZ file, given its filepath or file handle."""
     with zipfile.Path(wacz_file, "datapackage.json").open("r") as datapackage:
         yield archive_resource(datapackage)
 
 
-def archive_resource(datapackage):
+def archive_resource(datapackage: TextIO) -> str:
     """This function extracts the path of an archive from datapackage.json, given its filehandle."""
     data = json.load(datapackage)
-    return [
-        resource["path"]
+    warc_paths = [
+        cast(str, resource["path"])
         for resource in data["resources"]
         if resource["path"].lower().endswith(".warc.gz")
-    ][0]
+    ]
+    return warc_paths[0]
 
 
 @contextmanager
-def python_open_archive(filepath, gunzip=False):
+def python_open_archive(
+    filepath: str, gunzip: bool = False
+) -> Generator[tuple[ArchiveFileHandle, FileType], None, None]:
     """
     Open a web archive file using native Python packages for decompression.
 
@@ -267,7 +321,7 @@ def python_open_archive(filepath, gunzip=False):
             to WARC content. If False, provide access to compressed content.
 
     Yields:
-        Tuple[file_handle, FileType]: A tuple containing the opened file handle
+        tuple[file_handle, FileType]: A tuple containing the opened file handle
         and a FileType enum indicating whether it's a WARC or GZIPPED_WARC.
 
     Raises:
@@ -294,7 +348,7 @@ def python_open_archive(filepath, gunzip=False):
                 with patched_gzip.open(warc_gz_file, "rb") as warc_file:
                     yield (warc_file, FileType.WARC)
             else:
-                yield (warc_gz_file, FileType.GZIPPED_WARC)
+                yield (cast(BufferedReader, warc_gz_file), FileType.GZIPPED_WARC)
 
     elif filepath.lower().endswith(".warc.gz"):
         with open(filepath, "rb") as warc_gz_file:
@@ -316,7 +370,9 @@ def python_open_archive(filepath, gunzip=False):
 
 
 @contextmanager
-def system_open_archive(filepath, gunzip=False):
+def system_open_archive(
+    filepath: str, gunzip: bool = False
+) -> Generator[tuple[ArchiveFileHandle, FileType], None, None]:
     """
     Open a web archive file using system tools for decompression.
 
@@ -330,7 +386,7 @@ def system_open_archive(filepath, gunzip=False):
             to WARC content. If False, provide access to compressed content.
 
     Yields:
-        Tuple[file_handle, FileType]: A tuple containing the opened file handle
+        tuple[file_handle, FileType]: A tuple containing the opened file handle
         and a FileType enum indicating whether it's a WARC or GZIPPED_WARC.
 
     Raises:
@@ -389,23 +445,43 @@ def system_open_archive(filepath, gunzip=False):
         raise ValueError("This doesn't look like a web archive")
 
 
-def decompress_and_get_gzip_file_member_offsets(file, outputfile=None, chunk_size=1024):
-    with patched_gzip.open(file, "rb") as file:
-        return file.decompress_and_get_member_offsets(outputfile, chunk_size)
+def decompress_and_get_gzip_file_member_offsets(
+    file: ArchiveFileHandle,
+    outputfile: Optional[ArchiveFileHandle] = None,
+    chunk_size: int = 1024,
+) -> deque[tuple[tuple[int, int], tuple[int, int]]]:
+    with patched_gzip.open(file, "rb") as gzip_file:
+        enhanced_file = cast("EnhancedGzipFile", gzip_file)
+        return enhanced_file.decompress_and_get_member_offsets(outputfile, chunk_size)
 
 
-def find_matching_request_response_pairs(records, count_only=False):
-    unpaired_requests_by_uri = defaultdict(deque)
-    unpaired_responses_by_uri = defaultdict(deque)
-    pairs_by_uri = defaultdict(list)
-    lone_requests_by_uri = defaultdict(list)
-    lone_responses_by_uri = defaultdict(list)
+def find_matching_request_response_pairs(
+    records: Iterable["Record"], count_only: bool = False
+) -> dict[str, Any]:
+    """
+    Returns:
+        If count_only=True: {"counts": {"pairs": int, "lone_requests": int, "lone_responses": int}}
+        If count_only=False: {
+            "pairs_by_uri": dict[str, list[tuple[Record, Record]]],
+            "lone_requests_by_uri": dict[str, list[Record]],
+            "lone_responses_by_uri": dict[str, list[Record]],
+            "counts": {"pairs": int, "lone_requests": int, "lone_responses": int}
+        }
+    """
+    unpaired_requests_by_uri: defaultdict[bytes, deque["Record"]] = defaultdict(deque)
+    unpaired_responses_by_uri: defaultdict[bytes, deque["Record"]] = defaultdict(deque)
+    pairs_by_uri: defaultdict[bytes, list[tuple["Record", "Record"]]] = defaultdict(
+        list
+    )
+    lone_requests_by_uri: defaultdict[bytes, list["Record"]] = defaultdict(list)
+    lone_responses_by_uri: defaultdict[bytes, list["Record"]] = defaultdict(list)
     counts = {"pairs": 0, "lone_requests": 0, "lone_responses": 0}
 
     for record in records:
-        match record.header.get_field("WARC-Type").lower():
+        warc_type = cast(bytes, record.header.get_field("WARC-Type"))  # type: ignore[union-attr]
+        match warc_type.lower():
             case b"request":
-                uri = record.header.get_field("WARC-Target-URI")
+                uri = cast(bytes, record.header.get_field("WARC-Target-URI"))  # type: ignore[union-attr]
                 if len(unpaired_responses_by_uri[uri]) > 0:
                     response = unpaired_responses_by_uri[uri].popleft()
                     counts["pairs"] += 1
@@ -415,7 +491,7 @@ def find_matching_request_response_pairs(records, count_only=False):
                     unpaired_requests_by_uri[uri].append(record)
 
             case b"response":
-                uri = record.header.get_field("WARC-Target-URI")
+                uri = cast(bytes, record.header.get_field("WARC-Target-URI"))  # type: ignore[union-attr]
                 if len(unpaired_requests_by_uri[uri]) > 0:
                     request = unpaired_requests_by_uri[uri].popleft()
                     counts["pairs"] += 1
@@ -449,7 +525,9 @@ def find_matching_request_response_pairs(records, count_only=False):
     }
 
 
-def get_encodings_from_http_headers(header_block):
+def get_encodings_from_http_headers(
+    header_block: bytes,
+) -> tuple[list[str] | None, re.Match[bytes] | None]:
     """Find content encodings and whether a record is chunked."""
     encodings = None
     match = find_pattern_in_bytes(
@@ -471,12 +549,12 @@ def get_encodings_from_http_headers(header_block):
     return encodings, chunked
 
 
-def concatenate_chunked_http_response(body_block):
+def concatenate_chunked_http_response(body_block: bytes) -> bytes:
     """Reassemble chunks of a chunked HTTP response."""
     return b"".join(body_block.split(CRLF)[1::2])
 
 
-def decompress(http_body_block, encodings):
+def decompress(http_body_block: bytes, encodings: list[str] | None) -> bytes:
     """This function recursively decodes an HTTP body block, given a list of encodings."""
     if not encodings:
         return http_body_block
@@ -484,7 +562,7 @@ def decompress(http_body_block, encodings):
         return decompress(_decompress(http_body_block, encodings[-1]), encodings[:-1])
 
 
-def _decompress(http_body_block, encoding):
+def _decompress(http_body_block: bytes, encoding: str) -> bytes:
     """This function decodes an HTTP body block, given an encoding."""
     # see https://developer.mozilla.org/en-US/docs/Web/HTTP/Reference/Headers/Content-Encoding
     if encoding == "gzip":
@@ -492,7 +570,7 @@ def _decompress(http_body_block, encoding):
     elif encoding == "deflate":
         return zlib.decompress(http_body_block, -15)
     elif encoding == "br":
-        return brotli.decompress(http_body_block)
+        return brotli.decompress(http_body_block)  # type: ignore[no-any-return]
     elif encoding == "zstd":
         return pyzstd_decompress(http_body_block)
     elif encoding == "dcb":

@@ -1,18 +1,30 @@
-from warcbench.parsers import (
-    DelimiterWARCParser,
-    ContentLengthWARCParser,
-    GzippedWARCMemberParser,
-    GzippedWARCDecompressingParser,
-)
+# Warcbench imports
 from warcbench.config import (
-    WARCParsingConfig,
-    WARCGZParsingConfig,
-    WARCProcessorConfig,
-    WARCGZProcessorConfig,
     WARCCachingConfig,
     WARCGZCachingConfig,
+    WARCGZParsingConfig,
+    WARCParsingConfig,
+    WARCGZProcessorConfig,
+    WARCProcessorConfig,
 )
-from typing import Optional
+from warcbench.parsers import (
+    ContentLengthWARCParser,
+    DelimiterWARCParser,
+    GzippedWARCDecompressingParser,
+    GzippedWARCMemberParser,
+)
+from warcbench.utils import ArchiveFileHandle
+
+# Typing imports
+from typing import (
+    Any,
+    Generator,
+    Optional,
+    TYPE_CHECKING,
+)
+
+if TYPE_CHECKING:
+    from warcbench.models import GzippedMember, Record, UnparsableLine
 
 
 class WARCParser:
@@ -38,11 +50,11 @@ class WARCParser:
 
     def __init__(
         self,
-        file_handle,
-        enable_lazy_loading_of_bytes=True,
-        parsing_options: Optional[WARCParsingConfig] = None,
-        processors: Optional[WARCProcessorConfig] = None,
-        cache: Optional[WARCCachingConfig] = None,
+        file_handle: ArchiveFileHandle,
+        enable_lazy_loading_of_bytes: bool = True,
+        parsing_options: WARCParsingConfig | None = None,
+        processors: WARCProcessorConfig | None = None,
+        cache: WARCCachingConfig | None = None,
     ):
         # Set up default config
         if parsing_options is None:
@@ -53,6 +65,7 @@ class WARCParser:
             processors = WARCProcessorConfig()
 
         # Initialize the appropriate parser
+        self._parser: DelimiterWARCParser | ContentLengthWARCParser
         match parsing_options.style:
             case "delimiter":
                 self._parser = DelimiterWARCParser(
@@ -80,26 +93,26 @@ class WARCParser:
                 )
 
     @property
-    def warnings(self):
+    def warnings(self) -> list[str]:
         return self._parser.warnings
 
     @property
-    def error(self):
+    def error(self) -> str | None:
         return self._parser.error
 
     @property
-    def current_record(self):
+    def current_record(self) -> Optional["Record"]:
         return self._parser.current_record
 
     @property
-    def records(self):
+    def records(self) -> list["Record"]:
         return self._parser.records
 
     @property
-    def unparsable_lines(self):
+    def unparsable_lines(self) -> list["UnparsableLine"]:
         return self._parser.unparsable_lines
 
-    def parse(self, cache_records=True):
+    def parse(self, cache_records: bool = True) -> None:
         """
         Parse the entire WARC file and optionally cache all records in memory.
 
@@ -110,16 +123,18 @@ class WARCParser:
         """
         return self._parser.parse(cache_records)
 
-    def iterator(self):
+    def iterator(self) -> Generator["Record", None, None]:
         """
         Return an iterator that yields Record objects one at a time.
 
         Returns:
-            Iterator[Record]: An iterator of WARC record objects
+            Generator[Record, None, None]: A generator of WARC record objects
         """
         return self._parser.iterator()
 
-    def get_record_offsets(self, split=False):
+    def get_record_offsets(
+        self, split: bool = False
+    ) -> list[tuple[int, int]] | list[tuple[int, int, int, int]]:
         """
         Get the byte offsets of all records in the file.
 
@@ -134,7 +149,9 @@ class WARCParser:
         """
         return self._parser.get_record_offsets(split)
 
-    def get_approximate_request_response_pairs(self, count_only=False):
+    def get_approximate_request_response_pairs(
+        self, count_only: bool = False
+    ) -> dict[str, Any]:
         """
         Identify and match HTTP request/response pairs in the WARC file.
         Only approximate: if multiple requests were made to the same Target-URI,
@@ -174,11 +191,11 @@ class WARCGZParser:
 
     def __init__(
         self,
-        file_handle,
-        enable_lazy_loading_of_bytes=True,
-        parsing_options: Optional[WARCGZParsingConfig] = None,
-        processors: Optional[WARCGZProcessorConfig] = None,
-        cache: Optional[WARCGZCachingConfig] = None,
+        file_handle: ArchiveFileHandle,
+        enable_lazy_loading_of_bytes: bool = True,
+        parsing_options: WARCGZParsingConfig | None = None,
+        processors: WARCGZProcessorConfig | None = None,
+        cache: WARCGZCachingConfig | None = None,
     ):
         # Set up default config
         if parsing_options is None:
@@ -198,6 +215,7 @@ class WARCGZParser:
             )
 
         # Initialize the appropriate parser
+        self._parser: GzippedWARCMemberParser | GzippedWARCDecompressingParser
         match parsing_options.style:
             case "split_gzip_members":
                 if parsing_options.decompression_style == "member":
@@ -233,26 +251,26 @@ class WARCGZParser:
                 )
 
     @property
-    def warnings(self):
+    def warnings(self) -> list[str]:
         return self._parser.warnings
 
     @property
-    def error(self):
+    def error(self) -> str | None:
         return self._parser.error
 
     @property
-    def current_member(self):
+    def current_member(self) -> Optional["GzippedMember"]:
         return self._parser.current_member
 
     @property
-    def members(self):
+    def members(self) -> list["GzippedMember"]:
         return self._parser.members
 
     @property
-    def records(self):
+    def records(self) -> list["Record"]:
         return self._parser.records
 
-    def parse(self, cache_members=True):
+    def parse(self, cache_members: bool = True) -> None:
         """
         Parse the entire gzipped WARC file and optionally cache all members in memory.
 
@@ -264,7 +282,9 @@ class WARCGZParser:
         """
         return self._parser.parse(cache_members)
 
-    def iterator(self, yield_type="members"):
+    def iterator(
+        self, yield_type: str = "members"
+    ) -> Generator["GzippedMember", None, None] | Generator["Record", None, None]:
         """
         Return an iterator that yields either gzip members or WARC records.
 
@@ -273,11 +293,13 @@ class WARCGZParser:
                 to yield Record objects extracted from successfully parsed members.
 
         Returns:
-            Iterator[GzippedMember] or Iterator[Record]: An iterator of the requested type
+            Generator[GzippedMember, None, None] or Generator[Record, None, None]: A generator of the requested type
         """
         return self._parser.iterator(yield_type)
 
-    def get_member_offsets(self, compressed=True):
+    def get_member_offsets(
+        self, compressed: bool = True
+    ) -> list[tuple[int | None, int | None]]:
         """
         Get the byte offsets of all gzip members in the file.
 
@@ -290,7 +312,9 @@ class WARCGZParser:
         """
         return self._parser.get_member_offsets(compressed)
 
-    def get_record_offsets(self, split=False):
+    def get_record_offsets(
+        self, split: bool = False
+    ) -> list[tuple[int, int]] | list[tuple[int, int, int, int]]:
         """
         Get the byte offsets of all WARC records extracted from gzip members.
 
@@ -305,7 +329,9 @@ class WARCGZParser:
         """
         return self._parser.get_record_offsets(split)
 
-    def get_approximate_request_response_pairs(self, count_only=False):
+    def get_approximate_request_response_pairs(
+        self, count_only: bool = False
+    ) -> dict[str, Any]:
         """
         Identify and match HTTP request/response pairs in the extracted WARC records.
         Only approximate: if multiple requests were made to the same Target-URI,

@@ -1,8 +1,10 @@
+# Standard library imports
 import click
 from collections import defaultdict
 import json
 import sys
 
+# Warcbench imports
 from warcbench.filters import (
     http_header_filter,
     http_response_content_type_filter,
@@ -15,20 +17,26 @@ from warcbench.filters import (
 )
 from warcbench.member_handlers import get_member_offsets
 from warcbench.record_handlers import (
-    get_record_offsets,
     get_record_headers,
-    get_record_http_headers,
     get_record_http_body,
+    get_record_http_headers,
+    get_record_offsets,
 )
 from warcbench.scripts.utils import (
     CLICachingConfig,
     CLIProcessorConfig,
-    open_and_parse,
     dynamically_import,
-    output_record,
-    output,
     format_record_data_for_output,
+    open_and_parse,
+    output,
+    output_record,
 )
+
+# Typing imports
+from typing import Any, Callable, TYPE_CHECKING
+
+if TYPE_CHECKING:
+    from warcbench.models import GzippedMember, Record
 
 
 class PathOrStdout(click.Path):
@@ -218,7 +226,7 @@ def filter_records(
     # Collect filters and handlers
     #
 
-    built_in_filters = {
+    built_in_filters: dict[str, Callable[..., Callable[["Record"], bool]]] = {
         "filter_by_http_header": http_header_filter,
         "filter_by_http_verb": http_verb_filter,
         "filter_by_http_status_code": http_status_filter,
@@ -229,11 +237,11 @@ def filter_records(
         "filter_by_warc_named_field": warc_named_field_filter,
     }
 
-    filters = []
-    member_handlers = []
-    record_handlers = []
+    filters: list[tuple[Callable[..., Callable[["Record"], bool]], list[Any]]] = []
+    member_handlers: list[Callable[["GzippedMember"], None]] = []
+    record_handlers: list[Callable[["Record"], None]] = []
 
-    data = {"count": None, "record_info": defaultdict(list)}
+    data: dict[str, Any] = {"count": None, "record_info": defaultdict(list)}
 
     # Handle output options
     if extract_to_warc and extract_to_gzipped_warc:
@@ -280,14 +288,14 @@ def filter_records(
         elif flag_name == "custom_filter_path" and value:
             custom_filters = dynamically_import("custom_filters", value)
             if not hasattr(custom_filters, "__all__"):
-                raise click.ClickException(print("{value} does not define __all__."))
+                raise click.ClickException(f"{value} does not define __all__.")
             for f in custom_filters.__all__:
                 filters.append((lambda: (getattr(custom_filters, f)), []))
 
         elif flag_name == "custom_record_handler_path" and value:
             custom_record_handlers = dynamically_import("custom_record_handlers", value)
             if not hasattr(custom_record_handlers, "__all__"):
-                raise click.ClickException(print("{value} does not define __all__."))
+                raise click.ClickException(f"{value} does not define __all__.")
             for f in custom_record_handlers.__all__:
                 record_handlers.append(getattr(custom_record_handlers, f))
 

@@ -2,28 +2,39 @@
 `filters` module: Functions that return helper functions that take a Record and return True/False
 """
 
+# Standard library imports
 import operator
+
+# Warcbench imports
 from warcbench.patterns import (
-    get_warc_named_field_pattern,
-    get_http_verb_pattern,
-    get_http_status_pattern,
-    get_http_header_pattern,
     CONTENT_LENGTH_PATTERN,
     CONTENT_TYPE_PATTERN,
+    get_http_header_pattern,
+    get_http_status_pattern,
+    get_http_verb_pattern,
+    get_warc_named_field_pattern,
 )
 from warcbench.utils import find_pattern_in_bytes, is_target_in_bytes
 
+# Typing imports
+from typing import Callable, TYPE_CHECKING
 
-def warc_header_regex_filter(regex, case_insensitive=True):
+if TYPE_CHECKING:
+    from warcbench.models import Record
+
+
+def warc_header_regex_filter(
+    regex: str, case_insensitive: bool = True
+) -> Callable[["Record"], bool]:
     """
     Finds WARC records with whose header bytes match the passed in regex.
     """
 
-    def f(record):
+    def f(record: "Record") -> bool:
         return bool(
             find_pattern_in_bytes(
                 bytes(regex, "utf-8"),
-                record.header.bytes,
+                record.header.bytes,  # type: ignore[union-attr]
                 case_insensitive=case_insensitive,
             )
         )
@@ -31,13 +42,15 @@ def warc_header_regex_filter(regex, case_insensitive=True):
     return f
 
 
-def record_content_length_filter(target_length, use_operator="eq"):
+def record_content_length_filter(
+    target_length: int, use_operator: str = "eq"
+) -> Callable[["Record"], bool]:
     """
     Finds WARC records with whose header includes a specified Content-Length
     that matches the target length. Available comparison operators:
     eq (default), lt, le, gt, ge, ne.
     """
-    allowed_operators = {
+    allowed_operators: dict[str, Callable[[int, int], bool]] = {
         "lt": operator.lt,
         "le": operator.le,
         "eq": operator.eq,
@@ -48,9 +61,11 @@ def record_content_length_filter(target_length, use_operator="eq"):
     if use_operator not in allowed_operators:
         raise ValueError(f"Supported operators: {', '.join(allowed_operators)}.")
 
-    def f(record):
+    def f(record: "Record") -> bool:
         match = find_pattern_in_bytes(
-            CONTENT_LENGTH_PATTERN, record.header.bytes, case_insensitive=True
+            CONTENT_LENGTH_PATTERN,
+            record.header.bytes,  # type: ignore[union-attr]
+            case_insensitive=True,
         )
 
         if match:
@@ -62,7 +77,9 @@ def record_content_length_filter(target_length, use_operator="eq"):
     return f
 
 
-def record_content_type_filter(content_type, case_insensitive=True, exact_match=False):
+def record_content_type_filter(
+    content_type: str, case_insensitive: bool = True, exact_match: bool = False
+) -> Callable[["Record"], bool]:
     """
     Filters on the Content-Type field of the WARC header.
 
@@ -76,9 +93,11 @@ def record_content_type_filter(content_type, case_insensitive=True, exact_match=
     See `http_response_content_type_filter`.
     """
 
-    def f(record):
+    def f(record: "Record") -> bool:
         match = find_pattern_in_bytes(
-            CONTENT_TYPE_PATTERN, record.header.bytes, case_insensitive=case_insensitive
+            CONTENT_TYPE_PATTERN,
+            record.header.bytes,  # type: ignore[union-attr]
+            case_insensitive=case_insensitive,
         )
         if match:
             extracted = match.group(1)
@@ -94,17 +113,20 @@ def record_content_type_filter(content_type, case_insensitive=True, exact_match=
 
 
 def warc_named_field_filter(
-    field_name, target, case_insensitive=True, exact_match=False
-):
+    field_name: str,
+    target: str,
+    case_insensitive: bool = True,
+    exact_match: bool = False,
+) -> Callable[["Record"], bool]:
     """
     Finds WARC records with a named header field that matches the specified target
     http://iipc.github.io/warc-specifications/specifications/warc-format/warc-1.1/#named-fields
     """
 
-    def f(record):
+    def f(record: "Record") -> bool:
         match = find_pattern_in_bytes(
             get_warc_named_field_pattern(field_name),
-            record.header.bytes,
+            record.header.bytes,  # type: ignore[union-attr]
             case_insensitive=case_insensitive,
         )
         if match:
@@ -120,16 +142,16 @@ def warc_named_field_filter(
     return f
 
 
-def http_verb_filter(verb):
+def http_verb_filter(verb: str) -> Callable[["Record"], bool]:
     """
     Finds WARC records with a Content-Type of application/http; msgtype=request,
     then filters on HTTP verb.
     """
 
-    def f(record):
+    def f(record: "Record") -> bool:
         if record_content_type_filter("msgtype=request")(record):
             http_headers = record.get_http_header_block()
-            match = find_pattern_in_bytes(get_http_verb_pattern(verb), http_headers)
+            match = find_pattern_in_bytes(get_http_verb_pattern(verb), http_headers)  # type: ignore[arg-type]
             if match:
                 extracted = match.group(1)
                 return is_target_in_bytes(extracted, verb, exact_match=True)
@@ -138,17 +160,18 @@ def http_verb_filter(verb):
     return f
 
 
-def http_status_filter(status_code):
+def http_status_filter(status_code: str | int) -> Callable[["Record"], bool]:
     """
     Finds WARC records with a Content-Type of application/http; msgtype=response,
     then filters on HTTP status code.
     """
 
-    def f(record):
+    def f(record: "Record") -> bool:
         if record_content_type_filter("msgtype=response")(record):
             http_headers = record.get_http_header_block()
             match = find_pattern_in_bytes(
-                get_http_status_pattern(status_code), http_headers
+                get_http_status_pattern(status_code),
+                http_headers,  # type: ignore[arg-type]
             )
             if match:
                 extracted = match.group(1)
@@ -158,18 +181,23 @@ def http_status_filter(status_code):
     return f
 
 
-def http_header_filter(header_name, target, case_insensitive=True, exact_match=False):
+def http_header_filter(
+    header_name: str,
+    target: str,
+    case_insensitive: bool = True,
+    exact_match: bool = False,
+) -> Callable[["Record"], bool]:
     """
     Finds WARC records with a Content-Type that includes application/http,
     then filters on any HTTP header.
     """
 
-    def f(record):
+    def f(record: "Record") -> bool:
         if record_content_type_filter("application/http")(record):
             http_headers = record.get_http_header_block()
             match = find_pattern_in_bytes(
                 get_http_header_pattern(header_name),
-                http_headers,
+                http_headers,  # type: ignore[arg-type]
                 case_insensitive=case_insensitive,
             )
             if match:
@@ -186,18 +214,20 @@ def http_header_filter(header_name, target, case_insensitive=True, exact_match=F
 
 
 def http_response_content_type_filter(
-    content_type, case_insensitive=True, exact_match=False
-):
+    content_type: str, case_insensitive: bool = True, exact_match: bool = False
+) -> Callable[["Record"], bool]:
     """
     Finds WARC records with a Content-Type of application/http; msgtype=response,
     then filters on the HTTP header "Content-Type".
     """
 
-    def f(record):
+    def f(record: "Record") -> bool:
         if record_content_type_filter("msgtype=response")(record):
             http_headers = record.get_http_header_block()
             match = find_pattern_in_bytes(
-                CONTENT_TYPE_PATTERN, http_headers, case_insensitive=case_insensitive
+                CONTENT_TYPE_PATTERN,
+                http_headers,  # type: ignore[arg-type]
+                case_insensitive=case_insensitive,
             )
             if match:
                 extracted = match.group(1)

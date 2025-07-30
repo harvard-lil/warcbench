@@ -11,22 +11,28 @@ The inheritance pattern allows for different parsing strategies:
 - Concrete subclasses: Implement different strategies for finding record boundaries
 """
 
+# Standard library imports
 from abc import ABC, abstractmethod
 import logging
 import os
 
+# Warcbench imports
+from warcbench.config import WARCCachingConfig, WARCParsingConfig, WARCProcessorConfig
 from warcbench.exceptions import AttributeNotInitializedError
-from warcbench.models import Record, Header, ContentBlock, UnparsableLine
+from warcbench.models import ContentBlock, Header, Record, UnparsableLine
 from warcbench.patterns import CRLF, WARC_VERSIONS
 from warcbench.utils import (
-    skip_leading_whitespace,
+    ArchiveFileHandle,
     advance_to_next_line,
-    find_next_delimiter,
-    find_next_header_end,
     find_content_length_in_bytes,
     find_matching_request_response_pairs,
+    find_next_delimiter,
+    find_next_header_end,
+    skip_leading_whitespace,
 )
-from warcbench.config import WARCCachingConfig, WARCProcessorConfig, WARCParsingConfig
+
+# Typing imports
+from typing import Any, Generator
 
 logger = logging.getLogger(__name__)
 
@@ -58,8 +64,8 @@ class BaseParser(ABC):
 
     def __init__(
         self,
-        file_handle,
-        enable_lazy_loading_of_bytes,
+        file_handle: ArchiveFileHandle,
+        enable_lazy_loading_of_bytes: bool,
         parsing_options: WARCParsingConfig,
         processors: WARCProcessorConfig,
         cache: WARCCachingConfig,
@@ -81,19 +87,20 @@ class BaseParser(ABC):
         self.cache = cache
         self.processors = processors
 
-        self.warnings = []
-        self.error = None
-        self.current_record = None
+        self.warnings: list[str] = []
+        self.error: str | None = None
+        self.current_record: Record | None = None
 
-        self._records = None
+        self._records: list[Record] | None = None
 
+        self._unparsable_lines: list[UnparsableLine] | None
         if cache.unparsable_lines:
             self._unparsable_lines = []
         else:
             self._unparsable_lines = None
 
     @property
-    def records(self):
+    def records(self) -> list[Record]:
         if self._records is None:
             raise AttributeNotInitializedError(
                 "Call parser.parse(cache_members=True) to load records into RAM and populate parser.records, "
@@ -102,7 +109,7 @@ class BaseParser(ABC):
         return self._records
 
     @property
-    def unparsable_lines(self):
+    def unparsable_lines(self) -> list[UnparsableLine]:
         if self._unparsable_lines is None:
             raise AttributeNotInitializedError(
                 "Pass cache_unparsable_lines=True to WARCParser() to store UnparsableLines "
@@ -110,22 +117,23 @@ class BaseParser(ABC):
             )
         return self._unparsable_lines
 
-    def parse(self, cache_records):
-        iterator = self.iterator()
+    def parse(self, cache_records: bool) -> None:
         if cache_records:
             self._records = []
+
+        iterator = self.iterator()
         for record in iterator:
             if cache_records:
-                self._records.append(record)
+                self._records.append(record)  # type: ignore[union-attr]
 
-    def iterator(self):
+    def iterator(self) -> Generator[Record, None, None]:
         yielded = 0
         self.file_handle.seek(0)
 
         while self.state != STATES["END"]:
             if self.state == STATES["YIELD_CURRENT_RECORD"]:
                 yielded = yielded + 1
-                yield self.current_record
+                yield self.current_record  # type: ignore[misc]
                 self.current_record = None
 
                 if (
@@ -141,9 +149,15 @@ class BaseParser(ABC):
                 self.state = STATES["FIND_NEXT_RECORD"]
             else:
                 transition_func = self.transitions[self.state]
+                if not transition_func:
+                    raise RuntimeError(
+                        f"Parser logic error: {self.state} has no transition function."
+                    )
                 self.state = transition_func()
 
-    def get_record_offsets(self, split):
+    def get_record_offsets(
+        self, split: bool
+    ) -> list[tuple[int, int]] | list[tuple[int, int, int, int]]:
         records = self._records if self._records else self.iterator()
 
         if split:
@@ -153,17 +167,19 @@ class BaseParser(ABC):
                 )
             return [
                 (
-                    record.header.start,
-                    record.header.end,
-                    record.content_block.start,
-                    record.content_block.end,
+                    record.header.start,  # type: ignore[union-attr]
+                    record.header.end,  # type: ignore[union-attr]
+                    record.content_block.start,  # type: ignore[union-attr]
+                    record.content_block.end,  # type: ignore[union-attr]
                 )
                 for record in records
             ]
 
         return [(record.start, record.end) for record in records]
 
-    def get_approximate_request_response_pairs(self, count_only):
+    def get_approximate_request_response_pairs(
+        self, count_only: bool
+    ) -> dict[str, Any]:
         """
         Recommended: use with cache_parsed_headers=True.
         """
@@ -174,7 +190,7 @@ class BaseParser(ABC):
     # Internal Methods
     #
 
-    def find_warc_header(self):
+    def find_warc_header(self) -> str:
         skip_leading_whitespace(self.file_handle)
         for warc_version in WARC_VERSIONS:
             header_found = self.file_handle.peek(len(warc_version)).startswith(
@@ -185,7 +201,7 @@ class BaseParser(ABC):
         self.error = "No WARC header found."
         return STATES["RUN_PARSER_CALLBACKS"]
 
-    def find_next_record(self):
+    def find_next_record(self) -> str:
         while True:
             initial_position = self.file_handle.tell()
             for warc_version in WARC_VERSIONS:
@@ -214,7 +230,12 @@ class BaseParser(ABC):
             else:
                 return STATES["RUN_PARSER_CALLBACKS"]
 
-    def check_record_against_filters(self):
+    def check_record_against_filters(self) -> str:
+        if self.current_record is None:
+            raise RuntimeError(
+                "Parser logic error: check_record_against_filters called with no current record."
+            )
+
         retained = True
         if self.processors.record_filters:
             for f in self.processors.record_filters:
@@ -229,14 +250,19 @@ class BaseParser(ABC):
             return STATES["RUN_RECORD_HANDLERS"]
         return STATES["FIND_NEXT_RECORD"]
 
-    def run_record_handlers(self):
+    def run_record_handlers(self) -> str:
+        if self.current_record is None:
+            raise RuntimeError(
+                "Parser logic error: run_record_handlers called with no current record."
+            )
+
         if self.processors.record_handlers:
             for f in self.processors.record_handlers:
                 f(self.current_record)
 
         return STATES["YIELD_CURRENT_RECORD"]
 
-    def run_parser_callbacks(self):
+    def run_parser_callbacks(self) -> str:
         if self.processors.parser_callbacks:
             for f in self.processors.parser_callbacks:
                 f(self)
@@ -244,7 +270,7 @@ class BaseParser(ABC):
         return STATES["END"]
 
     @abstractmethod
-    def extract_next_record(self):
+    def extract_next_record(self) -> str:
         pass
 
 
@@ -256,8 +282,8 @@ class DelimiterWARCParser(BaseParser):
 
     def __init__(
         self,
-        file_handle,
-        enable_lazy_loading_of_bytes,
+        file_handle: ArchiveFileHandle,
+        enable_lazy_loading_of_bytes: bool,
         parsing_options: WARCParsingConfig,
         processors: WARCProcessorConfig,
         cache: WARCCachingConfig,
@@ -296,7 +322,7 @@ class DelimiterWARCParser(BaseParser):
             cache=cache,
         )
 
-    def extract_next_record(self):
+    def extract_next_record(self) -> str:
         start = self.file_handle.tell()
         stop = find_next_delimiter(
             self.file_handle, self.parsing_options.parsing_chunk_size
@@ -381,7 +407,7 @@ class ContentLengthWARCParser(BaseParser):
     then skips exactly that many bytes to find the next record.
     """
 
-    def extract_next_record(self):
+    def extract_next_record(self) -> str:
         #
         # Find what looks like the next WARC header record
         #
@@ -445,7 +471,7 @@ class ContentLengthWARCParser(BaseParser):
             data = bytearray()
             data.extend(header_bytes)
             data.extend(b"\n")
-            data.extend(content_bytes)
+            data.extend(content_bytes)  # type: ignore[arg-type]
             record._bytes = bytes(data)
         if self.enable_lazy_loading_of_bytes:
             record._file_handle = self.file_handle

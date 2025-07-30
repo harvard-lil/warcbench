@@ -1,17 +1,23 @@
+# Standard library imports
 import base64
 import click
-import html
 from dataclasses import dataclass
+import html
 from http.server import BaseHTTPRequestHandler
 import importlib.util
 import io
 from pathlib import Path
 import re
 import sys
-from typing import List, Optional
 
+# Warcbench imports
 from warcbench import WARCParser, WARCGZParser
-from warcbench.config import WARCCachingConfig, WARCGZCachingConfig
+from warcbench.config import (
+    WARCCachingConfig,
+    WARCGZCachingConfig,
+    WARCGZProcessorConfig,
+    WARCProcessorConfig,
+)
 from warcbench.exceptions import DecodingException
 from warcbench.patches import patched_gzip
 from warcbench.patterns import CRLF
@@ -20,23 +26,56 @@ from warcbench.utils import (
     python_open_archive,
     system_open_archive,
 )
-from warcbench.config import WARCProcessorConfig, WARCGZProcessorConfig
+
+# Typing imports
+from typing import (
+    Any,
+    Callable,
+    Union,
+    TYPE_CHECKING,
+    cast,
+)
+import types
+
+if TYPE_CHECKING:
+    from warcbench.models import Record, GzippedMember, UnparsableLine
+    from warcbench.parsers.warc import BaseParser as WARCBaseParser
+    from warcbench.parsers.gzipped_warc import BaseParser as WARCGZBaseParser
 
 
-def dynamically_import(module_name, module_path):
+def dynamically_import(module_name: str, module_path: str) -> types.ModuleType:
     # Create a module specification
     spec = importlib.util.spec_from_file_location(module_name, module_path)
+
+    # spec can be None when:
+    # - module_path points to a directory instead of a file
+    # - module_path has invalid format in some edge cases
+    if spec is None:
+        raise ImportError(
+            f"Could not load spec for module {module_name} from {module_path}"
+        )
+
     # Create a new module based on the specification
     module = importlib.util.module_from_spec(spec)
+
+    # spec.loader can be None for:
+    # - Namespace packages (which legitimately have loader=None)
+    # - Edge cases where the import system can't determine a proper loader
+    # Without this check, we'd get AttributeError instead of a clear error message
+    if spec.loader is None:
+        raise ImportError(f"No loader found for module {module_name}")
+
     # Execute the module in its own namespace
     spec.loader.exec_module(module)
     return module
 
 
-def extract_file(basename, extension, decode):
+def extract_file(
+    basename: str, extension: str, decode: bool
+) -> Callable[["Record"], None]:
     """A record-handler for file extraction."""
 
-    def f(record):
+    def f(record: "Record") -> None:
         if decode:
             try:
                 http_body_block = record.get_decompressed_http_body()
@@ -56,7 +95,7 @@ def extract_file(basename, extension, decode):
     return f
 
 
-def output(destination, data_string):
+def output(destination: None | io.IOBase | str, data_string: str) -> None:
     if not destination:
         return
     elif destination is sys.stdout:
@@ -70,12 +109,14 @@ def output(destination, data_string):
             file.write(data_string)
 
 
-def output_record(output_to, gzip=False):
+def output_record(
+    output_to: str | io.IOBase, gzip: bool = False
+) -> Callable[["Record"], None]:
     """
     A record-handler for outputting WARC records
     """
 
-    def f(record):
+    def f(record: "Record") -> None:
         if gzip:
             if output_to is sys.stdout:
                 with patched_gzip.open(sys.stdout.buffer, "wb") as stdout:
@@ -92,14 +133,14 @@ def output_record(output_to, gzip=False):
             elif output_to is sys.stderr:
                 sys.stderr.buffer.write(record.bytes + CRLF * 2)
             else:
-                with open(output_to, "ab") as file:
+                with open(output_to, "ab") as file:  # type: ignore[arg-type]
                     file.write(record.bytes + CRLF * 2)
 
     return f
 
 
-def format_record_data_for_output(data):
-    records = []
+def format_record_data_for_output(data: dict[str, Any]) -> list[dict[str, Any]]:
+    records: list[dict[str, Any]] = []
 
     if "member_offsets" in data:
         if not records:
@@ -164,7 +205,9 @@ def format_record_data_for_output(data):
     return records
 
 
-def get_warc_response_handler(pairs, file1, file2):
+def get_warc_response_handler(
+    pairs: dict[str, tuple[int, "Record", "Record"]], file1: str, file2: str
+) -> Any:
     """
     Creates an HTTP request handler for initializing an instance of http.server.HTTPServer.
 
@@ -175,23 +218,27 @@ def get_warc_response_handler(pairs, file1, file2):
       and contents in iframes
     """
 
-    def get_warc_record_fields_as_html(record):
+    def get_warc_record_fields_as_html(record: "Record") -> bytes:
         data = bytearray()
         data.extend(b"<p>")
-        for field, values in record.header.get_parsed_fields(decode=True).items():
+        for field, values in record.header.get_parsed_fields(decode=True).items():  # type: ignore[union-attr]
             data.extend(
                 bytes(
                     f"""
-                {field}: {html.escape(values[0]) if values[0] else values[0]}<br>
+                {cast(str, field)}: {html.escape(cast(str, values[0])) if values[0] else values[0]}<br>
             """,
                     "utf-8",
                 )
             )
         data.extend(b"</p>")
-        return data
+        return bytes(data)
 
     class WARCResponseHandler(BaseHTTPRequestHandler):
-        def do_GET(self):
+        # WARCResponseHandler.pairs will be set dynamically when the factory function,
+        # get_warc_response_handler, is called.
+        pairs: dict[str, tuple[int, "Record", "Record"]]
+
+        def do_GET(self) -> None:
             if self.path == "/":
                 #
                 # The index page
@@ -297,6 +344,12 @@ def get_warc_response_handler(pairs, file1, file2):
                 #
                 _, record1, record2 = self.pairs[self.path]
 
+                # Extract target URI for template
+                target_uri = cast(
+                    str,
+                    record1.header.get_field("WARC-Target-URI", decode=True),  # type: ignore[union-attr]
+                )
+
                 self.send_response(200)
                 self.send_header("Content-type", "text/html")
                 self.end_headers()
@@ -325,7 +378,7 @@ def get_warc_response_handler(pairs, file1, file2):
                     </head>
                     <body>
                       <a href="/"><- Back to index</a>
-                      <h1>Target-URI <small>{record1.header.get_field("WARC-Target-URI", decode=True)}</h1>
+                      <h1>Target-URI <small>{target_uri}</small></h1>
                       <div class="records">
                         <div class="record">
                           <h2>{file1}</h2>
@@ -366,14 +419,17 @@ def get_warc_response_handler(pairs, file1, file2):
                 # The WARC record's HTTP headers and body, re-assembled into an HTTP response
                 #
                 pair = self.pairs[self.path[:-2]]
-                record = pair[int(self.path[-2:-1])]
+
+                _, record1, record2 = pair
+                record_num = int(self.path[-2:-1])
+                record = record1 if record_num == 1 else record2
 
                 # The HTTP Headers
 
                 status = 200  # Default to 200, in case no HTTP status is successfully parsed in the record
 
                 header_lines = (
-                    record.get_http_header_block()
+                    record.get_http_header_block()  # type: ignore[union-attr]
                     .decode("utf-8", errors="replace")
                     .splitlines()
                 )
@@ -397,7 +453,7 @@ def get_warc_response_handler(pairs, file1, file2):
                 self.end_headers()
 
                 # The HTTP body
-                self.wfile.write(record.get_http_body_block())
+                self.wfile.write(record.get_http_body_block())  # type: ignore[arg-type]
                 return
 
             self.send_error(404, "File not found")
@@ -407,15 +463,19 @@ def get_warc_response_handler(pairs, file1, file2):
 
 
 def open_and_invoke(
-    ctx,
-    invoke_method,
-    invoke_args=None,
-    invoke_kwargs=None,
-    processor_config=None,
-    cache_records_or_members=False,
-    cache_config=None,
-    extra_parser_kwargs=None,
-):
+    ctx: Any,
+    invoke_method: str,
+    invoke_args: list[Any] | None = None,
+    invoke_kwargs: dict[str, Any] | None = None,
+    processor_config: Union[
+        WARCProcessorConfig, WARCGZProcessorConfig, "CLIProcessorConfig"
+    ]
+    | None = None,
+    cache_records_or_members: bool = False,
+    cache_config: Union[WARCCachingConfig, WARCGZCachingConfig, "CLICachingConfig"]
+    | None = None,
+    extra_parser_kwargs: dict[str, Any] | None = None,
+) -> Any:
     if not invoke_args:
         invoke_args = []
     if not invoke_kwargs:
@@ -450,6 +510,7 @@ def open_and_invoke(
             #
             # Initialize parser
             #
+            parser: Union[WARCParser, WARCGZParser]
             if file_type == FileType.WARC:
                 if (
                     processor_config
@@ -466,8 +527,8 @@ def open_and_invoke(
                     processor_config = processor_config.to_warc_config()
                 parser = WARCParser(
                     file,
-                    cache=cache_config,
-                    processors=processor_config,
+                    cache=cast(WARCCachingConfig | None, cache_config),
+                    processors=cast(WARCProcessorConfig | None, processor_config),
                     **extra_parser_kwargs,
                 )
             elif file_type == FileType.GZIPPED_WARC:
@@ -477,23 +538,27 @@ def open_and_invoke(
                     processor_config = processor_config.to_warc_gz_config()
                 parser = WARCGZParser(
                     file,
-                    cache=cache_config,
-                    processors=processor_config,
+                    cache=cast(WARCGZCachingConfig | None, cache_config),
+                    processors=cast(WARCGZProcessorConfig | None, processor_config),
                     **extra_parser_kwargs,
                 )
 
             return getattr(parser, invoke_method)(*invoke_args, **invoke_kwargs)
     except (ValueError, NotImplementedError, RuntimeError) as e:
-        raise click.ClickException(e)
+        raise click.ClickException(str(e))
 
 
 def open_and_parse(
-    ctx,
-    processor_config=None,
-    cache_records_or_members=False,
-    cache_config=None,
-    extra_parser_kwargs=None,
-):
+    ctx: Any,
+    processor_config: Union[
+        WARCProcessorConfig, WARCGZProcessorConfig, "CLIProcessorConfig"
+    ]
+    | None = None,
+    cache_records_or_members: bool = False,
+    cache_config: Union[WARCCachingConfig, WARCGZCachingConfig, "CLICachingConfig"]
+    | None = None,
+    extra_parser_kwargs: dict[str, Any] | None = None,
+) -> Any:
     """This function runs the parser, filtering and running record handlers and parser callbacks as necessary."""
     if not extra_parser_kwargs:
         extra_parser_kwargs = {}
@@ -580,11 +645,13 @@ class CLIProcessorConfig:
         unparsable_line_handlers: List of functions to handle unparsable lines (WARC only).
     """
 
-    record_filters: Optional[List] = None
-    record_handlers: Optional[List] = None
-    parser_callbacks: Optional[List] = None
-    member_handlers: Optional[List] = None
-    unparsable_line_handlers: Optional[List] = None
+    record_filters: list[Callable[["Record"], bool]] | None = None
+    record_handlers: list[Callable[["Record"], None]] | None = None
+    parser_callbacks: (
+        list[Callable[[Union["WARCBaseParser", "WARCGZBaseParser"]], None]] | None
+    ) = None
+    member_handlers: list[Callable[["GzippedMember"], None]] | None = None
+    unparsable_line_handlers: list[Callable[["UnparsableLine"], None]] | None = None
 
     def to_warc_config(self) -> WARCProcessorConfig:
         """Convert to WARCProcessorConfig for WARC files."""
